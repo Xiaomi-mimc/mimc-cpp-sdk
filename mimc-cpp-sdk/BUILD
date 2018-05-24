@@ -27,10 +27,14 @@ cc_binary(
         "-g",
         "-O3",
     ],
-    linkopts = [],
+    linkopts = [
+         "-lz",
+         "-lssl"
+    ],
     srcs = ["demo/mimc_demo.cpp"],
     deps = [
         ":mimc_cpp_sdk",
+        "//third-party/curl-7-59-0"
     ]
 )
 

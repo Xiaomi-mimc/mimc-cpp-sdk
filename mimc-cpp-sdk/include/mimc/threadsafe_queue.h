@@ -13,6 +13,7 @@ public:
 	ThreadSafeQueue();
 	void push(T new_data);
 	void pop(T** result);
+	bool empty();
 	~ThreadSafeQueue();
 
 private:
@@ -34,13 +35,21 @@ void ThreadSafeQueue<T>::push(T new_data) {
 
 template <class T>
 void ThreadSafeQueue<T>::pop(T** result) {
-	if (head == tail) {
+	if (empty()) {
 		*result = NULL;
 		return;
 	}
 	int pos = head;
 	head = (head + 1) % QUEUE_SIZE;
 	*result = &(queue[pos]);
+}
+
+template <class T>
+bool ThreadSafeQueue<T>::empty() {
+	if (head == tail) {
+		return true;
+	}
+	return false;
 }
 
 template <class T>

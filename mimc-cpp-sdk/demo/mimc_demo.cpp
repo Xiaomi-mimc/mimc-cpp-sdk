@@ -3,14 +3,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <iostream>
+#include <curl/curl.h>
 
 using namespace std;
 
 string appId = "2882303761517613988";
 string appKey = "5361761377988";
 string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
-string appAccount1 = "雷军";
-string appAccount2 = "林斌";
+string appAccount1 = "LeiJun";
+string appAccount2 = "LinBin";
 
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
@@ -45,6 +46,9 @@ public:
     std::string pollServerAck() {
         std::string *packetIdPtr;
         packetIds.pop(&packetIdPtr);
+        if (packetIdPtr == NULL) {
+            return "";
+        }
         return *packetIdPtr;
     }
 private:
@@ -55,14 +59,35 @@ private:
 class TestTokenFetcher : public MIMCTokenFetcher {
 public:
     string fetchToken() {
+        curl_global_init(CURL_GLOBAL_ALL);
+        CURL *curl = curl_easy_init();
+        CURLcode res;
+        const string url = "https://mimc.chat.xiaomi.net/api/account/token";
+        const string body = "{\"appId\":\"" + this->appId + "\",\"appKey\":\"" + this->appKey + "\",\"appSecret\":\"" + this->appSecret + "\",\"appAccount\":\"" + this->appAccount + "\"}";
         string result;
+        if (curl) {
+            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
-        if (this->appAccount == "林斌") {
-            result = "{\"code\":200,\"message\":\"success\",\"data\":{\"appId\":\"2882303761517613988\",\"appPackage\":\"com.xiaomi.imc.test_app1\",\"appAccount\":\"林斌\",\"miChid\":9,\"miUserId\":\"10893549466025984\",\"miUserSecurityKey\":\"pkB4XDyu0WOmXQwDaWVRsQ==\",\"token\":\"bJRLeg7AgtSh0T13YjL/IDo1+cyozAK8oOvK1HLW8czyexdNLqpo2KtpTNLJqHRGDvILZ49lVpCt/RYO9mmygSsy24J5LYYL/VJt6t8iTa2ci8S77g1gID3bLgzkh5/HZ2lFtn9IGxOtZTdYuzlEzGCz8T6aNPdqe5J0/0UFGRqY1vZTJPO9oNOCm8WVERgNr3IddjZj+iubzezuQrCOBXInFdXG1ttM3ULb6oLPCyH6bNNY89n2dlb5Mwp2XJdxmHQ0osawIXf/fkI+Kkblz4wch9vdJg4R/w3oMUVIoqHXuE4jcTkf3lHQGbWACkXBXckM+TBWOn6B4fK0wT9oUA==\"}}";
-        } else if (this->appAccount == "雷军") {
-            result = "{\"code\":200,\"message\":\"success\",\"data\":{\"appId\":\"2882303761517613988\",\"appPackage\":\"com.xiaomi.imc.test_app1\",\"appAccount\":\"雷军\",\"miChid\":9,\"miUserId\":\"10893549197590528\",\"miUserSecurityKey\":\"ZLyXbJmh0Y6py8VPzJJiVw==\",\"token\":\"bJRLeg7AgtSh0T13YjL/IDo1+cyozAK8oOvK1HLW8cxK8ptUmNf4qlqbRx/8T6mBWoAoTJ8EE5dilN0Uvi1/TcC2voTpdRdOLfz7xEctJANpfIytTZ75lXYUPAYFk7ClpeE+AFKlKyn6xIAAIEVn4v3pR+7yhH9UCEc9ilB1neORg4pTvQOVlRoswAqF8Ag9unVVvBMYGQNEigt5hbpglirTillubQ8PmhwawG2ezdmkGPi0+60Xh31p0Crp0yEByjLO8ZydGlhUJ45bVdGYCkWPM93hjPZdDWzObvNOGUbDf9hvruHdVCJsmlqzA4i8B6Wlt+IxaeRB53YfvKsXxg==\"}}";
+            struct curl_slist *headers = NULL;
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.size());
+
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)(&result));
+
+            res = curl_easy_perform(curl);
+            if (res != CURLE_OK) {
+                LOG4CPLUS_ERROR(LOGGER, "curl_easy_perform() failed: " + string(curl_easy_strerror(res)));
+            }
         }
-        
+
+        curl_easy_cleanup(curl);
+
         return result;
     }
 
@@ -111,7 +136,7 @@ public:
         to->login();
         usleep(500000);
 
-        string msg1 = "你猜我是谁哈哈哈！";
+        string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
         LOG4CPLUS_INFO(LOGGER, "message1 from " << appAccount1 << " is " << msg1);
         
         string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
@@ -125,8 +150,10 @@ public:
         usleep(200000);
 
         MIMCMessage *message1 = toMessageHandler->pollMessage();
-        LOG4CPLUS_INFO(LOGGER, "message to "<< appAccount2 << " is " << message1->getPayload());
-
+        if (message1 != NULL) {
+            LOG4CPLUS_INFO(LOGGER, "message to "<< appAccount2 << " is " << message1->getPayload());
+        }
+        
         from->logout();
         usleep(400000);
 
