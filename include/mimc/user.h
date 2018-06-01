@@ -17,7 +17,7 @@ class PacketManager;
 
 class User {
 public:
-	User();
+	User(std::string appAccount, std::string resource="cpp");
 	~User();
 
 	void setLastLoginTimestamp(long ts) {this->lastLoginTimestamp = ts;}
@@ -77,6 +77,8 @@ private:
 	MIMCTokenFetcher* tokenFetcher;
 	OnlineStatusHandler* statusHandler;
 	MessageHandler* messageHandler;
+
+	pthread_t sendThread, receiveThread, checkThread;
 };
 
 #endif //MIMC_CPP_SDK_USER_H

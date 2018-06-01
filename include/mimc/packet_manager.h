@@ -42,7 +42,7 @@ private:
 	pthread_mutex_t packetsTimeoutMutex = PTHREAD_MUTEX_INITIALIZER;
 public:
 	ThreadSafeQueue<struct waitToSendContent> packetsWaitToSend;
-	std::map<std::string, struct waitToTimeoutContent> packetsWaitToTimeout;
+	std::map<std::string, MIMCMessage> packetsWaitToTimeout;
 	std::set<long> sequencesReceived;
 };
 

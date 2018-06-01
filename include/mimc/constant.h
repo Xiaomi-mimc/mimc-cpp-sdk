@@ -6,9 +6,9 @@
 #include <log4cplus/logger.h>
 
 enum PacketPayloadType {
-    THRIFT = 1,
-    PROTOBUF = 2,
-    XML = 3,
+	THRIFT = 1,
+	PROTOBUF = 2,
+	XML = 3,
 };
 
 enum OnlineStatus {
@@ -28,18 +28,16 @@ struct waitToSendContent
 	google::protobuf::Message * message;
 };
 
-struct waitToTimeoutContent
-{
-	mimc::MIMCPacket * mimcPacket;
-	long timestamp;
-};
-
 const short HEADER_MAGIC = 0xc2fe;
 const short HEADER_VERSION = 0x0005;
 const short BODY_HEADER_PAYLOADTYPE = PROTOBUF;
 const unsigned int BODY_PAYLOAD_CONN_VERSION = 106;
 const int BODY_PAYLOAD_CONN_SDK = 33;
+#ifndef STAGING
 const char* const FE_DOMAIN = "app.chat.xiaomi.net";
+#else
+const char* const FE_IP = "10.38.162.117";
+#endif
 const int FE_PORT = 5222;
 const int LOGIN_TIMEOUT = 10;
 const int CONNECT_TIMEOUT = 5;
@@ -80,6 +78,8 @@ const char * const MIMC_SERVER = "xiaomi.com";
 const char * const NO_KICK = "0";
 const char * const METHOD = "XIAOMI-PASS";
 
-const log4cplus::Logger LOGGER = log4cplus::Logger::getRoot(); 
+const char * const DEFAULT_RESOURCE = "cpp";
+
+const log4cplus::Logger LOGGER = log4cplus::Logger::getRoot();
 
 #endif //MIMC_CPP_SDK_CONSTANT_H

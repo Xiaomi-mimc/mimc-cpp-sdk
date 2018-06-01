@@ -3,6 +3,7 @@ cc_library(
     copts = [
         "-g",
         "-pthread",
+#        "-DSTAGING",
     ],
     linkopts = [
         "-lm",
@@ -26,6 +27,7 @@ cc_binary(
     copts = [
         "-g",
         "-O3",
+#        "-DSTAGING",
     ],
     linkopts = [
          "-lz",

@@ -116,8 +116,8 @@ class MIMCTest: public testing::Test
 {
 protected:
     void SetUp() {
-        from = new User();
-        to = new User();
+        from = new User(appAccount1);
+        to = new User(appAccount2);
         fromMessageHandler = new TestMessageHandler();
         toMessageHandler = new TestMessageHandler();
 
@@ -156,7 +156,7 @@ protected:
         ASSERT_TRUE(message != NULL);
         ASSERT_EQ(packetId, message->getPacketId());
         ASSERT_TRUE(message->getSequence() > 0);
-        ASSERT_EQ(from->getResource(), message->getFromResource());
+        ASSERT_EQ(from->getAppAccount(), message->getFromAccount());
         LOG4CPLUS_INFO(LOGGER, "messageContent is " << message->getPayload());
         ASSERT_EQ(msg1, message->getPayload());
         ASSERT_TRUE(toMessageHandler->pollMessage() == NULL);

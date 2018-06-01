@@ -12,13 +12,17 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/helpers/stringhelper.h>
 
-#define LOG4CPLUS_CONF_FILE "./mimc-cpp-sdk.properties"
+#define LOG4CPLUS_CONF_FILE "mimc-cpp-sdk.properties"
 
-User::User() {
+User::User(std::string appAccount, std::string resource) {
 	log4cplus::PropertyConfigurator::doConfigure(LOG4CPLUS_TEXT(LOG4CPLUS_CONF_FILE));
+	this->appAccount = appAccount;
 	this->permitLogin = false;
 	this->onlineStatus = Offline;
-	this->resource = Utils::generateRandomString(8);
+	if (resource == "") {
+		resource = DEFAULT_RESOURCE;
+	}
+	this->resource = resource;
 	this->lastLoginTimestamp = 0;
 	this->lastCreateConnTimestamp = 0;
 	this->lastPingTimestamp = 0;
@@ -30,13 +34,19 @@ User::User() {
 	Connection *conn = new Connection();
 	conn->setUser(this);
 
-	pthread_t sendThread, receiveThread, checkThread;
 	pthread_create(&sendThread, NULL, sendPacket, (void *)conn);
 	pthread_create(&receiveThread, NULL, receivePacket, (void *)conn);
 	pthread_create(&checkThread, NULL, checkTimeout, (void *)conn);
 }
 
 User::~User() {
+	pthread_cancel(sendThread);
+	pthread_join(sendThread, NULL);
+	pthread_cancel(receiveThread);
+	pthread_join(receiveThread, NULL);
+	pthread_cancel(checkThread);
+	pthread_join(checkThread, NULL);
+
 	delete this->packetManager;
 	delete this->tokenFetcher;
 	delete this->statusHandler;
@@ -85,7 +95,7 @@ void * User::sendPacket(void *arg) {
 					continue;
 				} else {
 					if (!user->permitLogin) {
-						usleep(5000);
+						usleep(200000);
 						continue;
 					}
 					LOG4CPLUS_INFO(LOGGER, "send cmd is " << BODY_CLIENTHEADER_CMD_BIND);
@@ -293,14 +303,13 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 	payload->set_package(this->appPackage);
 	payload->set_type(mimc::P2P_MESSAGE);
 	payload->set_payload(messageBytesStr);
+	payload->set_timestamp(time(NULL));
 
 	delete[] messageBytes;
 	messageBytes = NULL;
 
-	struct waitToTimeoutContent packet;
-	packet.mimcPacket = payload;
-	packet.timestamp = time(NULL);
-	(this->packetManager->packetsWaitToTimeout).insert(std::pair<std::string, struct waitToTimeoutContent>(packetId, packet));
+	MIMCMessage mimcMessage(packetId, payload->sequence(), this->appAccount, this->resource, toAppAccount, "", msg, payload->timestamp());
+	(this->packetManager->packetsWaitToTimeout).insert(std::pair<std::string, MIMCMessage>(packetId, mimcMessage));
 
 	struct waitToSendContent mimc_obj;
 	mimc_obj.cmd = BODY_CLIENTHEADER_CMD_SECMSG;
@@ -322,17 +331,20 @@ bool User::login() {
 		if (readerinfo->parse(mimcToken, root)) {
 			int retCode = root["code"].asInt();
 			if (retCode == 200) {
-				this->appId = root["data"]["appId"].asString();
-				this->appAccount = root["data"]["appAccount"].asString();
-				this->appPackage = root["data"]["appPackage"].asString();
-				this->chid = root["data"]["miChid"].asInt();
-				this->uuid = atol(root["data"]["miUserId"].asString().c_str());
-				this->securityKey = root["data"]["miUserSecurityKey"].asString();
-				this->token = root["data"]["token"].asString();
+				if (this->appAccount == root["data"]["appAccount"].asString()) {
+					this->appId = root["data"]["appId"].asString();
+					this->appPackage = root["data"]["appPackage"].asString();
+					this->chid = root["data"]["miChid"].asInt();
+					this->uuid = atol(root["data"]["miUserId"].asString().c_str());
+					this->securityKey = root["data"]["miUserSecurityKey"].asString();
+					this->token = root["data"]["token"].asString();
 
-				this->permitLogin = true;
+					this->permitLogin = true;
+				} else {
+					LOG4CPLUS_ERROR(LOGGER, "login Failed! Mismatched appAccount! current user is " << this->appAccount << ", token user is " << root["data"]["appAccount"].asString());
+				}
 			} else {
-				LOG4CPLUS_ERROR(LOGGER, "login Failed! retCode expect 200, but " << retCode);
+				LOG4CPLUS_ERROR(LOGGER, "login Failed! RetCode expect 200, but " << retCode);
 			}
 		} else {
 			LOG4CPLUS_ERROR(LOGGER, "login Failed! Wrong token!");
@@ -344,10 +356,11 @@ bool User::login() {
 }
 
 bool User::logout() {
-	if (this->onlineStatus == Offline) {
-		LOG4CPLUS_WARN(LOGGER, "user is not online");
+	if (this->permitLogin == false) {
+		LOG4CPLUS_WARN(LOGGER, "user has not logged in or has already logged out");
 		return false;
 	}
+
 	this->permitLogin = false;
 	struct waitToSendContent logout_obj;
 	logout_obj.cmd = BODY_CLIENTHEADER_CMD_UNBIND;

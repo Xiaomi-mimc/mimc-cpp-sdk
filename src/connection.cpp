@@ -37,9 +37,13 @@ bool Connection::connect() {
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(FE_PORT);
-    struct hostent *pHostEnt = NULL;
-    pHostEnt = gethostbyname(FE_DOMAIN);
-    dest_addr.sin_addr.s_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
+#ifndef STAGING
+   struct hostent *pHostEnt = NULL;
+   pHostEnt = gethostbyname(FE_DOMAIN);
+   dest_addr.sin_addr.s_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
+#else
+    dest_addr.sin_addr.s_addr = inet_addr(FE_IP);
+#endif
     if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
         close(socketfd);
         return false;
@@ -54,7 +58,7 @@ ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
     }
     size_t nLeft = nbytes;
     const unsigned char *bufTemp = (unsigned char *)buf;
-    while(nLeft > 0) {
+    while (nLeft > 0) {
         ssize_t nWrite = 0;
         nWrite = write(fd, bufTemp, nLeft);
         if (nWrite <= 0) {
@@ -76,7 +80,7 @@ ssize_t Connection::readn(int fd, void *buf, size_t nbytes) {
     }
     size_t nLeft = nbytes;
     char *bufTemp = (char *)buf;
-    while(nLeft > 0) {
+    while (nLeft > 0) {
         ssize_t nRead = 0;
         nRead = read(fd, bufTemp, nLeft);
         if (nRead < 0) {
@@ -96,7 +100,7 @@ ssize_t Connection::readn(int fd, void *buf, size_t nbytes) {
 }
 
 void Connection::trySetNextResetTs() {
-    if(this->nextResetSockTimestamp > 0) {
+    if (this->nextResetSockTimestamp > 0) {
         return;
     }
     this->nextResetSockTimestamp = time(NULL);

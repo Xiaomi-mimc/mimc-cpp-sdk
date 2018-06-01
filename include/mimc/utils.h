@@ -10,11 +10,15 @@
 #include <string.h>
 #include <iomanip>
 #include <crypto/base64.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <arpa/inet.h>
 
 class Utils {
 public:
     static std::string generateRandomString(int length);
     static std::string int2str(const int64_t &int_temp);
+    static std::string hexToAscii(const char* src, int srcLen);
     static std::string hash4SHA1AndBase64(const std::string &plain);
 };
 #endif //MIMC_CPP_SDK_UTILS_H

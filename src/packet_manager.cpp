@@ -311,6 +311,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 				ackPacket->set_package(user->getAppPackage());
 				ackPacket->set_type(mimc::SEQUENCE_ACK);
 				ackPacket->set_payload(messageBytesStr);
+				ackPacket->set_timestamp(time(NULL));
 
 				delete[] messageBytes;
 				messageBytes = NULL;
@@ -341,7 +342,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							LOG4CPLUS_ERROR(LOGGER, "RECV_PACKET, PACKET, RESOURCE_NOT_MATCH, " << user->getResource() << "!=" << p2pMessage.to().resource());
 							continue;
 						}
-						p2pMimcMessages.push_back(MIMCMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.payload(), mimcMessagePacket.timestamp()));
+						p2pMimcMessages.push_back(MIMCMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.to().appaccount(), p2pMessage.to().resource(), p2pMessage.payload(), mimcMessagePacket.timestamp()));
 					}
 				}
 				if (p2pMimcMessages.size() > 0) {
@@ -367,28 +368,20 @@ std::string PacketManager::createPacketId() {
 void PacketManager::checkMessageSendTimeout(const User * user) {
 	pthread_mutex_lock(&packetsTimeoutMutex);
 	std::vector<std::string> packetsWaitToDelete;
-	std::map<std::string, struct waitToTimeoutContent>::iterator iter;
+	std::map<std::string, MIMCMessage>::iterator iter;
 	for (iter = (this->packetsWaitToTimeout).begin(); iter != (this->packetsWaitToTimeout).end(); iter++) {
-		struct waitToTimeoutContent timeoutPacket = iter->second;
-		if (time(NULL) - timeoutPacket.timestamp < SEND_TIMEOUT) {
+		MIMCMessage mimcMessage = iter->second;
+		if (time(NULL) - mimcMessage.getTimeStamp() < SEND_TIMEOUT) {
 			continue;
 		}
-		mimc::MIMCPacket * mimcPacket = timeoutPacket.mimcPacket;
-		if (mimcPacket->type() == mimc::P2P_MESSAGE) {
-			mimc::MIMCP2PMessage p2pMessage;
-			if (!p2pMessage.ParseFromString(mimcPacket->payload())) {
-				LOG4CPLUS_ERROR(LOGGER, "p2pMessage timeout packet parse failed");
-				continue;
-			}
-			long sequence = mimcPacket->sequence();
-			long timestamp = mimcPacket->timestamp();
-			MIMCMessage mimcMessage(mimcPacket->packetid(), sequence, p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.payload(), timestamp);
-			if (user->getMessageHandler() != NULL) {
-				user->getMessageHandler()->handleSendMsgTimeout(mimcMessage);
-			}
+
+		if (user->getMessageHandler() != NULL) {
+			user->getMessageHandler()->handleSendMsgTimeout(mimcMessage);
 		}
-		packetsWaitToDelete.push_back(mimcPacket->packetid());
+
+		packetsWaitToDelete.push_back(mimcMessage.getPacketId());
 	}
+
 	int toDeleteSize = packetsWaitToDelete.size();
 	for (int i = 0; i < toDeleteSize; i++) {
 		(this->packetsWaitToTimeout).erase(packetsWaitToDelete[i]);

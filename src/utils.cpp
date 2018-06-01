@@ -27,6 +27,17 @@ std::string Utils::int2str(const int64_t &int_temp) {
     return stream.str();
 }
 
+std::string Utils::hexToAscii(const char* src, int srcLen) {
+    char dest[srcLen*2];
+    for (int i = 0,j = 0; i < srcLen; i++) {
+        unsigned char highHalf = ((unsigned char)src[i]) >> 4;
+        unsigned char lowHalf = ((unsigned char)src[i]) & 0x0F;
+        dest[j++] = (highHalf <= 9) ? (highHalf + '0') : (highHalf - 10 + 'A');
+        dest[j++] = (lowHalf <= 9) ? (lowHalf + '0') : (lowHalf - 10 + 'A');
+    }
+    return std::string(dest, srcLen*2);
+}
+
 std::string Utils::hash4SHA1AndBase64(const std::string &plain) {
     SHA_CTX c;
     unsigned char md[SHA_DIGEST_LENGTH];

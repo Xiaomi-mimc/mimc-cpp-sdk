@@ -7,9 +7,15 @@
 
 using namespace std;
 
+#ifndef STAGING
 string appId = "2882303761517613988";
 string appKey = "5361761377988";
 string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
+#else
+string appId = "2882303761517479657";
+string appKey = "5221747911657";
+string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
+#endif
 string appAccount1 = "LeiJun";
 string appAccount2 = "LinBin";
 
@@ -30,11 +36,11 @@ public:
     }
 
     void handleServerAck(std::string packetId, long sequence, long timestamp, std::string errorMsg) {
-        packetIds.push(packetId);
+        LOG4CPLUS_INFO(LOGGER, "serverAck from " << appAccount1 << ", packetId is " << packetId << ", sequence is " << sequence << ", timestamp is " << timestamp << ", errorMsg is " << errorMsg);
     }
 
     void handleSendMsgTimeout(MIMCMessage message) {
-        LOG4CPLUS_ERROR(LOGGER, "message send timeout! packetId is " << message.getPacketId() << ", sequence is " << message.getSequence() << ", timestamp is " << message.getTimeStamp());
+        LOG4CPLUS_ERROR(LOGGER, "message send timeout! packetId is " << message.getPacketId() << ", message is " << message.getPayload() << ", fromAccount is " << message.getFromAccount() << ", fromResource is " << message.getFromResource() << ", toAccount is " << message.getToAccount() << ", toResource is " << message.getToResource() << ", sequence is " << message.getSequence() << ", timestamp is " << message.getTimeStamp());
     }
 
     MIMCMessage* pollMessage() {
@@ -43,17 +49,8 @@ public:
         return messagePtr;
     }
 
-    std::string pollServerAck() {
-        std::string *packetIdPtr;
-        packetIds.pop(&packetIdPtr);
-        if (packetIdPtr == NULL) {
-            return "";
-        }
-        return *packetIdPtr;
-    }
 private:
     ThreadSafeQueue<MIMCMessage> messages;
-    ThreadSafeQueue<std::string> packetIds;
 };
 
 class TestTokenFetcher : public MIMCTokenFetcher {
@@ -62,7 +59,11 @@ public:
         curl_global_init(CURL_GLOBAL_ALL);
         CURL *curl = curl_easy_init();
         CURLcode res;
+#ifndef STAGING
         const string url = "https://mimc.chat.xiaomi.net/api/account/token";
+#else
+        const string url = "http://10.38.162.149/api/account/token";
+#endif
         const string body = "{\"appId\":\"" + this->appId + "\",\"appKey\":\"" + this->appKey + "\",\"appSecret\":\"" + this->appSecret + "\",\"appAccount\":\"" + this->appAccount + "\"}";
         string result;
         if (curl) {
@@ -117,8 +118,55 @@ private:
 class MimcDemo {
 public:
     static void testP2PSendOneMessage() {
-        User* from = new User();
-        User* to = new User();
+        User* from = new User(appAccount1);
+        User* to = new User(appAccount2);
+        TestMessageHandler* fromMessageHandler = new TestMessageHandler();
+        TestMessageHandler* toMessageHandler = new TestMessageHandler();
+
+        from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
+        from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+        from->registerMessageHandler(fromMessageHandler);
+
+        to->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
+        to->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+        to->registerMessageHandler(toMessageHandler);
+
+        if (!from->login()) {
+            return;
+        }
+
+        if (!to->login()) {
+            return;
+        }
+
+        usleep(500000);
+
+        string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
+        string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
+        LOG4CPLUS_INFO(LOGGER, "From user is " << appAccount1 << ", packetId is " << packetId_sent1 << ", message1 is " << msg1);
+
+        usleep(300000);
+
+        MIMCMessage *message1 = toMessageHandler->pollMessage();
+        if (message1 != NULL) {
+            LOG4CPLUS_INFO(LOGGER, "message to " << appAccount2 << " is " << message1->getPayload());
+        }
+
+        from->logout();
+        usleep(400000);
+
+        to->logout();
+        usleep(400000);
+
+        delete from;
+        from = NULL;
+        delete to;
+        to = NULL;
+    }
+
+    static void testP2PSendMessages() {
+        User* from = new User(appAccount1);
+        User* to = new User(appAccount2);
         TestMessageHandler* fromMessageHandler = new TestMessageHandler();
         TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
@@ -136,24 +184,50 @@ public:
         to->login();
         usleep(500000);
 
-        string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
-        LOG4CPLUS_INFO(LOGGER, "message1 from " << appAccount1 << " is " << msg1);
-        
-        string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
-        LOG4CPLUS_INFO(LOGGER, "packetId from " << appAccount1 << " is " << packetId_sent1);
+        MIMCMessage *message;
+        const int MAX_NUM = 100;
+        const int GOON_NUM = 20;
+        int num = 0;
+        while (num++ < MAX_NUM) {
+            LOG4CPLUS_INFO(LOGGER, "num is " << num);
+            string msg1 = "With mimc,we can communicate much easier！";
+            string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
+            usleep(300000);
+            while (message = toMessageHandler->pollMessage())
+            {
+                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+            }
 
-        usleep(100000);
-
-        string packetId_ack1 = fromMessageHandler->pollServerAck();
-        LOG4CPLUS_INFO(LOGGER, "packetId_ack from " << appAccount1 << " is " << packetId_ack1);
-
-        usleep(200000);
-
-        MIMCMessage *message1 = toMessageHandler->pollMessage();
-        if (message1 != NULL) {
-            LOG4CPLUS_INFO(LOGGER, "message to "<< appAccount2 << " is " << message1->getPayload());
+            string msg2 = "Yes~I feel it";
+            string packetId_sent2 = to->sendMessage(from->getAppAccount(), msg2);
+            usleep(300000);
+            while (message = fromMessageHandler->pollMessage())
+            {
+                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+            }
         }
-        
+
+        num = 0;
+        sleep(60);
+        while (num++ < GOON_NUM) {
+            LOG4CPLUS_INFO(LOGGER, "num is " << num);
+            string msg3 = "Let's go on!";
+            string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg3);
+            usleep(300000);
+            while (message = toMessageHandler->pollMessage())
+            {
+                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+            }
+
+            string msg4 = "OK!";
+            string packetId_sent2 = to->sendMessage(from->getAppAccount(), msg4);
+            usleep(300000);
+            while (message = fromMessageHandler->pollMessage())
+            {
+                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+            }
+        }
+
         from->logout();
         usleep(400000);
 
@@ -166,9 +240,11 @@ public:
         to = NULL;
     }
 };
-    
 
 int main(int argc, char **argv) {
+    /* A用户发送单条消息给B用户 */
     MimcDemo::testP2PSendOneMessage();
+    /* A用户与B用户互发多条消息 */
+    MimcDemo::testP2PSendMessages();
     return 0;
 }
