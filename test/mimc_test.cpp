@@ -17,7 +17,7 @@ string appAccount2 = "mi108";
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
     void statusChange(OnlineStatus status, string errType, string errReason, string errDescription) {
-        LOG4CPLUS_INFO(LOGGER, "status is " << status << ", errType is " << errType << ", errReason is " << errReason << ", errDescription is " << errDescription);
+        
     }
 };
 
@@ -35,7 +35,7 @@ public:
     }
 
     void handleSendMsgTimeout(MIMCMessage message) {
-        LOG4CPLUS_ERROR(LOGGER, "message send timeout! packetId is " << message.getPacketId() << ", sequence is " << message.getSequence() << ", timestamp is " << message.getTimeStamp());
+        
     }
 
     MIMCMessage* pollMessage() {
@@ -80,7 +80,7 @@ public:
 
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
-                LOG4CPLUS_ERROR(LOGGER, "curl_easy_perform() failed: " + string(curl_easy_strerror(res)));
+                
             }
         }
 
@@ -92,9 +92,9 @@ public:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         string *bodyp = (string *)userp;
         bodyp->append((const char *)contents, size * nmemb);
-        LOG4CPLUS_INFO(LOGGER, "WriteCallback size is " << size);
-        LOG4CPLUS_INFO(LOGGER, "WriteCallback nmemb is " << nmemb);
-        LOG4CPLUS_INFO(LOGGER, *bodyp);
+        
+        
+        
         return bodyp->size();
     }
 
@@ -137,7 +137,7 @@ protected:
         to = NULL;
     }
 
-    void testP2PSendOneMessage(User *from, TestMessageHandler *fromMessageHandler, User *to, TestMessageHandler *toMessageHandler) {
+    void testP2PSendOneMessage() {
         from->login();
         usleep(500000);
         ASSERT_EQ(Online, from->getOnlineStatus());
@@ -150,14 +150,13 @@ protected:
         string packetId = from->sendMessage(to->getAppAccount(), msg1);
         usleep(100000);
         ASSERT_EQ(packetId, fromMessageHandler->pollServerAck());
-        usleep(200000);
+        usleep(400000);
 
         MIMCMessage *message = toMessageHandler->pollMessage();
         ASSERT_TRUE(message != NULL);
-        ASSERT_EQ(packetId, message->getPacketId());
         ASSERT_TRUE(message->getSequence() > 0);
         ASSERT_EQ(from->getAppAccount(), message->getFromAccount());
-        LOG4CPLUS_INFO(LOGGER, "messageContent is " << message->getPayload());
+        
         ASSERT_EQ(msg1, message->getPayload());
         ASSERT_TRUE(toMessageHandler->pollMessage() == NULL);
 
@@ -179,7 +178,7 @@ protected:
 };
 
 TEST_F(MIMCTest, testP2PSendOneMsg) {
-    testP2PSendOneMessage(from, fromMessageHandler, to, toMessageHandler);
+    testP2PSendOneMessage();
 }
 
 int main(int argc, char **argv) {

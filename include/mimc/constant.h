@@ -3,7 +3,6 @@
 
 #include <google/protobuf/message.h>
 #include <mimc/mimc.pb.h>
-#include <log4cplus/logger.h>
 
 enum PacketPayloadType {
 	THRIFT = 1,
@@ -21,11 +20,28 @@ enum MessageDirection {
 	C2S_DOUBLE_DIRECTION
 };
 
+enum RelayLinkState {
+	NOT_CREATED,
+	BEING_CREATED,
+	SUCC_CREATED
+};
+
+enum RtsDataType {
+	AUDIO,
+	VIDEO
+};
+
+enum RtsChannelType {
+	RELAY,
+	P2P_INTRANET,
+    P2P_INTERNET
+};
+
 struct waitToSendContent
 {
 	std::string cmd;
 	MessageDirection type;
-	google::protobuf::Message * message;
+	google::protobuf::MessageLite * message;
 };
 
 const short HEADER_MAGIC = 0xc2fe;
@@ -36,7 +52,8 @@ const int BODY_PAYLOAD_CONN_SDK = 33;
 #ifndef STAGING
 const char* const FE_DOMAIN = "app.chat.xiaomi.net";
 #else
-const char* const FE_IP = "10.38.162.117";
+//const char* const FE_IP = "10.38.162.117";
+const char* const FE_IP = "10.38.162.154";
 #endif
 const int FE_PORT = 5222;
 const int LOGIN_TIMEOUT = 10;
@@ -45,6 +62,10 @@ const int RESETSOCK_TIMEOUT = 5;
 const int HTTP_TIMEOUT = CONNECT_TIMEOUT;
 const int SEND_TIMEOUT = CONNECT_TIMEOUT * 2;
 const int PING_TIMEINTERVAL = 15;
+const int XMD_TRAN_TIMEOUT = 5;
+const int RELAY_CONN_TIMEOUT = 5;
+const int RTS_CHECK_TIMEOUT = 5;
+const int RTS_CALL_TIMEOUT = 35;
 
 const char* const BODY_CLIENTHEADER_CMD_CONN = "CONN";
 const char* const BODY_CLIENTHEADER_CMD_BIND = "BIND";
@@ -72,14 +93,13 @@ const int BODY_CRC_LEN = 4;
 const int MIMC_CHID = 9;
 
 const int MIMC_MAX_PAYLOAD_SIZE = 10 * 1024;
+const int RTS_MAX_PAYLOAD_SIZE = 500 * 1024;
 
-const char * const MIMC_SERVER = "xiaomi.com";
+const char* const MIMC_SERVER = "xiaomi.com";
 
-const char * const NO_KICK = "0";
-const char * const METHOD = "XIAOMI-PASS";
+const char* const NO_KICK = "0";
+const char* const METHOD = "XIAOMI-PASS";
 
-const char * const DEFAULT_RESOURCE = "cpp";
-
-const log4cplus::Logger LOGGER = log4cplus::Logger::getRoot();
+const char* const DEFAULT_RESOURCE = "cpp";
 
 #endif //MIMC_CPP_SDK_CONSTANT_H

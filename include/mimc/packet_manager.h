@@ -18,7 +18,7 @@ class PacketManager {
 public:
 	int encodeConnectionPacket(unsigned char * &packet, const Connection * connection);
 	int encodeBindPacket(unsigned char * &packet, const Connection * connection);
-	int encodeSecMsgPacket(unsigned char * &packet, const Connection * connection, const google::protobuf::Message * message);
+	int encodeSecMsgPacket(unsigned char * &packet, const Connection * connection, const google::protobuf::MessageLite * message);
 	int encodeUnBindPacket(unsigned char * &packet, const Connection * connection);
 	int encodePingPacket(unsigned char * &packet, const Connection * connection);
 	int decodePacketAndHandle(unsigned char * packet, Connection * connection);
@@ -28,7 +28,7 @@ public:
 	void checkMessageSendTimeout(const User * user);
 private:
 	ims::ClientHeader * createClientHeader(const User * user, std::string cmd, int cipher);
-	int encodePacket(unsigned char * &packet, const ims::ClientHeader * header, const google::protobuf::Message * message, const std::string &body_key="", const std::string &payload_key="");
+	int encodePacket(unsigned char * &packet, const ims::ClientHeader * header, const google::protobuf::MessageLite * message, const std::string &body_key="", const std::string &payload_key="");
 	void short2char(short data, unsigned char* result, int index);
 	void int2char(int data, unsigned char* result, int index);
 

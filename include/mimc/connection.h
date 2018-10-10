@@ -14,6 +14,7 @@ class Connection {
 public:
     Connection();
     bool connect();
+    void closeSock();
     void resetSock();
     ssize_t writen(int fd, const void *buf, size_t nbytes);
     ssize_t readn(int fd, void *buf, size_t nbytes);
@@ -26,15 +27,15 @@ public:
     int getSdk() { return sdk; }
     int getAndver() const{ return andver; }
     int getSock() { return socketfd; }
-    const std::string &getModel() const{ return model; }
-    const std::string &getOs() const{ return os; }
-    const std::string &getUdid() const{ return udid; }
-    const std::string &getConnpt() const{ return connpt; }
-    const std::string &getHost() const{ return host; }
-    const std::string &getPort() const{ return port; }
-    const std::string &getLocale() const{ return locale; }
-    const std::string &getChallenge() const{ return challenge; }
-    const std::string &getBodyKey() const{ return body_key; }
+    std::string getModel() const{ return model; }
+    std::string getOs() const{ return os; }
+    std::string getUdid() const{ return udid; }
+    std::string getConnpt() const{ return connpt; }
+    std::string getHost() const{ return host; }
+    std::string getPort() const{ return port; }
+    std::string getLocale() const{ return locale; }
+    std::string getChallenge() const{ return challenge; }
+    std::string getBodyKey() const{ return body_key; }
     User * getUser() const{ return user; }
     ConnState getState() { return state; }
 

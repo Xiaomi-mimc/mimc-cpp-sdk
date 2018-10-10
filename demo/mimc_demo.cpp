@@ -2,27 +2,31 @@
 #include <mimc/threadsafe_queue.h>
 #include <string.h>
 #include <unistd.h>
-#include <iostream>
 #include <curl/curl.h>
+#include <list>
 
 using namespace std;
 
 #ifndef STAGING
-string appId = "2882303761517613988";
+/*string appId = "2882303761517613988";
 string appKey = "5361761377988";
-string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
+string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";*/
+string appId = "2882303761517669588";
+string appKey = "5111766983588";
+string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
 #else
 string appId = "2882303761517479657";
 string appKey = "5221747911657";
 string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
 #endif
-string appAccount1 = "LeiJun";
-string appAccount2 = "LinBin";
+string appAccount1 = "LeiJun222";
+string appAccount2 = "LinBin333";
+string appAccount3 = "Jerry";
 
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
-    void statusChange(OnlineStatus status, string errType, string errReason, string errDescription) {
-        LOG4CPLUS_INFO(LOGGER, "status is " << status << ", errType is " << errType << ", errReason is " << errReason << ", errDescription is " << errDescription);
+    void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
+        LoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
     }
 };
 
@@ -36,11 +40,11 @@ public:
     }
 
     void handleServerAck(std::string packetId, long sequence, long timestamp, std::string errorMsg) {
-        LOG4CPLUS_INFO(LOGGER, "serverAck from " << appAccount1 << ", packetId is " << packetId << ", sequence is " << sequence << ", timestamp is " << timestamp << ", errorMsg is " << errorMsg);
+        
     }
 
     void handleSendMsgTimeout(MIMCMessage message) {
-        LOG4CPLUS_ERROR(LOGGER, "message send timeout! packetId is " << message.getPacketId() << ", message is " << message.getPayload() << ", fromAccount is " << message.getFromAccount() << ", fromResource is " << message.getFromResource() << ", toAccount is " << message.getToAccount() << ", toResource is " << message.getToResource() << ", sequence is " << message.getSequence() << ", timestamp is " << message.getTimeStamp());
+        
     }
 
     MIMCMessage* pollMessage() {
@@ -51,6 +55,56 @@ public:
 
 private:
     ThreadSafeQueue<MIMCMessage> messages;
+};
+
+class TestRTSCallEventHandler : public RTSCallEventHandler {
+public:
+    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& data) {
+        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, data is %s", chatId, fromAccount.c_str(), fromResource.c_str(), data.c_str());
+        if (data != appcontent) {
+            return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
+        }
+        LoggerWrapper::instance()->info("In onLaunched, data is equals to appcontent");
+        chatIds.push_back(chatId);
+        return LaunchedResponse(true, LAUNCH_OK);
+    }
+
+    void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
+        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
+        if (accepted) {
+            chatIds.push_back(chatId);
+        }
+    }
+
+    void onClosed(long chatId, const std::string& errmsg) {
+        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
+        std::list<long>::iterator iter;
+        for (iter = chatIds.begin(); iter != chatIds.end();) {
+            if(*iter == chatId) {
+                iter = chatIds.erase(iter);
+                break;
+            } else {
+                iter++;
+            }
+        }
+    }
+
+    void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
+        LoggerWrapper::instance()->info("In handleData, chatId is %ld, data is %s, dataType is %d", chatId, data.c_str(), dataType);
+    }
+
+    std::list<long>& getChatIds() {return this->chatIds;}
+
+    const std::string& getAppContent() {return this->appcontent;}
+
+    TestRTSCallEventHandler(std::string appcontent) {
+        this->appcontent = appcontent;
+    }
+private:
+    std::string appcontent;
+    const std::string LAUNCH_OK = "OK";
+    const std::string LAUNCH_ERR_ILLEGALSIG = "ILLEGALSIG";
+    std::list<long> chatIds;
 };
 
 class TestTokenFetcher : public MIMCTokenFetcher {
@@ -65,6 +119,10 @@ public:
         const string url = "http://10.38.162.149/api/account/token";
 #endif
         const string body = "{\"appId\":\"" + this->appId + "\",\"appKey\":\"" + this->appKey + "\",\"appSecret\":\"" + this->appSecret + "\",\"appAccount\":\"" + this->appAccount + "\"}";
+        
+        LoggerWrapper::instance()->info("In fetchToken, body is %s", body.c_str());
+        LoggerWrapper::instance()->info("In fetchToken, url is %s", url.c_str());
+
         string result;
         if (curl) {
             curl_easy_setopt(curl, CURLOPT_POST, 1);
@@ -83,7 +141,7 @@ public:
 
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
-                LOG4CPLUS_ERROR(LOGGER, "curl_easy_perform() failed: " + string(curl_easy_strerror(res)));
+                
             }
         }
 
@@ -95,9 +153,9 @@ public:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         string *bodyp = (string *)userp;
         bodyp->append((const char *)contents, size * nmemb);
-        LOG4CPLUS_INFO(LOGGER, "WriteCallback size is " << size);
-        LOG4CPLUS_INFO(LOGGER, "WriteCallback nmemb is " << nmemb);
-        LOG4CPLUS_INFO(LOGGER, *bodyp);
+        
+        
+        
         return bodyp->size();
     }
 
@@ -143,13 +201,13 @@ public:
 
         string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
         string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
-        LOG4CPLUS_INFO(LOGGER, "From user is " << appAccount1 << ", packetId is " << packetId_sent1 << ", message1 is " << msg1);
+        
 
         usleep(300000);
 
         MIMCMessage *message1 = toMessageHandler->pollMessage();
         if (message1 != NULL) {
-            LOG4CPLUS_INFO(LOGGER, "message to " << appAccount2 << " is " << message1->getPayload());
+            
         }
 
         from->logout();
@@ -170,6 +228,7 @@ public:
         TestMessageHandler* fromMessageHandler = new TestMessageHandler();
         TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
+
         from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
         from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
         from->registerMessageHandler(fromMessageHandler);
@@ -189,13 +248,13 @@ public:
         const int GOON_NUM = 20;
         int num = 0;
         while (num++ < MAX_NUM) {
-            LOG4CPLUS_INFO(LOGGER, "num is " << num);
+            
             string msg1 = "With mimc,we can communicate much easier！";
             string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
             usleep(300000);
             while (message = toMessageHandler->pollMessage())
             {
-                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+                
             }
 
             string msg2 = "Yes~I feel it";
@@ -203,20 +262,20 @@ public:
             usleep(300000);
             while (message = fromMessageHandler->pollMessage())
             {
-                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+                
             }
         }
 
         num = 0;
         sleep(60);
         while (num++ < GOON_NUM) {
-            LOG4CPLUS_INFO(LOGGER, "num is " << num);
+            
             string msg3 = "Let's go on!";
             string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg3);
             usleep(300000);
             while (message = toMessageHandler->pollMessage())
             {
-                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+                
             }
 
             string msg4 = "OK!";
@@ -224,7 +283,7 @@ public:
             usleep(300000);
             while (message = fromMessageHandler->pollMessage())
             {
-                LOG4CPLUS_INFO(LOGGER, "message from " << message->getFromAccount() << " to " << message->getToAccount() << " is " << message->getPayload());
+                
             }
         }
 
@@ -239,12 +298,208 @@ public:
         delete to;
         to = NULL;
     }
+
+    static void testP2PDialCall() {
+        User* from = new User(appAccount1);
+        User* to1 = new User(appAccount2);
+        User* to2 = new User(appAccount3);
+        TestMessageHandler* fromMessageHandler = new TestMessageHandler();
+        TestMessageHandler* to1MessageHandler = new TestMessageHandler();
+        TestMessageHandler* to2MessageHandler = new TestMessageHandler();
+        TestRTSCallEventHandler* fromRTSCallEventHandler = new TestRTSCallEventHandler("ll123456");
+        TestRTSCallEventHandler* to1RTSCallEventHandler = new TestRTSCallEventHandler("ll123456");
+        TestRTSCallEventHandler* to2RTSCallEventHandler = new TestRTSCallEventHandler("ll123456");
+
+        from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
+        from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+        from->registerMessageHandler(fromMessageHandler);
+        from->registerRTSCallEventHandler(fromRTSCallEventHandler);
+
+        to1->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
+        to1->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+        to1->registerMessageHandler(to1MessageHandler);
+        to1->registerRTSCallEventHandler(to1RTSCallEventHandler);
+
+        to2->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount3));
+        to2->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+        to2->registerMessageHandler(to2MessageHandler);
+        to2->registerRTSCallEventHandler(to2RTSCallEventHandler);
+
+        if (!from->login()) {
+            LoggerWrapper::instance()->error("from login failed");
+            return;
+        }
+        /*usleep(500000);
+        from->dialCall("rts_demo_account1", "", mimc::A_STREAM, fromRTSCallEventHandler->getAppContent());
+        sleep(2);
+
+        std::list<long>& chatIds = fromRTSCallEventHandler->getChatIds();
+        if (!chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = chatIds.begin(); iter != chatIds.end(); iter++) {
+                long chatId = *iter;
+                std::cout << "from chatId is " << chatId << std::endl;
+                std::string data = "焦奕天给马利静发消息";
+                for(int i = 0; i < 100; i++) {
+                    from->sendRtsData(chatId, data, mimc::USER_DATA_AUDIO);
+                    sleep(1);
+                }
+            }
+        }*/
+        if (!to1->login()) {
+            LoggerWrapper::instance()->error("to1 login failed");
+            return;
+        }
+
+        if (!to2->login()) {
+            LoggerWrapper::instance()->error("to2 login failed");
+            return;
+        }
+
+        usleep(500000);
+
+        string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
+        string packetId_sent1 = from->sendMessage(to1->getAppAccount(), msg1);
+        
+
+        usleep(300000);
+
+        MIMCMessage *message1 = to1MessageHandler->pollMessage();
+        if (message1 != NULL) {
+            
+        }
+
+        long chatId1 = from->dialCall(to1->getAppAccount(), "", fromRTSCallEventHandler->getAppContent());
+        if (chatId1 == -1) {
+            LoggerWrapper::instance()->error("from dialCall to to1 failed");
+            return;
+        }
+        long chatId2 = from->dialCall(to2->getAppAccount(), "", fromRTSCallEventHandler->getAppContent());
+        if (chatId2 == -1) {
+            LoggerWrapper::instance()->error("from dialCall to to2 failed");
+            return;
+        }
+        sleep(5);
+        std::list<long>& chatIds = fromRTSCallEventHandler->getChatIds();
+        if (!chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = chatIds.begin(); iter != chatIds.end(); iter++) {
+                long chatId = *iter;
+                LoggerWrapper::instance()->info("from chatId is %ld", chatId);
+                std::string data = "121211212121323231";
+                from->sendRtsData(chatId, data, AUDIO);
+            }
+        }
+        sleep(1);
+        std::list<long>& to1_chatIds = to1RTSCallEventHandler->getChatIds();
+        if (!to1_chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = to1_chatIds.begin(); iter != to1_chatIds.end(); iter++) {
+                long chatId = *iter;
+                LoggerWrapper::instance()->info("to1 chatId is %ld", chatId);
+                std::string data = "23233323233434423";
+                to1->sendRtsData(chatId, data, AUDIO);
+            }
+        }
+        sleep(1);
+        std::list<long>& to2_chatIds = to2RTSCallEventHandler->getChatIds();
+        if (!to2_chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = to2_chatIds.begin(); iter != to2_chatIds.end(); iter++) {
+                long chatId = *iter;
+                LoggerWrapper::instance()->info("to2 chatId is %ld", chatId);
+                std::string data = "daskldjlkjlkjflksjfl";
+                to2->sendRtsData(chatId, data, AUDIO);
+            }
+        }
+        sleep(1);
+        if (!chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = chatIds.begin(); iter != chatIds.end(); ) {
+                long chatId = *iter++;
+                LoggerWrapper::instance()->info("from chatId to close is %ld", chatId);
+                std::string byeReason = "chat over";
+                from->closeCall(chatId, byeReason);
+            }
+        }
+        sleep(2);
+
+        from->logout();
+        to1->logout();
+        to2->logout();
+
+        usleep(500000);
+
+        if (!from->login()) {
+            LoggerWrapper::instance()->error("from second login failed");
+            return;
+        }
+
+        if (!to1->login()) {
+            LoggerWrapper::instance()->error("to1 second login failed");
+            return;
+        }
+
+        sleep(1);
+
+        chatId1 = from->dialCall(to1->getAppAccount(), "", fromRTSCallEventHandler->getAppContent());
+        if (chatId1 == -1) {
+            LoggerWrapper::instance()->error("from dialCall to to1 failed");
+            return;
+        }
+        sleep(5);
+
+        chatIds = fromRTSCallEventHandler->getChatIds();
+        if (!chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = chatIds.begin(); iter != chatIds.end(); iter++) {
+                long chatId = *iter;
+                LoggerWrapper::instance()->info("from chatId is %ld", chatId);
+                std::string data = "12345678901234567890";
+                from->sendRtsData(chatId, data, AUDIO);
+            }
+        }
+        sleep(1);
+        to1_chatIds = to1RTSCallEventHandler->getChatIds();
+        if (!to1_chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = to1_chatIds.begin(); iter != to1_chatIds.end(); iter++) {
+                long chatId = *iter;
+                LoggerWrapper::instance()->info("to1 chatId is %ld", chatId);
+                std::string data = "09876543210987654321";
+                to1->sendRtsData(chatId, data, AUDIO);
+            }
+        }
+        sleep(1);
+        if (!chatIds.empty()) {
+            std::list<long>::iterator iter;
+            for (iter = chatIds.begin(); iter != chatIds.end(); ) {
+                long chatId = *iter++;
+                LoggerWrapper::instance()->info("from chatId to close is %ld", chatId);
+                std::string byeReason = "chat over";
+                from->closeCall(chatId, byeReason);
+            }
+        } else {
+            LoggerWrapper::instance()->info("chatIds are empty");
+        }
+        sleep(1);
+
+        from->logout();
+        to1->logout();
+
+        sleep(2);
+
+        delete from;
+        delete to1;
+        delete to2;
+    }  
 };
 
 int main(int argc, char **argv) {
     /* A用户发送单条消息给B用户 */
-    MimcDemo::testP2PSendOneMessage();
+//    MimcDemo::testP2PSendOneMessage();
     /* A用户与B用户互发多条消息 */
-    MimcDemo::testP2PSendMessages();
+//    MimcDemo::testP2PSendMessages();
+    MimcDemo::testP2PDialCall();
     return 0;
 }

@@ -16,14 +16,14 @@ public:
 		this->payload = payload;
 		this->timestamp = timestamp;
 	}
-	const std::string &getPacketId() const { return this->packetId; }
-	const long &getSequence() const { return this->sequence; }
-	const std::string &getFromAccount() const { return this->fromAccount; }
-	const std::string &getFromResource() const { return this->fromResource; }
-	const std::string &getToAccount() const { return this->toAccount; }
-	const std::string &getToResource() const { return this->toResource; }
-	const std::string &getPayload() const { return this->payload; }
-	const long &getTimeStamp() const { return this->timestamp; }
+	std::string getPacketId() const { return this->packetId; }
+	long getSequence() const { return this->sequence; }
+	std::string getFromAccount() const { return this->fromAccount; }
+	std::string getFromResource() const { return this->fromResource; }
+	std::string getToAccount() const { return this->toAccount; }
+	std::string getToResource() const { return this->toResource; }
+	std::string getPayload() const { return this->payload; }
+	long getTimeStamp() const { return this->timestamp; }
 	static bool sortBySequence(const MIMCMessage &m1, const MIMCMessage &m2) {
 		return m1.sequence < m2.sequence;
 	}

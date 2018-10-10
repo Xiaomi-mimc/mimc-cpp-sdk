@@ -6,8 +6,9 @@ cc_library(
 	hdrs = glob(["include/gtest/*.h"]),
 	copts = [
 		"-DGTEST_HAS_PTHREAD=1",
-		"-g",
-		"-O2",
+		"-Os",
+        "-ffunction-sections",
+        "-fdata-sections",
 		"-Wall",
 		"-Wextra",
 		"-Wno-missing-field-initializers",

@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
+#include <mimc/mimcmessage.h>
 
 const int QUEUE_SIZE = 100;
 
@@ -10,27 +12,48 @@ template <class T>
 class ThreadSafeQueue
 {
 public:
-	ThreadSafeQueue();
+	ThreadSafeQueue(unsigned int capacity = QUEUE_SIZE);
 	void push(T new_data);
+	void pop(long timeout, T** result);
 	void pop(T** result);
 	bool empty();
+	void clear();
+	unsigned int size();
+	unsigned int capacity();
 	~ThreadSafeQueue();
 
 private:
-	T queue[QUEUE_SIZE];
+	T* queue;
+	unsigned int capacity_;
 	int head, tail;
 	pthread_mutex_t mutex;
 };
 
 template<class T>
 void ThreadSafeQueue<T>::push(T new_data) {
-	while((tail + 1) % QUEUE_SIZE == head) {
+	while ((tail + 1) % capacity_ == head) {
 		usleep(10000);
 	}
 	pthread_mutex_lock(&mutex);
 	queue[tail] = new_data;
-	tail = (tail + 1) % QUEUE_SIZE;
+	tail = (tail + 1) % capacity_;
 	pthread_mutex_unlock(&mutex);
+}
+
+template <class T>
+void ThreadSafeQueue<T>::pop(long timeout, T** result) {
+	long start = time(NULL);
+	while (empty()) {
+		if (time(NULL) - start >= timeout) {
+			*result = NULL;
+			return;
+		} else {
+			usleep(100000);
+		}
+	}
+	int pos = head;
+	head = (head + 1) % capacity_;
+	*result = &(queue[pos]);
 }
 
 template <class T>
@@ -40,7 +63,7 @@ void ThreadSafeQueue<T>::pop(T** result) {
 		return;
 	}
 	int pos = head;
-	head = (head + 1) % QUEUE_SIZE;
+	head = (head + 1) % capacity_;
 	*result = &(queue[pos]);
 }
 
@@ -53,13 +76,36 @@ bool ThreadSafeQueue<T>::empty() {
 }
 
 template <class T>
-ThreadSafeQueue<T>::ThreadSafeQueue()
-	: head(0), tail(0), mutex(PTHREAD_MUTEX_INITIALIZER)
-{
-
+void ThreadSafeQueue<T>::clear() {
+	head = 0;
+	tail = 0;
 }
 
 template <class T>
-ThreadSafeQueue<T>::~ThreadSafeQueue() {}
+unsigned int ThreadSafeQueue<T>::size() {
+	if (tail >= head) {
+		return tail - head;
+	} else {
+		return head - tail;
+	}
+}
+
+template <class T>
+unsigned int ThreadSafeQueue<T>::capacity() {
+	return capacity_;
+}
+
+template <class T>
+ThreadSafeQueue<T>::ThreadSafeQueue(unsigned int capacity)
+	: capacity_(capacity), head(0), tail(0), mutex(PTHREAD_MUTEX_INITIALIZER)
+{
+	queue = new T[capacity_];
+}
+
+template <class T>
+ThreadSafeQueue<T>::~ThreadSafeQueue() {
+	delete[] queue;
+	queue = NULL;
+}
 
 #endif

@@ -1,6 +1,5 @@
 #include <mimc/connection.h>
 #include <mimc/constant.h>
-#include <iostream>
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -52,6 +51,10 @@ bool Connection::connect() {
     }
 }
 
+void Connection::closeSock() {
+    close(socketfd);
+}
+
 ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
     if (fd < 0 || buf == NULL || nbytes == 0) {
         return -1;
@@ -65,7 +68,7 @@ ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
             if (errno == EINTR) {
                 continue;
             }
-            LOG4CPLUS_ERROR(LOGGER, "nWrite is " << nWrite << ", errno is " << errno);
+            
             return -1;
         }
         nLeft -= nWrite;
@@ -87,7 +90,7 @@ ssize_t Connection::readn(int fd, void *buf, size_t nbytes) {
             if (errno == EINTR) {
                 continue;
             }
-            LOG4CPLUS_ERROR(LOGGER, "nRead is " << nRead << ", errno is " << errno);
+            
             return -1;
         }
         if (nRead == 0) {
@@ -103,7 +106,7 @@ void Connection::trySetNextResetTs() {
     if (this->nextResetSockTimestamp > 0) {
         return;
     }
-    this->nextResetSockTimestamp = time(NULL);
+    this->nextResetSockTimestamp = time(NULL) + RESETSOCK_TIMEOUT;
 }
 
 void Connection::setChallengeAndBodyKey(const std::string &challenge) {
