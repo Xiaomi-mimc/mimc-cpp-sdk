@@ -123,7 +123,7 @@ public:
     LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
         LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
         inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
-        if (appContent != "" && appContent != this->appContent) {
+        if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
         LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
@@ -219,7 +219,7 @@ public:
         LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
         inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
         sleep(4);
-        if (appContent != "" && appContent != this->appContent) {
+        if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
         LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
@@ -308,7 +308,7 @@ public:
         LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
         inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
         sleep(RTS_CALL_TIMEOUT);
-        if (appContent != "" && appContent != this->appContent) {
+        if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
         LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
@@ -391,7 +391,7 @@ private:
     ThreadSafeQueue<RtsMessageData> byes;
 };
 
-class CameraTest: public testing::Test
+class RtsTest: public testing::Test
 {
 protected:
     void SetUp() {
@@ -578,10 +578,12 @@ protected:
         testOneBrokenNetWorkRecoverBeforeConnTimeout(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
     }
 
+/*
     //@test
     void testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout() {
         testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
     }
+*/
 
     void logIn(User* user, TestRTSCallEventHandler* callEventHandler) {
         long loginTs = time(NULL);
@@ -874,7 +876,7 @@ protected:
         closeCall(chatId, from, callEventHandlerFrom, callEventHandlerTo);
     }
 
-    void testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
+/*    void testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
 
@@ -904,6 +906,7 @@ protected:
 
 
     }
+*/
 
     void createCallTimeout(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallTimeoutResponseEventHandler* callEventHandlerTo) {
         logIn(from, callEventHandlerFrom);
@@ -1363,85 +1366,87 @@ protected:
     TestRTSCallTimeoutResponseEventHandler* callEventHandlerTimeoutResponse;
 };
 
-TEST_F(CameraTest, testP2PSendOneRtsSignalToOffline) {
+TEST_F(RtsTest, testP2PSendOneRtsSignalToOffline) {
     testP2PSendOneRtsSignalToOffline();
 }
 
-TEST_F(CameraTest, testP2PSendOneRtsSignalFromOffline) {
+TEST_F(RtsTest, testP2PSendOneRtsSignalFromOffline) {
     testP2PSendOneRtsSignalFromOffline();
 }
 
-TEST_F(CameraTest, testCreateCallRefuse) {
+TEST_F(RtsTest, testCreateCallRefuse) {
     testCreateCallRefuse();
 }
 
-TEST_F(CameraTest, testCreateCall) {
+TEST_F(RtsTest, testCreateCall) {
     testCreateCall();
 }
 
-TEST_F(CameraTest, testCreateCallTimeout) {
+TEST_F(RtsTest, testCreateCallTimeout) {
     testCreateCallTimeout();
 }
 
-TEST_F(CameraTest, testCreateCallWithSelf) {
+TEST_F(RtsTest, testCreateCallWithSelf) {
     testCreateCallWithSelf();
 }
 
-TEST_F(CameraTest, testCreateCallFromMulResources) {
+TEST_F(RtsTest, testCreateCallFromMulResources) {
     testCreateCallFromMulResources();
 }
 
-TEST_F(CameraTest, testCreateCallWithMulResources) {
+TEST_F(RtsTest, testCreateCallWithMulResources) {
     testCreateCallWithMulResources();
 }
 
-TEST_F(CameraTest, testCreateCallWhenCalling) {
+TEST_F(RtsTest, testCreateCallWhenCalling) {
     testCreateCallWhenCalling();
 }
 
-TEST_F(CameraTest, testRecvCallWhenCalling) {
+TEST_F(RtsTest, testRecvCallWhenCalling) {
     testRecvCallWhenCalling();
 }
 
-TEST_F(CameraTest, testCreateCalls) {
+TEST_F(RtsTest, testCreateCalls) {
     testCreateCalls();
 }
 
-TEST_F(CameraTest, testCreateCallWithOffline) {
+TEST_F(RtsTest, testCreateCallWithOffline) {
     testCreateCallWithOffline();
 }
 
-TEST_F(CameraTest, testCloseCall) {
+TEST_F(RtsTest, testCloseCall) {
     testCloseCall();
 }
 
-TEST_F(CameraTest, testCloseCallSameTime) {
+TEST_F(RtsTest, testCloseCallSameTime) {
     testCloseCallSameTime();
 }
 
-TEST_F(CameraTest, testSendDatas) {
+TEST_F(RtsTest, testSendDatas) {
     testSendDatas();
 }
 
-TEST_F(CameraTest, testSendDataToEachOther) {
+TEST_F(RtsTest, testSendDataToEachOther) {
     testSendDataToEachOther();
 }
 
-TEST_F(CameraTest, testSendDataAfterClose) {
+TEST_F(RtsTest, testSendDataAfterClose) {
     testSendDataAfterClose();
 }
 
-TEST_F(CameraTest, testSendDataBeforeClose) {
+TEST_F(RtsTest, testSendDataBeforeClose) {
     testSendDataBeforeClose();
 }
 
-TEST_F(CameraTest, testOneBrokenNetWorkRecoverBeforeConnTimeout) {
+TEST_F(RtsTest, testOneBrokenNetWorkRecoverBeforeConnTimeout) {
     testOneBrokenNetWorkRecoverBeforeConnTimeout();
 }
 
-TEST_F(CameraTest, testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout) {
+/*
+TEST_F(RtsTest, testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout) {
     testOneBrokenNetWorkRecoverAfterConnTimeoutBeforeServerTimeout();
 }
+*/
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);

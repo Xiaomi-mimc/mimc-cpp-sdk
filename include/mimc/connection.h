@@ -14,7 +14,6 @@ class Connection {
 public:
     Connection();
     bool connect();
-    void closeSock();
     void resetSock();
     ssize_t writen(int fd, const void *buf, size_t nbytes);
     ssize_t readn(int fd, void *buf, size_t nbytes);

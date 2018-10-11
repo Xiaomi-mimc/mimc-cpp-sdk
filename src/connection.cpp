@@ -51,10 +51,6 @@ bool Connection::connect() {
     }
 }
 
-void Connection::closeSock() {
-    close(socketfd);
-}
-
 ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
     if (fd < 0 || buf == NULL || nbytes == 0) {
         return -1;

@@ -92,7 +92,7 @@ cc_test(
 )
 
 cc_test(
-    name = "camera_cpp_test",    
+    name = "rts_cpp_test",    
     copts = [
         "-Os",
         "-fno-exceptions",
@@ -106,7 +106,7 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     srcs = glob([
-       "test/camera_test.cpp" 
+       "test/rts_test.cpp" 
     ]),
     deps = [
         "//third-party/gtest-170",
