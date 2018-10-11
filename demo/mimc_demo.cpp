@@ -59,12 +59,12 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& data) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, data is %s", chatId, fromAccount.c_str(), fromResource.c_str(), data.c_str());
-        if (data != appcontent) {
+    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
+        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
         }
-        LoggerWrapper::instance()->info("In onLaunched, data is equals to appcontent");
+        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         chatIds.push_back(chatId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
@@ -95,13 +95,13 @@ public:
 
     std::list<long>& getChatIds() {return this->chatIds;}
 
-    const std::string& getAppContent() {return this->appcontent;}
+    const std::string& getAppContent() {return this->appContent;}
 
-    TestRTSCallEventHandler(std::string appcontent) {
-        this->appcontent = appcontent;
+    TestRTSCallEventHandler(std::string appContent) {
+        this->appContent = appContent;
     }
 private:
-    std::string appcontent;
+    std::string appContent;
     const std::string LAUNCH_OK = "OK";
     const std::string LAUNCH_ERR_ILLEGALSIG = "ILLEGALSIG";
     std::list<long> chatIds;

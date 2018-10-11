@@ -120,13 +120,13 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& data) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, data is %s", chatId, fromAccount.c_str(), fromResource.c_str(), data.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, data));
-        if (appcontent != "" && data != appcontent) {
+    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
+        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
+        if (appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
-        LoggerWrapper::instance()->info("In onLaunched, data is equals to appcontent");
+        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         chatIds.push_back(chatId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
@@ -160,7 +160,7 @@ public:
 
     std::list<long>& getChatIds() {return this->chatIds;}
 
-    const std::string& getAppContent() {return this->appcontent;}
+    const std::string& getAppContent() {return this->appContent;}
 
     RtsMessageData* pollInviteRequest(long timeout_s) {
         RtsMessageData* inviteRequestPtr;
@@ -197,15 +197,15 @@ public:
         recvDatas.clear();
     }
 
-    TestRTSCallEventHandler(std::string appcontent) {
-        this->appcontent = appcontent;
+    TestRTSCallEventHandler(std::string appContent) {
+        this->appContent = appContent;
     }
     TestRTSCallEventHandler() {}
 public:
     const std::string LAUNCH_OK = "OK";
     const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
 private:
-    std::string appcontent;
+    std::string appContent;
     std::list<long> chatIds;
     ThreadSafeQueue<RtsMessageData> inviteRequests;
     ThreadSafeQueue<RtsMessageData> createResponses;
@@ -215,14 +215,14 @@ private:
 
 class TestRTSCallDelayResponseEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& data) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, data is %s", chatId, fromAccount.c_str(), fromResource.c_str(), data.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, data));
+    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
+        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
         sleep(4);
-        if (appcontent != "" && data != appcontent) {
+        if (appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
-        LoggerWrapper::instance()->info("In onLaunched, data is equals to appcontent");
+        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         chatIds.push_back(chatId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
@@ -256,7 +256,7 @@ public:
 
     std::list<long>& getChatIds() {return this->chatIds;}
 
-    const std::string& getAppContent() {return this->appcontent;}
+    const std::string& getAppContent() {return this->appContent;}
 
     const std::string& getAvData() {return this->avdata;}
 
@@ -284,8 +284,8 @@ public:
         byes.clear();
     }
 
-    TestRTSCallDelayResponseEventHandler(std::string appcontent) {
-        this->appcontent = appcontent;
+    TestRTSCallDelayResponseEventHandler(std::string appContent) {
+        this->appContent = appContent;
     }
 
     TestRTSCallDelayResponseEventHandler() {}
@@ -294,7 +294,7 @@ public:
     const std::string LAUNCH_OK = "OK";
     const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
 private:
-    std::string appcontent;
+    std::string appContent;
     std::string avdata;
     std::list<long> chatIds;
     ThreadSafeQueue<RtsMessageData> inviteRequests;
@@ -304,14 +304,14 @@ private:
 
 class TestRTSCallTimeoutResponseEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& data) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, data is %s", chatId, fromAccount.c_str(), fromResource.c_str(), data.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, data));
+    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
+        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
         sleep(RTS_CALL_TIMEOUT);
-        if (appcontent != "" && data != appcontent) {
+        if (appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
-        LoggerWrapper::instance()->info("In onLaunched, data is equals to appcontent");
+        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         chatIds.push_back(chatId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
@@ -345,7 +345,7 @@ public:
 
     std::list<long>& getChatIds() {return this->chatIds;}
 
-    const std::string& getAppContent() {return this->appcontent;}
+    const std::string& getAppContent() {return this->appContent;}
 
     const std::string& getAvData() {return this->avdata;}
 
@@ -373,8 +373,8 @@ public:
         byes.clear();
     }
 
-    TestRTSCallTimeoutResponseEventHandler(std::string appcontent) {
-        this->appcontent = appcontent;
+    TestRTSCallTimeoutResponseEventHandler(std::string appContent) {
+        this->appContent = appContent;
     }
 
     TestRTSCallTimeoutResponseEventHandler() {}
@@ -383,7 +383,7 @@ public:
     const std::string LAUNCH_OK = "OK";
     const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
 private:
-    std::string appcontent;
+    std::string appContent;
     std::string avdata;
     std::list<long> chatIds;
     ThreadSafeQueue<RtsMessageData> inviteRequests;
