@@ -38,12 +38,12 @@ User::User(std::string appAccount, std::string resource) {
 	this->isFirstDialCall = true;
 	this->mutex = PTHREAD_MUTEX_INITIALIZER;
 
-	Connection *conn = new Connection();
-	conn->setUser(this);
+	this->conn = new Connection();
+	this->conn->setUser(this);
 
-	pthread_create(&sendThread, NULL, sendPacket, (void *)conn);
-	pthread_create(&receiveThread, NULL, receivePacket, (void *)conn);
-	pthread_create(&checkThread, NULL, checkTimeout, (void *)conn);
+	pthread_create(&sendThread, NULL, sendPacket, (void *)(this->conn));
+	pthread_create(&receiveThread, NULL, receivePacket, (void *)(this->conn));
+	pthread_create(&checkThread, NULL, checkTimeout, (void *)(this->conn));
 }
 
 User::~User() {
@@ -64,6 +64,9 @@ User::~User() {
 	delete this->xmdTranseiver;
 	delete this->currentChats;
 	delete this->onlaunchChats;
+	this->conn->resetSock();
+	delete this->conn;
+
 	if (this->tokenFetcher != NULL) {
 		delete this->tokenFetcher;
 	}

@@ -25,6 +25,7 @@ struct onLaunchedParam {
 	long chatId;
 };
 
+class Connection;
 class PacketManager;
 class RtsConnectionHandler;
 class RtsStreamHandler;
@@ -132,7 +133,8 @@ private:
 
 	std::string join(const std::map<std::string, std::string>& kvs) const;
 
-	PacketManager * packetManager;
+	Connection* conn;
+	PacketManager* packetManager;
 	static void *sendPacket(void *arg);
 	static void *receivePacket(void *arg);
 	static void *checkTimeout(void *arg);
