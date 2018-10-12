@@ -1,5 +1,5 @@
-#ifndef MIMC_CPP_TEST_RTSMESSAGEDATA
-#define MIMC_CPP_TEST_RTSMESSAGEDATA
+#ifndef MIMC_CPP_TEST_RTSMESSAGEDATA_H
+#define MIMC_CPP_TEST_RTSMESSAGEDATA_H
 
 #include <string>
 #include <mimc/constant.h>

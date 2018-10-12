@@ -1,10 +1,13 @@
 #include <gtest/gtest.h>
 #include <mimc/user.h>
-#include <mimc/threadsafe_queue.h>
 #include <mimc/utils.h>
 #include <mimc/error.h>
-#include <curl/curl.h>
-#include <list>
+#include "mimc_message_handler.h"
+#include "mimc_onlinestatus_handler.h"
+#include "mimc_tokenfetcher.h"
+#include "rts_call_eventhandler.h"
+#include "rts_call_delayresponse_eventhandler.h"
+#include "rts_call_timeoutresponse_eventhandler.h"
 #include "rts_message_data.h"
 
 using namespace std;
@@ -12,384 +15,13 @@ using namespace std;
 string appId = "2882303761517613988";
 string appKey = "5361761377988";
 string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
-string appAccount1 = "mi153";
-string appAccount2 = "mi108";
-string appAccount3 = "mi110";
-string appAccount4 = "mi111";
-string appAccount5 = "mi112";
+string appAccount1 = "MI153";
+string appAccount2 = "MI108";
+string appAccount3 = "MI110";
+string appAccount4 = "MI111";
+string appAccount5 = "MI112";
 const int WAIT_TIME_FOR_MESSAGE = 1;
 const int UDP_CONN_TIMEOUT = 5;
-
-class TestOnlineStatusHandler : public OnlineStatusHandler {
-public:
-    void statusChange(OnlineStatus status, string errType, string errReason, string errDescription) {
-        LoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
-    }
-};
-
-class TestMessageHandler : public MessageHandler {
-public:
-    void handleMessage(std::vector<MIMCMessage> packets) {
-        std::vector<MIMCMessage>::iterator it = packets.begin();
-        for (; it != packets.end(); ++it) {
-            messages.push(*it);
-        }
-    }
-
-    void handleServerAck(std::string packetId, long sequence, long timestamp, std::string errorMsg) {
-        packetIds.push(packetId);
-    }
-
-    void handleSendMsgTimeout(MIMCMessage message) {
-
-    }
-
-    MIMCMessage* pollMessage() {
-        MIMCMessage *messagePtr;
-        messages.pop(&messagePtr);
-        return messagePtr;
-    }
-
-    std::string pollServerAck() {
-        std::string *packetIdPtr;
-        packetIds.pop(&packetIdPtr);
-        return *packetIdPtr;
-    }
-private:
-    ThreadSafeQueue<MIMCMessage> messages;
-    ThreadSafeQueue<std::string> packetIds;
-};
-
-class TestTokenFetcher : public MIMCTokenFetcher {
-public:
-    string fetchToken() {
-        curl_global_init(CURL_GLOBAL_ALL);
-        CURL *curl = curl_easy_init();
-        CURLcode res;
-        const string url = "https://mimc.chat.xiaomi.net/api/account/token";
-        const string body = "{\"appId\":\"" + this->appId + "\",\"appKey\":\"" + this->appKey + "\",\"appSecret\":\"" + this->appSecret + "\",\"appAccount\":\"" + this->appAccount + "\"}";
-        string result;
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_POST, 1);
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-
-            struct curl_slist *headers = NULL;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.size());
-
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)(&result));
-
-            res = curl_easy_perform(curl);
-            if (res != CURLE_OK) {
-
-            }
-        }
-
-        curl_easy_cleanup(curl);
-
-        return result;
-    }
-
-    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-        string *bodyp = (string *)userp;
-        bodyp->append((const char *)contents, size * nmemb);
-
-
-
-        return bodyp->size();
-    }
-
-    TestTokenFetcher(string appId, string appKey, string appSecret, string appAccount)
-    {
-        this->appId = appId;
-        this->appKey = appKey;
-        this->appSecret = appSecret;
-        this->appAccount = appAccount;
-    }
-private:
-    string appId;
-    string appKey;
-    string appSecret;
-    string appAccount;
-};
-
-class TestRTSCallEventHandler : public RTSCallEventHandler {
-public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
-        if (this->appContent != "" && appContent != this->appContent) {
-            return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
-        }
-        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
-        chatIds.push_back(chatId);
-        return LaunchedResponse(true, LAUNCH_OK);
-    }
-
-    void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
-        createResponses.push(RtsMessageData(chatId, errmsg, accepted));
-        if (accepted) {
-            chatIds.push_back(chatId);
-        }
-    }
-
-    void onClosed(long chatId, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
-        byes.push(RtsMessageData(chatId, errmsg));
-        std::list<long>::iterator iter;
-        for (iter = chatIds.begin(); iter != chatIds.end();) {
-            if (*iter == chatId) {
-                iter = chatIds.erase(iter);
-                break;
-            } else {
-                iter++;
-            }
-        }
-    }
-
-    void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
-        LoggerWrapper::instance()->info("In handleData, chatId is %ld, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
-        recvDatas.push(RtsMessageData(chatId, data, dataType, channelType));
-    }
-
-    std::list<long>& getChatIds() {return this->chatIds;}
-
-    const std::string& getAppContent() {return this->appContent;}
-
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
-    }
-
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
-    }
-
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
-    }
-
-    RtsMessageData* pollData(long timeout_s) {
-        RtsMessageData* recvDataPtr;
-        recvDatas.pop(timeout_s, &recvDataPtr);
-        return recvDataPtr;
-    }
-
-    int getDataSize() {
-        return recvDatas.size();
-    }
-
-    void clear() {
-        inviteRequests.clear();
-        createResponses.clear();
-        byes.clear();
-        recvDatas.clear();
-    }
-
-    TestRTSCallEventHandler(std::string appContent) {
-        this->appContent = appContent;
-    }
-    TestRTSCallEventHandler() {}
-public:
-    const std::string LAUNCH_OK = "OK";
-    const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
-private:
-    std::string appContent;
-    std::list<long> chatIds;
-    ThreadSafeQueue<RtsMessageData> inviteRequests;
-    ThreadSafeQueue<RtsMessageData> createResponses;
-    ThreadSafeQueue<RtsMessageData> byes;
-    ThreadSafeQueue<RtsMessageData> recvDatas;
-};
-
-class TestRTSCallDelayResponseEventHandler : public RTSCallEventHandler {
-public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
-        sleep(4);
-        if (this->appContent != "" && appContent != this->appContent) {
-            return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
-        }
-        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
-        chatIds.push_back(chatId);
-        return LaunchedResponse(true, LAUNCH_OK);
-    }
-
-    void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
-        createResponses.push(RtsMessageData(chatId, errmsg, accepted));
-        if (accepted) {
-            chatIds.push_back(chatId);
-        }
-    }
-
-    void onClosed(long chatId, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
-        byes.push(RtsMessageData(chatId, errmsg));
-        std::list<long>::iterator iter;
-        for (iter = chatIds.begin(); iter != chatIds.end();) {
-            if (*iter == chatId) {
-                iter = chatIds.erase(iter);
-                break;
-            } else {
-                iter++;
-            }
-        }
-    }
-
-    void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
-        LoggerWrapper::instance()->info("In handleData, chatId is %ld, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
-        avdata = data;
-    }
-
-    std::list<long>& getChatIds() {return this->chatIds;}
-
-    const std::string& getAppContent() {return this->appContent;}
-
-    const std::string& getAvData() {return this->avdata;}
-
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
-    }
-
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
-    }
-
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
-    }
-
-    void clear() {
-        inviteRequests.clear();
-        createResponses.clear();
-        byes.clear();
-    }
-
-    TestRTSCallDelayResponseEventHandler(std::string appContent) {
-        this->appContent = appContent;
-    }
-
-    TestRTSCallDelayResponseEventHandler() {}
-
-public:
-    const std::string LAUNCH_OK = "OK";
-    const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
-private:
-    std::string appContent;
-    std::string avdata;
-    std::list<long> chatIds;
-    ThreadSafeQueue<RtsMessageData> inviteRequests;
-    ThreadSafeQueue<RtsMessageData> createResponses;
-    ThreadSafeQueue<RtsMessageData> byes;
-};
-
-class TestRTSCallTimeoutResponseEventHandler : public RTSCallEventHandler {
-public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
-        sleep(RTS_CALL_TIMEOUT);
-        if (this->appContent != "" && appContent != this->appContent) {
-            return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
-        }
-        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
-        chatIds.push_back(chatId);
-        return LaunchedResponse(true, LAUNCH_OK);
-    }
-
-    void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
-        createResponses.push(RtsMessageData(chatId, errmsg, accepted));
-        if (accepted) {
-            chatIds.push_back(chatId);
-        }
-    }
-
-    void onClosed(long chatId, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
-        byes.push(RtsMessageData(chatId, errmsg));
-        std::list<long>::iterator iter;
-        for (iter = chatIds.begin(); iter != chatIds.end();) {
-            if (*iter == chatId) {
-                iter = chatIds.erase(iter);
-                break;
-            } else {
-                iter++;
-            }
-        }
-    }
-
-    void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
-        LoggerWrapper::instance()->info("In handleData, chatId is %ld, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
-        avdata = data;
-    }
-
-    std::list<long>& getChatIds() {return this->chatIds;}
-
-    const std::string& getAppContent() {return this->appContent;}
-
-    const std::string& getAvData() {return this->avdata;}
-
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
-    }
-
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
-    }
-
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
-    }
-
-    void clear() {
-        inviteRequests.clear();
-        createResponses.clear();
-        byes.clear();
-    }
-
-    TestRTSCallTimeoutResponseEventHandler(std::string appContent) {
-        this->appContent = appContent;
-    }
-
-    TestRTSCallTimeoutResponseEventHandler() {}
-
-public:
-    const std::string LAUNCH_OK = "OK";
-    const std::string LAUNCH_ERR_ILLEGALAPPCONTENT = "ILLEGALAPPCONTENT";
-private:
-    std::string appContent;
-    std::string avdata;
-    std::list<long> chatIds;
-    ThreadSafeQueue<RtsMessageData> inviteRequests;
-    ThreadSafeQueue<RtsMessageData> createResponses;
-    ThreadSafeQueue<RtsMessageData> byes;
-};
 
 class RtsTest: public testing::Test
 {
@@ -622,7 +254,7 @@ protected:
 
         closeCall(chatId1, from, callEventHandlerFrom, callEventHandlerTo);
         //V_STREAM
-        long chatId2 = from->dialCall(to->getAppAccount(), "");
+        long chatId2 = from->dialCall(to->getAppAccount());
         ASSERT_NE(chatId2, -1);
         sleep(1);
 
@@ -641,7 +273,7 @@ protected:
 
         closeCall(chatId2, from, callEventHandlerFrom, callEventHandlerTo);
         //AV_STREAM
-        long chatId3 = from->dialCall(to->getAppAccount(), "");
+        long chatId3 = from->dialCall(to->getAppAccount());
         ASSERT_NE(chatId3, -1);
         sleep(1);
 
@@ -913,7 +545,7 @@ protected:
         logIn(to, NULL);
         callEventHandlerTo->clear();
 
-        long chatId = from->dialCall(to->getAppAccount(), "");
+        long chatId = from->dialCall(to->getAppAccount());
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -933,7 +565,6 @@ protected:
         ASSERT_EQ(false, createResponse->isAccepted());
         ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrmsg());
 
-        sleep(1);
         RtsMessageData* byeResponse_from = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(byeResponse_from == NULL);
 
@@ -947,14 +578,18 @@ protected:
 
         long chatId = from->dialCall(to->getAppAccount(), "", appContent);
         ASSERT_NE(chatId, -1);
-        sleep(3);
-        std::list<long>& to_chatIds = callEventHandlerTo->getChatIds();
-        ASSERT_TRUE(to_chatIds.empty());
-        sleep(2);
-        std::list<long>& from_chatIds = callEventHandlerFrom->getChatIds();
-        ASSERT_TRUE(from_chatIds.empty());
-        sleep(33);
-        ASSERT_EQ(from->getCurrentChats()->count(chatId), 0);
+        sleep(1);
+        RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
+        ASSERT_TRUE(inviteRequest == NULL);
+
+        RtsMessageData* createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
+        ASSERT_TRUE(createResponse == NULL);
+
+        createResponse = callEventHandlerFrom->pollCreateResponse(RTS_CALL_TIMEOUT);
+        ASSERT_FALSE(createResponse == NULL);
+        ASSERT_EQ(chatId, createResponse->getChatId());
+        ASSERT_EQ(false, createResponse->isAccepted());
+        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrmsg());
     }
 
     void testP2PSendOneRtsSignalFromOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
@@ -1231,7 +866,7 @@ protected:
         ASSERT_EQ(true, createResponse->isAccepted());
         ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrmsg());
 
-        long chatId2 = user2_r2->dialCall(user1_r1->getAppAccount(), "");
+        long chatId2 = user2_r2->dialCall(user1_r1->getAppAccount());
         ASSERT_NE(chatId2, -1);
         sleep(1);
 
@@ -1264,7 +899,7 @@ protected:
 
         //user1 call user2 and user3
         long chatId1 = user1->dialCall(user2->getAppAccount(), "", "ll123456");
-        long chatId2 = user1->dialCall(user3->getAppAccount(), "");
+        long chatId2 = user1->dialCall(user3->getAppAccount());
         sleep(1);
         ASSERT_NE(chatId1, -1);
         ASSERT_EQ(chatId2, -1);

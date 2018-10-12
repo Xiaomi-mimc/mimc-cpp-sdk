@@ -271,7 +271,7 @@ public:
 
 		sleep(1);
 
-		user1->dialCall("5566", "");
+		user1->dialCall("5566");
 
 		sleep(60);
 

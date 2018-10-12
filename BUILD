@@ -65,7 +65,7 @@ cc_binary(
          "-lssl",
          "-Wl,--gc-sections",
     ],
-    linkstatic=False,
+    linkstatic=True,
     srcs = ["demo/av_demo.cpp"],
     deps = [
         ":mimc_cpp_sdk",
@@ -105,6 +105,7 @@ cc_test(
         "-lssl",
         "-Wl,--gc-sections",
     ],
+    linkstatic=True,
     srcs = glob([
        "test/rts_test.cpp" 
     ]),

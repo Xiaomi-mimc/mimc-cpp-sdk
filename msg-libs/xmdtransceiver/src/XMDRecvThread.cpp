@@ -65,7 +65,7 @@ void XMDRecvThread::Recvfrom(int fd) {
         ssize_t len = recvfrom(fd, buf, BUF_LEN, MSG_DONTWAIT, (struct sockaddr*) (struct sockaddr *)&clientAddr, &addrLen);
 
         if (len < 0) {
-            usleep(10);
+            usleep(1000);
             continue;
         }
 

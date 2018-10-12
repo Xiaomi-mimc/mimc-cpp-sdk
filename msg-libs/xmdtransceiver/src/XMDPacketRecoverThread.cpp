@@ -26,7 +26,7 @@ void* XMDPacketRecoverThread::process() {
         groupManager_->checkGroupMap();
         StreamData* streamData = commonData_->packetRecoverQueuePop(thread_id_);
         if (streamData == NULL) {
-            usleep(100);
+            usleep(1000);
             continue;
         }
 
@@ -249,6 +249,7 @@ void GroupManager::checkGroupMap() {
     std::unordered_map<std::string, GroupPacket>::iterator it = groupMap_.begin();
     for(; it != groupMap_.end(); ) {
         if (currentTime - it->second.create_time > FEC_GROUP_DELETE_INTERVAL) {
+
             if (!it->second.isComplete) {
                 LoggerWrapper::instance()->warn("fec group is not completed when deleting, conn(%ld) stream(%d) group(%d)", 
                                                 it->second.connId, it->second.streamId, it->second.groupId);
@@ -379,6 +380,7 @@ bool GroupManager::doFecRecover(PartitionPacket& pPacket) {
             memcpy(pPacket.sliceMap[i].data, output + i * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), 
                    MAX_PACKET_SIZE + STREAM_LEN_SIZE);
         } else {
+
             unsigned char* tmpChar = new unsigned char[MAX_PACKET_SIZE + STREAM_LEN_SIZE];
             memcpy(tmpChar, output + i * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), MAX_PACKET_SIZE + STREAM_LEN_SIZE);
             SlicePacket slicePacket(tmpChar, MAX_PACKET_SIZE + STREAM_LEN_SIZE);

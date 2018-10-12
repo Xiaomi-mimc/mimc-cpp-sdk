@@ -76,7 +76,7 @@ void* XMDSendThread::process() {
         }
 
         if (isSleep) {
-            usleep(10);
+            usleep(1000);
         }
 
     }
