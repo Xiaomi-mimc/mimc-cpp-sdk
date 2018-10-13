@@ -27,10 +27,10 @@ public:
         return messagePtr;
     }
 
-    std::string pollServerAck() {
+    std::string* pollServerAck() {
         std::string *packetIdPtr;
         packetIds.pop(&packetIdPtr);
-        return *packetIdPtr;
+        return packetIdPtr;
     }
 private:
     ThreadSafeQueue<MIMCMessage> messages;

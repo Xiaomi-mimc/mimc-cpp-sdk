@@ -2,13 +2,13 @@
 #include <mimc/user.h>
 #include <mimc/utils.h>
 #include <mimc/error.h>
-#include "mimc_message_handler.h"
-#include "mimc_onlinestatus_handler.h"
-#include "mimc_tokenfetcher.h"
-#include "rts_call_eventhandler.h"
-#include "rts_call_delayresponse_eventhandler.h"
-#include "rts_call_timeoutresponse_eventhandler.h"
-#include "rts_message_data.h"
+#include <test/mimc_message_handler.h>
+#include <test/mimc_onlinestatus_handler.h>
+#include <test/mimc_tokenfetcher.h>
+#include <test/rts_call_eventhandler.h>
+#include <test/rts_call_delayresponse_eventhandler.h>
+#include <test/rts_call_timeoutresponse_eventhandler.h>
+#include <test/rts_message_data.h>
 
 using namespace std;
 

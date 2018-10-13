@@ -2,7 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
 	name = "gtest-170",
-	includes = ["include"],
+	includes = ["include", "."],
 	hdrs = glob(["include/gtest/*.h"]),
 	copts = [
 		"-DGTEST_HAS_PTHREAD=1",
@@ -13,9 +13,11 @@ cc_library(
 		"-Wextra",
 		"-Wno-missing-field-initializers",
 		"-pthread",
-		"-I./third-party/gtest-170",
 	],
-	linkopts = ["-pthread"],
+	linkopts = [
+		"-pthread", 
+		"-Wl,--gc-sections",
+	],
 	linkstatic = 1,
 	hdrs_check = "loose",
 	srcs = glob(

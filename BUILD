@@ -81,8 +81,10 @@ cc_test(
          "-lz",
          "-lssl"
     ],
+    includes = ["."],
     srcs = glob([
-        "test/mimc_test.cpp"
+        "test/mimc_test.cpp",
+        "test/**/*.h",
     ]),
     deps = [
         "//third-party/gtest-170",
@@ -106,8 +108,10 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     linkstatic=True,
+    includes = ["."],
     srcs = glob([
-       "test/rts_test.cpp" 
+       "test/rts_test.cpp",
+       "test/**/*.h",
     ]),
     deps = [
         "//third-party/gtest-170",

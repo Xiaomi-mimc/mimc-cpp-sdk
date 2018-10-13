@@ -11,7 +11,6 @@ cc_library(
 	copts = [
 		"-Os",
         "-fno-exceptions",
-        "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
 		"-fno-omit-frame-pointer",

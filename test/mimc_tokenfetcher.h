@@ -33,6 +33,7 @@ public:
             if (res != CURLE_OK) {
 
             }
+            delete headers;
         }
 
         curl_easy_cleanup(curl);

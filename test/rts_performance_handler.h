@@ -5,8 +5,8 @@
 #include <mimc/rts_callevent_handler.h>
 #include <mimc/threadsafe_queue.h>
 #include <LoggerWrapper.h>
-#include "rts_message_data.h"
-#include "rts_performance_data.h"
+#include <test/rts_message_data.h>
+#include <test/rts_performance_data.h>
 
 using namespace std;
 

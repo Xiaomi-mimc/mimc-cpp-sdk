@@ -4,7 +4,7 @@
 #include <mimc/rts_callevent_handler.h>
 #include <mimc/threadsafe_queue.h>
 #include <LoggerWrapper.h>
-#include "rts_message_data.h"
+#include <test/rts_message_data.h>
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
