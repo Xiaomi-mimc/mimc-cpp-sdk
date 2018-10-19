@@ -242,7 +242,7 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
         //A_STREAM
-        long chatId1 = from->dialCall(to->getAppAccount(), "", appContent);
+        long chatId1 = from->dialCall(to->getAppAccount(), appContent);
         ASSERT_NE(chatId1, -1);
         sleep(1);
 
@@ -301,7 +301,7 @@ protected:
     }
 
     long createCall(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
-        long chatId = from->dialCall(to->getAppAccount(), "", appContent);
+        long chatId = from->dialCall(to->getAppAccount(), appContent);
         EXPECT_NE(chatId, -1);
         sleep(1);
 
@@ -585,7 +585,7 @@ protected:
     void testP2PSendOneRtsSignalToOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
         logIn(from, callEventHandlerFrom);
 
-        long chatId = from->dialCall(to->getAppAccount(), "", appContent);
+        long chatId = from->dialCall(to->getAppAccount(), appContent);
         ASSERT_NE(chatId, -1);
         sleep(1);
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -604,7 +604,7 @@ protected:
     void testP2PSendOneRtsSignalFromOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
         logIn(to, callEventHandlerTo);
 
-        long chatId = from->dialCall(to->getAppAccount(), "", appContent);
+        long chatId = from->dialCall(to->getAppAccount(), appContent);
         ASSERT_EQ(chatId, -1);
     }
 
@@ -612,7 +612,7 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
 
-        long chatId = from->dialCall(to->getAppAccount(), "", appContent);
+        long chatId = from->dialCall(to->getAppAccount(), appContent);
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -634,7 +634,7 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
 
-        long chatId1 = from->dialCall(from->getAppAccount(), from->getResource());
+        long chatId1 = from->dialCall(from->getAppAccount(), "", from->getResource());
         ASSERT_NE(chatId1, -1);
         sleep(1);
 
@@ -647,7 +647,7 @@ protected:
         ASSERT_EQ(false, createResponse->isAccepted());
         ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrmsg());
 
-        long chatId2 = from->dialCall(from->getAppAccount(), to->getResource());
+        long chatId2 = from->dialCall(from->getAppAccount(), "", to->getResource());
         ASSERT_NE(chatId2, -1);
         sleep(1);
 
@@ -671,7 +671,7 @@ protected:
         logIn(from_r2, callEventHandlerFrom2);
         logIn(to, callEventHandlerTo);
 
-        long chatId = from_r1->dialCall(to->getAppAccount(), "", "ll123456");
+        long chatId = from_r1->dialCall(to->getAppAccount(), "ll123456");
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -701,7 +701,7 @@ protected:
         callEventHandlerTo2->clear();
         to_r2->registerRTSCallEventHandler(callEventHandlerTo2);
 
-        long chatId = from->dialCall(to_r1->getAppAccount(), to_r1->getResource(), "ll123456");
+        long chatId = from->dialCall(to_r1->getAppAccount(), "ll123456", to_r1->getResource());
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -724,7 +724,7 @@ protected:
         closeCall(chatId, from, callEventHandlerFrom, callEventHandlerTo1);
 
         //call with no given resource, success with the resource answer first
-        chatId = from->dialCall(to_r1->getAppAccount(), "", "ll123456");
+        chatId = from->dialCall(to_r1->getAppAccount(), "ll123456");
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -760,7 +760,7 @@ protected:
         closeCall(chatId, from, callEventHandlerFrom, callEventHandlerTo1);
 
         //call with no given resource, resource2 answer after call close
-        chatId = from->dialCall(to_r1->getAppAccount(), "", "ll123456");
+        chatId = from->dialCall(to_r1->getAppAccount(), "ll123456");
         ASSERT_NE(chatId, -1);
         sleep(1);
 
@@ -801,7 +801,7 @@ protected:
         logIn(user2_r1, callEventHandler2_r1);
         logIn(user2_r2, callEventHandler2_r2);
 
-        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), user2_r1->getResource(), "ll123456");
+        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
         ASSERT_NE(chatId1, -1);
         sleep(1);
 
@@ -818,7 +818,7 @@ protected:
         ASSERT_EQ(true, createResponse->isAccepted());
         ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrmsg());
 
-        long chatId2 = user1_r2->dialCall(user2_r1->getAppAccount(), user2_r1->getResource(), "ll123456");
+        long chatId2 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
         ASSERT_NE(chatId2, -1);
         sleep(1);
 
@@ -831,7 +831,7 @@ protected:
         ASSERT_EQ(false, createResponse->isAccepted());
         ASSERT_EQ("USER_BUSY", createResponse->getErrmsg());
 
-        long chatId3 = user1_r2->dialCall(user2_r1->getAppAccount(), user2_r2->getResource(), "ll123456");
+        long chatId3 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r2->getResource());
         ASSERT_NE(chatId3, -1);
         sleep(1);
 
@@ -858,7 +858,7 @@ protected:
         logIn(user2_r1, callEventHandler2_r1);
         logIn(user2_r2, callEventHandler2_r2);
 
-        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), user2_r1->getResource(), "ll123456");
+        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
         ASSERT_NE(chatId1, -1);
         sleep(1);
 
@@ -907,7 +907,7 @@ protected:
         logIn(user3, callEventHandler3);
 
         //user1 call user2 and user3
-        long chatId1 = user1->dialCall(user2->getAppAccount(), "", "ll123456");
+        long chatId1 = user1->dialCall(user2->getAppAccount(), "ll123456");
         long chatId2 = user1->dialCall(user3->getAppAccount());
         sleep(1);
         ASSERT_NE(chatId1, -1);
@@ -937,7 +937,7 @@ protected:
         logIn(to, callEventHandlerTo);
         ASSERT_TRUE(to->logout());
         sleep(1);
-        long chatId = from->dialCall(to->getAppAccount(), "", "ll123456");
+        long chatId = from->dialCall(to->getAppAccount(), "ll123456");
         ASSERT_NE(-1, chatId);
 
         sleep(1);

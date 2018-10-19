@@ -173,7 +173,7 @@ protected:
 	}
 
 	long createCall(User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent = "") {
-		long chatId = from->dialCall(to->getAppAccount(), "", appContent);
+		long chatId = from->dialCall(to->getAppAccount(), appContent);
 		EXPECT_NE(chatId, -1);
 		sleep(1);
 

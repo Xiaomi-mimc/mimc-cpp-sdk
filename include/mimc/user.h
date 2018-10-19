@@ -82,7 +82,7 @@ public:
 
 	std::string sendMessage(const std::string& toAppAccount, const std::string& msg);
 	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore);
-	long dialCall(const std::string& toAppAccount, const std::string& toResource = "", const std::string& appContent = "");
+	long dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
 	bool sendRtsData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType = RELAY);
 	void closeCall(long chatId, std::string byeReason = "");
 

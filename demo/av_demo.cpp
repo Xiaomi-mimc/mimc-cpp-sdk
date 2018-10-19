@@ -248,7 +248,7 @@ public:
 
 		sleep(1);
 
-		user1->dialCall("5566", "JAVA-FEEtSinu");
+		user1->dialCall("5566", "AUDIO", "JAVA-FEEtSinu");
 
 		sleep(2);
 		std::list<long>& chatIds = rtsCallEventHandler->getChatIds();
@@ -280,7 +280,7 @@ public:
 
 		sleep(1);
 
-		user1->dialCall("5566");
+		user1->dialCall("5566","AUDIO");
 
 		sleep(60);
 

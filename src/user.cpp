@@ -477,7 +477,7 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 	return packetId;
 }
 
-long User::dialCall(const std::string& toAppAccount, const std::string& toResource, const std::string& appContent) {
+long User::dialCall(const std::string& toAppAccount, const std::string& appContent, const std::string& toResource) {
 	pthread_mutex_lock(&mutex);
 	if (this->isDialCalling) {
 		XMDLoggerWrapper::instance()->warn("In dialCall, another thread is dialCall!");
@@ -672,11 +672,6 @@ bool User::logout() {
 	}
 
 	this->permitLogin = false;
-	struct waitToSendContent logout_obj;
-	logout_obj.cmd = BODY_CLIENTHEADER_CMD_UNBIND;
-	logout_obj.type = C2S_DOUBLE_DIRECTION;
-	logout_obj.message = NULL;
-	(this->packetManager->packetsWaitToSend).push(logout_obj);
 
 	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 		long chatId = iter->first;
@@ -687,6 +682,12 @@ bool User::logout() {
 		}
 		RtsSendSignal::sendByeRequest(this, chatId, "LOGOUT");
 	}
+
+	struct waitToSendContent logout_obj;
+	logout_obj.cmd = BODY_CLIENTHEADER_CMD_UNBIND;
+	logout_obj.type = C2S_DOUBLE_DIRECTION;
+	logout_obj.message = NULL;
+	(this->packetManager->packetsWaitToSend).push(logout_obj);
 
 	currentChats->clear();
 	RtsSendData::closeRelayConnWhenNoChat(this);
