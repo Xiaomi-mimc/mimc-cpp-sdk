@@ -6,7 +6,7 @@
 class MIMCTokenFetcher {
 	public:
 		virtual std::string fetchToken() = 0;
-		virtual ~MIMCTokenFetcher() {};
+		virtual ~MIMCTokenFetcher() {}
 };
 
 #endif

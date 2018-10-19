@@ -57,7 +57,7 @@ public:
 			std::map<long, P2PChatSession>* currentChats = this->user->getCurrentChats();
 			for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 				const long& chatId = iter->first;
-				LoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, chatId is %ld", chatId);
+				XMDLoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, chatId is %ld", chatId);
 				P2PChatSession& p2pChatSession = iter->second;
 				if (p2pChatSession.getChatState() == WAIT_SEND_CREATE_REQUEST && p2pChatSession.isCreator()) {
 					
@@ -73,6 +73,7 @@ public:
 					pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 					pthread_create(&onLaunchedThread, &attr, User::onLaunched, (void *)param);
 					this->user->getOnlaunchChats()->insert(std::pair<long, pthread_t>(chatId, onLaunchedThread));
+					pthread_attr_destroy(&attr);
 				} else if (p2pChatSession.getChatState() == WAIT_SEND_UPDATE_REQUEST) {
 
 				}
@@ -106,7 +107,7 @@ public:
 				
 				return;
 			}
-			LoggerWrapper::instance()->info("In USER_DATA_AUDIO");
+			XMDLoggerWrapper::instance()->info("In USER_DATA_AUDIO");
 			const std::string& data = userPacket.payload();
 			if (conn_id == this->user->getRelayConnId()) {
 				this->user->getRTSCallEventHandler()->handleData(chatId, data, AUDIO, RELAY);
@@ -124,7 +125,7 @@ public:
 				
 				return;
 			}
-			LoggerWrapper::instance()->info("In USER_DATA_VIDEO");
+			XMDLoggerWrapper::instance()->info("In USER_DATA_VIDEO");
 			const std::string& data = userPacket.payload();
 			if (conn_id == this->user->getRelayConnId()) {
 				this->user->getRTSCallEventHandler()->handleData(chatId, data, VIDEO, RELAY);

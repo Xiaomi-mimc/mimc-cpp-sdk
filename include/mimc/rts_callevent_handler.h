@@ -26,5 +26,6 @@ public:
 	 **/
 	virtual void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) = 0;
 
+	virtual ~RTSCallEventHandler() {}
 };
 #endif

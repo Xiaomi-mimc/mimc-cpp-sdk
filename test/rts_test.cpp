@@ -2,24 +2,31 @@
 #include <mimc/user.h>
 #include <mimc/utils.h>
 #include <mimc/error.h>
-#include "mimc_message_handler.h"
-#include "mimc_onlinestatus_handler.h"
-#include "mimc_tokenfetcher.h"
-#include "rts_call_eventhandler.h"
-#include "rts_call_delayresponse_eventhandler.h"
-#include "rts_call_timeoutresponse_eventhandler.h"
-#include "rts_message_data.h"
+#include <test/mimc_message_handler.h>
+#include <test/mimc_onlinestatus_handler.h>
+#include <test/mimc_tokenfetcher.h>
+#include <test/rts_call_eventhandler.h>
+#include <test/rts_call_delayresponse_eventhandler.h>
+#include <test/rts_call_timeoutresponse_eventhandler.h>
+#include <test/rts_message_data.h>
 
 using namespace std;
 
+#ifndef STAGING
 string appId = "2882303761517613988";
 string appKey = "5361761377988";
 string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
-string appAccount1 = "MI153";
-string appAccount2 = "MI108";
-string appAccount3 = "MI110";
-string appAccount4 = "MI111";
-string appAccount5 = "MI112";
+#else
+string appId = "2882303761517479657";
+string appKey = "5221747911657";
+string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
+#endif
+
+string appAccount1 = "MI153_cpp";
+string appAccount2 = "MI108_cpp";
+string appAccount3 = "MI110_cpp";
+string appAccount4 = "MI111_cpp";
+string appAccount5 = "MI112_cpp";
 const int WAIT_TIME_FOR_MESSAGE = 1;
 const int UDP_CONN_TIMEOUT = 5;
 
@@ -225,7 +232,7 @@ protected:
         }
         ASSERT_EQ(Online, user->getOnlineStatus());
         if (callEventHandler != NULL) {
-            LoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%ld", user->getUuid());
+            XMDLoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%ld", user->getUuid());
             callEventHandler->clear();
         }
     }
@@ -343,6 +350,7 @@ protected:
         }
 
         for (int i = 0; i < sendDatas.size(); i++) {
+            XMDLoggerWrapper::instance()->info("current i is %d", i);
             RtsMessageData* recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
             ASSERT_FALSE(recvData == NULL);
             ASSERT_EQ(chatId, recvData->getChatId());
@@ -350,7 +358,8 @@ protected:
             ASSERT_EQ(channel_type, recvData->getChannelType());
             const string& data = recvData->getRecvData();
             int index = data.size() / (50 * 1024);
-            ASSERT_EQ(sendDatas.at(i), data);
+            XMDLoggerWrapper::instance()->info("recv data index is %d", index);
+            ASSERT_EQ(sendDatas.at(index), data);
         }
 
         string sendData0 = Utils::generateRandomString(RTS_MAX_PAYLOAD_SIZE + 1);
@@ -478,7 +487,7 @@ protected:
         string sendData = Utils::generateRandomString(30);
 
         long chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
-        to->setTestNetworkBlocked(true);
+        to->setTestPacketLoss(100);
 
         ASSERT_TRUE(to->sendRtsData(chatId, sendData, AUDIO));
         RtsMessageData* recvData = callEventHandlerFrom->pollData(WAIT_TIME_FOR_MESSAGE);
@@ -487,7 +496,7 @@ protected:
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
 
-        to->setTestNetworkBlocked(false);
+        to->setTestPacketLoss(0);
 
         ASSERT_TRUE(to->sendRtsData(chatId, sendData, AUDIO));
         recvData = callEventHandlerFrom->pollData(WAIT_TIME_FOR_MESSAGE);
@@ -927,7 +936,7 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
         ASSERT_TRUE(to->logout());
-
+        sleep(1);
         long chatId = from->dialCall(to->getAppAccount(), "", "ll123456");
         ASSERT_NE(-1, chatId);
 

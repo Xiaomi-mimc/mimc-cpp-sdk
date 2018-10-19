@@ -1,5 +1,5 @@
 #include "PacketDecoder.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 #include <sstream>
 #include <openssl/rsa.h>
 #include <openssl/aes.h>
@@ -32,13 +32,20 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
         dispatcher_->handleRecvDatagram(ipStr, port, (char*)xmdPacket->data, packetLen);
     } else if (xmdType == STREAM) {
         PacketType packetType = (PacketType)xmdPacket->getPacketType();
-        uint64_t* tmpId = (uint64_t*)xmdPacket->data;
-        uint64_t connId = ntohll(*tmpId);
+        uint64_t connId = 0;
+        if (packetType == CONN_BEGIN) {
+            uint64_t* tmpId = (uint64_t*)(xmdPacket->data + 2);  //VERSION len
+            connId = xmd_ntohll(*tmpId);
+        } else {
+            uint64_t* tmpId = (uint64_t*)xmdPacket->data;
+            connId = xmd_ntohll(*tmpId);
+        }
+        
     
         ConnInfo connInfo;
         if(commonData_->getConnInfo(connId, connInfo)){
             if ((packetType != CONN_BEGIN) && (ip != connInfo.ip || port != connInfo.port)) {
-                LoggerWrapper::instance()->warn("conn(%ld) ip/port changed, origin ip=%d, port=%d, current ip=%d, port=%d",
+                XMDLoggerWrapper::instance()->warn("conn(%ld) ip/port changed, origin ip=%d, port=%d, current ip=%d, port=%d",
                                              connId, connInfo.ip, connInfo.port, ip, port);
                 
                 commonData_->updateConnIpInfo(connId, ip, port);
@@ -55,14 +62,14 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
                 dispatcher_->handleConnIpChange(connId, ipStr, port);
             } else {
                  if (packetType == CONN_BEGIN) {
-                     LoggerWrapper::instance()->debug("drop repeated conn packet, id=%ld", connId);
+                     XMDLoggerWrapper::instance()->info("drop repeated conn packet, id=%ld", connId);
                      return;
                  }
             }
         } else {
              if (packetType == FEC_STREAM_DATA || packetType == PING || packetType == PONG 
-                 || packetType == ACK_STREAM_DATA || packetType == ACK) {
-                 LoggerWrapper::instance()->warn("conn reset type=%d", packetType);
+                 || packetType == ACK_STREAM_DATA || packetType == ACK || packetType == STREAM_END) {
+                 XMDLoggerWrapper::instance()->warn("conn reset type=%d", packetType);
                  sendConnReset(ip, port, connId, CONN_NOT_EXIST);
                  return;
              }
@@ -71,7 +78,7 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
         switch (packetType)
         {
             case CONN_BEGIN: {
-                handleNewConn(ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
+                handleNewConn(ip, port, xmdPacket->data, packetLen);
                 break;
             }
             case CONN_RESP_SUPPORT: {
@@ -87,41 +94,41 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
                 break;
             }
             case STREAM_END: {
-                handleCloseStream(xmdPacket->data, packetLen);
+                handleCloseStream(connInfo, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             case FEC_STREAM_DATA: {
-                handleFECStreamData(connInfo, ip, port, xmdPacket->data, packetLen);
+                handleFECStreamData(connInfo, ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             case ACK: {
-                handleStreamDataAck(connInfo, ip, port, xmdPacket->data, packetLen);
+                handleStreamDataAck(connInfo, ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             case PING: {
-                handlePing(connId, connInfo, ip, port, xmdPacket->data, packetLen);
+                handlePing(connId, connInfo, ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             case PONG: {
-                handlePong(connInfo, ip, port, xmdPacket->data, packetLen);
+                handlePong(connInfo, ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             case ACK_STREAM_DATA: {
-                handleAckStreamData(connInfo, ip, port, xmdPacket->data, packetLen);
+                handleAckStreamData(connInfo, ip, port, xmdPacket->data, packetLen, xmdPacket->getEncryptSign());
                 break;
             }
             
             default: {
-                LoggerWrapper::instance()->warn("unknow packet type:%d", packetType);
+                XMDLoggerWrapper::instance()->warn("unknow packet type:%d", packetType);
                 break;
             }
         }
     } else {
-        LoggerWrapper::instance()->warn("unknow xmdType:%d", xmdType);
+        XMDLoggerWrapper::instance()->warn("unknow xmdType:%d", xmdType);
     }
 }
 
-void PacketDecoder::handleNewConn(uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
+void PacketDecoder::handleNewConn(uint32_t ip, int port, unsigned char* data, int len) {
     XMDPacketManager packetMan;
     XMDConnection* conn = packetMan.decodeNewConn(data, len);
     if (NULL == conn) {
@@ -145,31 +152,24 @@ void PacketDecoder::handleNewConn(uint32_t ip, int port, unsigned char* data, in
     encryptRsa->n = BN_bin2bn(conn->GetRSAN(), conn->GetNLen(), encryptRsa->n);
     encryptRsa->e = BN_bin2bn(conn->GetRSAE(), conn->GetELen(), encryptRsa->e);
 
-    const int sessionKeyLen = 4;
-    unsigned char keyIn[sessionKeyLen] = {0};
+    std::string sessionKey = std::to_string(rand64());
     unsigned char keyOut[SESSION_KEY_LEN];
-    uint64_t tmpSessionKey = rand64();
-    memcpy(keyIn, (char*)&tmpSessionKey, sessionKeyLen); 
-    int encryptedKeyLen = RSA_public_encrypt(sessionKeyLen, (const unsigned char*)keyIn, keyOut, encryptRsa, RSA_PKCS1_PADDING);
-    LoggerWrapper::instance()->debug("session key len=%d", encryptedKeyLen);
+    int encryptedKeyLen = RSA_public_encrypt(sessionKey.length(), (const unsigned char*)sessionKey.c_str(), keyOut, encryptRsa, RSA_PKCS1_PADDING);
 
     
     ConnInfo connInfo;
     connInfo.ip = ip;
     connInfo.port = port;
     connInfo.timeout = conn->GetTimeout();
-    connInfo.isConnected = true;
+    connInfo.connState = CONNECTED;
     connInfo.rsa = encryptRsa;
-    connInfo.isEncrypt = isEncrypt;
     connInfo.created_stream_id = -1;
     connInfo.max_stream_id = 0;
-    std::string tmpStr((char*)keyIn, sessionKeyLen);
-    connInfo.sessionKey = tmpStr;
+    connInfo.sessionKey = sessionKey;
     commonData_->insertConn(conn->GetConnId(), connInfo);
-    commonData_->startPing(conn->GetConnId());
     
     
-    packetMan.buildConnResp(conn->GetConnId(), keyOut);
+    packetMan.buildConnResp(conn->GetConnId(), keyOut, encryptedKeyLen);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -178,11 +178,13 @@ void PacketDecoder::handleNewConn(uint32_t ip, int port, unsigned char* data, in
 
     SendQueueData* sendData = new SendQueueData(connInfo.ip, connInfo.port, (unsigned char*)xmddata, packetLen);
     commonData_->socketSendQueuePush(sendData);
-    LoggerWrapper::instance()->debug("conn id=%ld, %lu", conn->GetConnId(), conn->GetConnId());
+    XMDLoggerWrapper::instance()->info("recv new connetion id=%ld, %lu", conn->GetConnId(), conn->GetConnId());
     if (!isConnExist) {
         dispatcher_->handleNewConn(conn->GetConnId(), (char*)conn->GetData(), 
                                    len -  sizeof(XMDConnection) - conn->GetNLen() - conn->GetELen());
     }
+
+    commonData_->insertPacketLossInfoMap(conn->GetConnId());
     return;
 }
 
@@ -199,23 +201,22 @@ void PacketDecoder::handleConnResp(uint32_t ip, int port, unsigned char* data, i
         return;
     }
     bool isconnected = false;
-    if (connInfo.isConnected) {
-        LoggerWrapper::instance()->debug("conn(%ld) already connected, repeated conn resp", connResp->GetConnId());
+    if (connInfo.connState == CONNECTED) {
+        XMDLoggerWrapper::instance()->debug("conn(%ld) already connected, repeated conn resp", connResp->GetConnId());
         isconnected = true;
     }
     
-    connInfo.isConnected = true;
+    connInfo.connState = CONNECTED;
 
-    unsigned char keyIn[SESSION_KEY_LEN] = {0};
     unsigned char keyOut[SESSION_KEY_LEN];
-    memcpy(keyIn, connResp->GetSessionkey(), SESSION_KEY_LEN);
-    int keyLen = RSA_private_decrypt(SESSION_KEY_LEN, (const unsigned char*)keyIn, keyOut, connInfo.rsa, RSA_PKCS1_PADDING);    
+    int encryptedKeyLen = len - sizeof(XMDConnResp);
+    XMDLoggerWrapper::instance()->debug("encrypt session key len=%d", encryptedKeyLen);
+    int keyLen = RSA_private_decrypt(encryptedKeyLen, connResp->GetSessionkey(), keyOut, connInfo.rsa, RSA_PKCS1_PADDING);    
 
     std::string tmpStr((char*)keyOut, keyLen);
     connInfo.sessionKey = tmpStr;
-    LoggerWrapper::instance()->debug("session key len=%d, key=%s", keyLen, connInfo.sessionKey.c_str());
+    XMDLoggerWrapper::instance()->debug("session key len=%d, key=%s", keyLen, connInfo.sessionKey.c_str());
     commonData_->updateConn(connResp->GetConnId(), connInfo);
-    commonData_->startPing(connResp->GetConnId());
     if (!isconnected) {
         dispatcher_->handleConnCreateSucc(connResp->GetConnId(), connInfo.ctx);
     }
@@ -223,7 +224,9 @@ void PacketDecoder::handleConnResp(uint32_t ip, int port, unsigned char* data, i
     std::stringstream ss;
     ss << connResp->GetConnId() << 0;
     std::string connKey = ss.str();
-    commonData_->updateResendMap(connKey, true);
+    commonData_->updateIsPacketRecvAckMap(connKey, true);
+
+    commonData_->insertPacketLossInfoMap(connResp->GetConnId());
 }
 
 void PacketDecoder::handleConnClose(unsigned char* data, int len) {
@@ -234,18 +237,22 @@ void PacketDecoder::handleConnClose(unsigned char* data, int len) {
     }
 
     if (commonData_->deleteConn(connClose->GetConnId()) != 0) {
-        LoggerWrapper::instance()->warn("Close conn invalid conn id:%ld", connClose->GetConnId());
+        XMDLoggerWrapper::instance()->warn("Close conn invalid conn id:%ld", connClose->GetConnId());
         return;
     }
     dispatcher_->handleCloseConn(connClose->GetConnId(), CLOSE_NORMAL);
 }
 
-void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len) {
+void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
     XMDPacketManager packetMan;
-    XMDFECStreamData* streamData = packetMan.decodeFECStreamData(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDFECStreamData* streamData = packetMan.decodeFECStreamData(data, len, isEncrypt, connInfo.sessionKey);
     if (NULL == streamData) {
         return;
     }
+
+    XMDLoggerWrapper::instance()->debug("recv fec stream packet,connid=%ld,packetid=%ld,streamid=%d,groupid=%d,pid=%d,sliceid=%d", 
+                                         streamData->GetConnId(), streamData->GetPacketId(), streamData->GetStreamId(),
+                                         streamData->GetGroupId(), streamData->PId, streamData->GetSliceId());
 
     uint64_t timestamp = current_ms();
     std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamData->GetStreamId());
@@ -255,9 +262,12 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
         StreamInfo streamInfo;
         streamInfo.timeout = streamData->GetTimeout();
         streamInfo.sType =  FEC_STREAM;
-        //streamInfo.lastPacketTime = timestamp;
+        streamInfo.callbackWaitTimeout = 0;
+        streamInfo.isEncrypt = isEncrypt;
         commonData_->insertStream(streamData->GetConnId(), streamData->GetStreamId(), streamInfo);
     } 
+
+    commonData_->updatePacketLossInfoMap(streamData->GetConnId(), streamData->GetPacketId());
     
     std::stringstream ss_conn, ss_conn_stream;
     ss_conn << streamData->GetConnId();
@@ -266,7 +276,6 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
     std::string streamKey = ss_conn_stream.str();
     commonData_->updateLastPacketTime(connKey, timestamp);
     commonData_->updateLastPacketTime(streamKey, timestamp);
-    
 
     //thread调度方式待定
     int threadId = (streamData->GetConnId() + streamData->GetStreamId()) % commonData_->getDecodeThreadSize();
@@ -277,24 +286,15 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
 }
 
 
-void PacketDecoder::handleCloseStream(unsigned char* data, int len) {
-    uint64_t* tmpId = (uint64_t*)data;
-    uint64_t connId = ntohll(*tmpId);
-
-    ConnInfo connInfo;
-    if(!commonData_->getConnInfo(connId, connInfo)){
-        LoggerWrapper::instance()->warn("data invalid conn(%ld) not exist.", connId);
-        return;
-    }
-    
+void PacketDecoder::handleCloseStream(ConnInfo connInfo, unsigned char* data, int len, bool isEncrypt) {    
     XMDPacketManager packetMan;
-    XMDStreamClose* streamClose = packetMan.decodeStreamClose(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDStreamClose* streamClose = packetMan.decodeStreamClose(data, len, isEncrypt, connInfo.sessionKey);
     if (NULL == streamClose) {
         return;
     }
 
     if (!commonData_->isStreamExist(streamClose->GetConnId(), streamClose->GetStreamId())) {
-        LoggerWrapper::instance()->warn("close stream packet invalid,stream does not exist." 
+        XMDLoggerWrapper::instance()->warn("close stream packet invalid,stream does not exist." 
                                         "conn id:%ld, stream id:%d", 
                                     streamClose->GetConnId(), streamClose->GetStreamId());
         return;
@@ -310,7 +310,7 @@ void PacketDecoder::handleConnReset(unsigned char* data, int len) {
         return;
     }
     if (commonData_->deleteConn(connReset->GetConnId()) != 0) {
-        LoggerWrapper::instance()->warn("reset conn invalid conn id:%ld", connReset->GetConnId());
+        XMDLoggerWrapper::instance()->warn("reset conn invalid conn id:%ld", connReset->GetConnId());
         return;
     }
     
@@ -319,73 +319,103 @@ void PacketDecoder::handleConnReset(unsigned char* data, int len) {
     std::stringstream ss;
     ss << connReset->GetConnId() << 0;
     std::string connKey = ss.str();
-    commonData_->updateResendMap(connKey, true);
+    commonData_->updateIsPacketRecvAckMap(connKey, true);
 }
 
-void PacketDecoder::handleStreamDataAck(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len) {
+void PacketDecoder::handleStreamDataAck(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
     XMDPacketManager packetMan;
-    XMDStreamDataAck* ack = packetMan.decodeStreamDataAck(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDStreamDataAck* ack = packetMan.decodeStreamDataAck(data, len, isEncrypt, connInfo.sessionKey);
     if (NULL == ack) {
         return;
     }
+    XMDLoggerWrapper::instance()->debug("recv ack packet,packetid=%ld", ack->GetPacketId());
+
+    commonData_->updatePacketLossInfoMap(ack->GetConnId(), ack->GetPacketId());
 
     std::stringstream ss_ack;
     ss_ack << ack->GetConnId() << ack->GetAckedPacketId();
     std::string ackpacketKey = ss_ack.str();
     
-    commonData_->updateResendMap(ackpacketKey, true);
+    commonData_->updateIsPacketRecvAckMap(ackpacketKey, true);
 
-    ackPacketInfo ackPacket;
-    if (commonData_->getDeleteAckPacketInfo(ackpacketKey, ackPacket)) {
+    PacketCallbackInfo packetCallbackInfo;
+    if (commonData_->getDeletePacketCallbackInfo(ackpacketKey, packetCallbackInfo)) {
         std::stringstream ss_callback;
-        ss_callback << ackPacket.connId << ackPacket.streamId << ackPacket.groupId;
+        ss_callback << packetCallbackInfo.connId << packetCallbackInfo.streamId << packetCallbackInfo.groupId;
         std::string callbackKey = ss_callback.str();
-        if (commonData_->updateSendCallbackMap(callbackKey, ackPacket.sliceId) == 1) {
-            dispatcher_->streamDataSendSucc(ackPacket.connId, ackPacket.streamId, ackPacket.groupId, ackPacket.ctx);
+        if (commonData_->updateSendCallbackMap(callbackKey, packetCallbackInfo.sliceId) == 1) {
+            dispatcher_->streamDataSendSucc(packetCallbackInfo.connId, packetCallbackInfo.streamId, packetCallbackInfo.groupId, packetCallbackInfo.ctx);
         }
     }
 }
 
 
-void PacketDecoder::handlePing(uint64_t connId, ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len) {
+void PacketDecoder::handlePing(uint64_t connId, ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
     uint64_t timestamp = current_ms();
     XMDPacketManager packetMan;
-    XMDPing* ping = packetMan.decodeXMDPing(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDPing* ping = packetMan.decodeXMDPing(data, len, isEncrypt, connInfo.sessionKey);
     if (NULL == ping) {
         return;
     }
 
-    packetMan.buildXMDPong(connId, commonData_->getPakcetId(connId), ping->GetPacketId(), 
-                           timestamp, connInfo.isEncrypt, connInfo.sessionKey);
-    XMDPacket *xmddata = NULL;
-    int packetLen = 0;
-    if (packetMan.encode(xmddata, packetLen) != 0) {
-        return;
-    }
+    PongThreadData pongthreadData;
+    pongthreadData.connId = connId;
+    pongthreadData.packetId = ping->GetPacketId();
+    pongthreadData.ts = timestamp;
 
-    SendQueueData* sendData = new SendQueueData(connInfo.ip, connInfo.port, (unsigned char*)xmddata, packetLen);
-    commonData_->socketSendQueuePush(sendData);
+    commonData_->pongThreadQueuePush(pongthreadData);
+    commonData_->updatePacketLossInfoMap(connId, ping->GetPacketId());
+    commonData_->startPacketLossCalucate(connId);
+
+    std::stringstream ss_conn;
+    ss_conn << connId;
+    std::string connKey = ss_conn.str();
+    commonData_->updateLastPacketTime(connKey, timestamp);
 }
 
-void PacketDecoder::handlePong(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len) {
+void PacketDecoder::handlePong(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
     uint64_t currentTime = current_ms();
     XMDPacketManager packetMan;
-    XMDPong* pong = packetMan.decodeXMDPong(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDPong* pong = packetMan.decodeXMDPong(data, len, isEncrypt, connInfo.sessionKey);
     if (NULL == pong) {
         return;
     }
 
-    uint64_t ts = pong->timeStamp2 - pong->timeStamp1;
+    commonData_->updatePacketLossInfoMap(pong->GetConnId(), pong->GetPacketId());
 
-    commonData_->insertPong(pong->GetConnId(), pong->GetAckedPacketId(), currentTime, ts);
+    netStatus status;
+    if (pong->GetTotalPackets() != 0) {
+        status.packetLossRate = 1 - float(pong->GetRecvPackets()) / float(pong->GetTotalPackets());
+    } else {
+        status.packetLossRate = 0;
+    }
+    PingPacket pingPakcet;
+    if (commonData_->getPingPacket(pong->GetConnId(), pingPakcet)) {
+        status.ttl = (currentTime - pingPakcet.sendTime - (pong->GetTimestamp2() - pong->GetTimestamp1())) / 2;
+    }
+    
+    commonData_->updateNetStatus(pong->GetConnId(), status);
+
+    XMDLoggerWrapper::instance()->debug("connection(%ld) recv pong, packet loss rate:%f, ttl:%d, total:%d,recved:%d,ts0:%ld,ts1:%ld,ts2:%ld,ts3:%ld", 
+                                                         pong->GetConnId(), status.packetLossRate, status.ttl,
+                                                         pong->GetTotalPackets(),pong->GetRecvPackets(),
+                                                         pingPakcet.sendTime,pong->GetTimestamp1(),pong->GetTimestamp2(),currentTime);
+
+    std::stringstream ss_conn;
+    ss_conn << pong->GetConnId();
+    std::string connKey = ss_conn.str();
+    commonData_->updateLastPacketTime(connKey, currentTime);
 }
 
-void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len) {
+void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port, unsigned char* data, int len, bool isEncrypt) {
     XMDPacketManager packetMan;
-    XMDACKStreamData* streamData = packetMan.decodeAckStreamData(data, len, connInfo.isEncrypt, connInfo.sessionKey);
+    XMDACKStreamData* streamData = packetMan.decodeAckStreamData(data, len, isEncrypt, connInfo.sessionKey);
     if (streamData == NULL) {
         return;
     }
+    XMDLoggerWrapper::instance()->debug("recv ack stream packet,connid=%ld,packetid=%ld", 
+                                         streamData->GetConnId(), streamData->GetPacketId());
+                                         
     uint64_t timestamp = current_ms();
     std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamData->GetStreamId());
     
@@ -394,9 +424,12 @@ void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port
         StreamInfo streamInfo;
         streamInfo.timeout = streamData->GetTimeout();
         streamInfo.sType = ACK_STREAM;
-        //streamInfo.lastPacketTime = timestamp;
+        streamInfo.callbackWaitTimeout = streamData->GetWaitTime();
+        streamInfo.isEncrypt = isEncrypt;
         commonData_->insertStream(streamData->GetConnId(), streamData->GetStreamId(), streamInfo);
     }
+
+    commonData_->updatePacketLossInfoMap(streamData->GetConnId(), streamData->GetPacketId());
 
     std::stringstream ss_conn, ss_conn_stream;
     ss_conn << streamData->GetConnId();
@@ -413,7 +446,7 @@ void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port
 
     uint64_t packetId = commonData_->getPakcetId(streamData->GetConnId());
     packetMan.buildStreamDataAck(streamData->GetConnId(), packetId, streamData->GetPacketId(), 
-                                 connInfo.isEncrypt, connInfo.sessionKey);
+                                 isEncrypt, connInfo.sessionKey);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -435,6 +468,6 @@ void PacketDecoder::sendConnReset(uint32_t ip, int port, uint64_t conn_id, ConnR
     }
     SendQueueData* sendData = new SendQueueData(ip, port, (unsigned char*)xmddata, packetLen);
     commonData_->socketSendQueuePush(sendData);
-    LoggerWrapper::instance()->warn("send conn(%ld) reset.type=%d", conn_id, type);
+    XMDLoggerWrapper::instance()->warn("send conn(%ld) reset.type=%d", conn_id, type);
 }
 

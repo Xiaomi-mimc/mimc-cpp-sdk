@@ -16,7 +16,6 @@ cc_library(
         "-pthread",
         "-Wl,--gc-sections",
     ],
-#    linkstatic = 1,
     includes = ["include"],
     srcs = glob(["src/*.cpp", "src/*.cc", "src/*.c"]),
     hdrs = glob(["include/**/*.h"]),
@@ -76,13 +75,22 @@ cc_binary(
 cc_test(
     name = "mimc_cpp_test",
     copts = [
+        "-Os",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-ffunction-sections",
+        "-fdata-sections", 
+#        "-DSTAGING",
     ],
     linkopts = [
          "-lz",
-         "-lssl"
+         "-lssl",
+         "-Wl,--gc-sections",
     ],
+    includes = ["."],
     srcs = glob([
-        "test/mimc_test.cpp"
+        "test/mimc_test.cpp",
+        "test/**/*.h",
     ]),
     deps = [
         "//third-party/gtest-170",
@@ -99,6 +107,7 @@ cc_test(
         "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
+#        "-DSTAGING",
     ],
     linkopts = [
         "-lz",
@@ -106,8 +115,38 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     linkstatic=True,
+    includes = ["."],
     srcs = glob([
-       "test/rts_test.cpp" 
+       "test/rts_test.cpp",
+       "test/**/*.h",
+    ]),
+    deps = [
+        "//third-party/gtest-170",
+        ":mimc_cpp_sdk",
+        "//third-party/curl-7-59-0"
+    ]
+)
+
+cc_test(
+    name = "rts_performance_test",    
+    copts = [
+        "-Os",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-ffunction-sections",
+        "-fdata-sections",
+#        "-DSTAGING",
+    ],
+    linkopts = [
+        "-lz",
+        "-lssl",
+        "-Wl,--gc-sections",
+    ],
+    linkstatic=True,
+    includes = ["."],
+    srcs = glob([
+       "test/rts_performance.cpp",
+       "test/**/*.h",
     ]),
     deps = [
         "//third-party/gtest-170",

@@ -7,7 +7,7 @@
 #include <openssl/aes.h>
 
 
-XMDTransceiver* transceiver = new XMDTransceiver(45678, 1);
+//XMDTransceiver* transceiver = new XMDTransceiver(45678, 1);
 
 uint64_t connIds[2];
 int tmpi = 0;
@@ -138,6 +138,8 @@ TEST(test_xmdtransceiver, test_send_delay) {
 }
 
 
+*/
+
 
 
 
@@ -153,6 +155,9 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     transceiver2->registerConnHandler(new newConn());
     transceiver2->registerStreamHandler(new stHandler());
 
+    transceiver->setXMDLogLevel(XMD_INFO);
+    transceiver2->setXMDLogLevel(XMD_INFO);
+
     transceiver->run();
     transceiver2->run();
 
@@ -167,9 +172,10 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 
     int len = 10;
     char* data = new char[10];
+    //transceiver->setTestPacketLoss(100);
     
     uint64_t connId = transceiver->createConnection((char*)ip.c_str(), port, 
-                                   (char*)message.c_str(), message.length(), 0, NULL, true);
+                                   (char*)message.c_str(), message.length(), 10, NULL);
                                    
     EXPECT_EQ(44564, port);
     usleep(200000);
@@ -178,17 +184,17 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::string testip;
     int testport;
     transceiver2->getPeerInfo(connId, testip, testport);
-    LoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
+    XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
     usleep(200000);
-    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 0);
+    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 100, false);
     std::cout<<"stream id="<<streamId<<std::endl;
 
 
-    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length());
+    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0, 1);
     usleep(200000);
-    //transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length());
+    transceiver->sendRTData(connId, streamId, (char*)message2.c_str(), message2.length(), false, P0, 1);
     usleep(2000000);
     transceiver->closeStream(connId, streamId);
     usleep(200000);
@@ -198,19 +204,26 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 
 
     transceiver2->stop();
-    delete transceiver2;
     transceiver->stop();
+    transceiver2->join();
+    transceiver->join();
+
+    //transceiver2->stop();
+    delete transceiver2;
+    //transceiver->stop();
     delete transceiver;
 
 
     usleep(200000);
 }
 
-*/
 
 
 
 
+
+
+/*
 
 
 TEST(test_xmdtransceiver, test_send_fecstreamData) {
@@ -249,21 +262,19 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
     std::string testip;
     int testport;
     transceiver2->getPeerInfo(connId, testip, testport);
-    LoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
+    XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
-
-    LoggerWrapper::instance()->debug("test connid=%ld,port=%d", connId, testport);
 
     usleep(200000);
     uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 0);
     std::cout<<"stream id="<<streamId<<std::endl;
 
-    //transceiver->setTestNetFlag(true);
+    uint16_t streamId2 = transceiver->createStream(connId, FEC_STREAM, 0);
+    std::cout<<"stream id="<<streamId2<<std::endl;
 
-    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length());
+    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0);
     usleep(200000);
-    //transceiver->setTestNetFlag(false);
-    //transceiver->sendRTData(connId, streamId, (char*)message2.c_str(), message2.length());
+    //transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length());
     usleep(200000);
     transceiver->closeStream(connId, streamId);
     usleep(200000);
@@ -281,7 +292,6 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
     usleep(200000);
 }
 
-/*
 
 
 
@@ -440,8 +450,7 @@ TEST(test_xmdtransceiver, test_fec) {
             for (int j = 0; j < n; j++) {
                 input[index][j] = fec_matrix[i - n][j];
             }
-        }
-
+        }
         index++;
     }   
 
@@ -463,12 +472,11 @@ TEST(test_xmdtransceiver, test_fec) {
 
 /*
 
-
 TEST(TESTIP, IP) {
     const int IP_STR_LEN = 32;
     char ipStr[IP_STR_LEN];
     memset(ipStr, 0, IP_STR_LEN);
-    int ip = 2436512266;
+    int ip = 1077557770;
     inet_ntop(AF_INET, &ip, ipStr, IP_STR_LEN);
     std::cout<<"ip="<<ipStr<<std::endl;
 }
@@ -476,8 +484,7 @@ TEST(TESTIP, IP) {
 
 
 
-TEST(testras, rsa) {
-
+TEST(testras, rsa) {
     const int SESSION_KEY_LEN = 128;
     RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
     //unsigned char publickey[1024];

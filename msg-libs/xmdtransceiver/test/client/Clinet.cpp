@@ -15,22 +15,23 @@ int main(int argc, char *argv[]) {
     int times = atoi(argv[3]);
     int size = atoi(argv[4]);
     int qps = atoi(argv[5]);
+    int packetLossRate = atoi(argv[6]);
     char data[size];
     
     
     //std::string ip = "10.231.49.218";
     
     uint64_t connId = transceiver->createConnection(ip, port, 
-                                   NULL, 0, 20, NULL, true);
+                                   NULL, 0, 20, NULL);
                                    
     usleep(500000);
 
-    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10);
+    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 100, false);
 
-    
-    
+    transceiver->setTestPacketLoss(packetLossRate);
+    transceiver->setXMDLogLevel(XMD_INFO);
 
-    std::cout<<"time="<<times<<",size="<<size<<",qps="<<qps<<",ip="<<ip<<std::endl;
+    std::cout<<"time="<<times<<",size="<<size<<",qps="<<qps<<",ip="<<ip<<",rate="<<packetLossRate<<std::endl;
 
     for (int i = 0; i < times; i++) {
         for (int j = 0; j < size; j++) {
@@ -42,13 +43,14 @@ int main(int argc, char *argv[]) {
         uint64_t time = current_ms();
         memcpy(data + 4, &time, 8);
 
+
         
-        transceiver->sendRTData(connId, streamId, data, size);
+        transceiver->sendRTData(connId, streamId, data, size, false, P0, 2);
 
         usleep(1000000 / qps);
     }
 
-    usleep(5000000);
+    usleep(1500000);
     std::cout<<"close"<<std::endl;
 
     transceiver->closeStream(connId, streamId);
@@ -56,10 +58,11 @@ int main(int argc, char *argv[]) {
     transceiver->closeConnection(connId);
 
 
-    usleep(2000000);
+    usleep(200000);
     
 
     transceiver->stop();
+    transceiver->join();
     delete transceiver;
 }
 

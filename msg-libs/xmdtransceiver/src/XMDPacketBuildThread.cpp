@@ -1,6 +1,6 @@
 #include "XMDPacketBuildThread.h"
 #include "PacketBuilder.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 #include <unistd.h>
 
 PackketBuildThread::PackketBuildThread(int threadId, XMDCommonData* commonData) {

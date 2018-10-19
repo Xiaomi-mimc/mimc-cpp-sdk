@@ -22,12 +22,12 @@ public:
 		this->recvDataTime = recvDataTime;
 	}
 
-	string getData() {return this->data;}
-	long getDataTime() {return this->dataTime;}
-	long getLoginTime1() {return this->loginTime1;}
-	long getLoginTime2() {return this->loginTime2;}
-	long getDialCallTime() {return this->dialCallTime;}
-	long getRecvDataTime() {return this->recvDataTime;}
+	const string& getData() const {return this->data;}
+	long getDataTime() const {return this->dataTime;}
+	long getLoginTime1() const {return this->loginTime1;}
+	long getLoginTime2() const {return this->loginTime2;}
+	long getDialCallTime() const {return this->dialCallTime;}
+	long getRecvDataTime() const {return this->recvDataTime;}
 
 private:
 	string data;

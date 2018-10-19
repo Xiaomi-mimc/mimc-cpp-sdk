@@ -19,7 +19,7 @@ public:
 	P2PChatSession(long chatId, mimc::UserInfo peerUser, mimc::ChatType chatType, ChatState chatState, long chatStateTs, bool is_creator, std::string appContent) 
 		: chatId(chatId), peerUser(peerUser), chatType(chatType), chatState(chatState), latestLegalChatStateTs(chatStateTs), is_creator(is_creator), appContent(appContent)
 	{
-
+		clearP2PConn();
 	}
 
 	mimc::UserInfo getPeerUser() const{ return this->peerUser; }
@@ -62,6 +62,24 @@ public:
 
 	bool isCreator() const{ return this->is_creator; }
 
+	void resetP2PIntranetConn() { 
+		setIntranetBurrowState(false);
+		setP2PIntranetConnId(0);
+		setP2PIntranetAudioStreamId(0);
+		setP2PIntranetVideoStreamId(0);
+	}
+
+	void resetP2PInternetConn() { 
+		setInternetBurrowState(false);
+		setP2PInternetConnId(0);
+		setP2PInternetAudioStreamId(0);
+		setP2PInternetVideoStreamId(0);
+	}
+
+	void clearP2PConn() {
+		resetP2PIntranetConn();
+		resetP2PInternetConn();
+	}
 private:
 	long chatId;
 	mimc::UserInfo peerUser;
@@ -72,12 +90,12 @@ private:
 	long P2PIntranetConnId;
 	short P2PIntranetVideoStreamId;
 	short P2PIntranetAudioStreamId;
-	bool intranetBurrowState = false;
+	bool intranetBurrowState;
 
 	long P2PInternetConnId;
 	short P2PInternetVideoStreamId;
 	short P2PInternetAudioStreamId;
-	bool internetBurrowState = false;
+	bool internetBurrowState;
 
 	bool is_creator;
 

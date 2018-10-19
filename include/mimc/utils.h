@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#include <sys/time.h>
 #include <net/if.h>
 
 class Utils {
@@ -24,5 +25,6 @@ public:
     static std::string hexToAscii(const char* src, int srcLen);
     static std::string hash4SHA1AndBase64(const std::string &plain);
     static std::string getLocalIp();
+    static long currentTimeMillis();
 };
 #endif //MIMC_CPP_SDK_UTILS_H

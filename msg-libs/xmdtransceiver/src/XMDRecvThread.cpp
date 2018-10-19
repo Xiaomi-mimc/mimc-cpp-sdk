@@ -7,24 +7,24 @@
 #include <arpa/inet.h>
 
 #include "XMDRecvThread.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 
 
 XMDRecvThread::XMDRecvThread(int port,  XMDCommonData* commonData) {
     port_ = port;
     commonData_ = commonData;
     stopFlag_ = false;
-    testNetFlag_ = false;
+    testPacketLoss_ = 0;
 
     listenfd_ = 0;
     if ((listenfd_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        LoggerWrapper::instance()->error("Failed to create listen socket.");
+        XMDLoggerWrapper::instance()->error("Failed to create listen socket.");
         exit(2);
     }
     
     int on = 1;
     if (setsockopt(listenfd_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
-        LoggerWrapper::instance()->error("Failed to set listen socket option SO_REUSEADDR.");
+        XMDLoggerWrapper::instance()->error("Failed to set listen socket option SO_REUSEADDR.");
         exit(2);
     }
 }
@@ -47,7 +47,7 @@ struct sockaddr_in* XMDRecvThread::getSvrAddr() {
 void XMDRecvThread::Bind(int fd) {
     struct sockaddr_in* svrAddr = getSvrAddr();
     if (bind(listenfd_, (struct sockaddr*) svrAddr, sizeof(struct sockaddr_in)) < 0) {
-        LoggerWrapper::instance()->warn("Failed to bind port [%d], errmsg:%s,", port_, strerror(errno));
+        XMDLoggerWrapper::instance()->warn("Failed to bind port [%d], errmsg:%s,", port_, strerror(errno));
         exit(3);
     }
     delete svrAddr;
@@ -75,19 +75,18 @@ void XMDRecvThread::Recvfrom(int fd) {
         if (len == 4 && dpdkping == 0x000c120f) {
             int ret = sendto(fd, (char*)buf, len, MSG_DONTWAIT, (struct sockaddr*)&clientAddr, addrLen);
             if (ret < 0) {
-                LoggerWrapper::instance()->warn("dpdk ack send fail, errmsg:%s,", strerror(errno));
+                XMDLoggerWrapper::instance()->warn("dpdk ack send fail, errmsg:%s,", strerror(errno));
             }
             continue;
         }
 
-        if (testNetFlag_) {
+        if (rand32() % 100 < testPacketLoss_) {
             continue;
         }
 
         
         uint16_t port = ntohs(clientAddr.sin_port);
-        LoggerWrapper::instance()->debug("XMDRecvThread recv data,len=%d, port=%d", len, port);
-        //std::cout<<"time="<<current_ms()<<std::endl;
+        //XMDLoggerWrapper::instance()->debug("XMDRecvThread recv data,len=%d, port=%d", len, port);
 
         SocketData* socketData = new SocketData(clientAddr.sin_addr.s_addr, port, len, buf);
         commonData_->socketRecvQueuePush(socketData);
@@ -96,14 +95,13 @@ void XMDRecvThread::Recvfrom(int fd) {
 
 void* XMDRecvThread::process() {
     if (port_ < 0) {
-        LoggerWrapper::instance()->error("You should bind port > 0.");
+        XMDLoggerWrapper::instance()->error("You should bind port > 0.");
         exit(1);
     }
 
-    LoggerWrapper::instance()->info("XMDRecvThread started");
+    XMDLoggerWrapper::instance()->info("XMDRecvThread started");
 
     std::string threadName = "rt" + std::to_string(port_) + "-recv";
-    //XMDThread::SetThreadName(threadName);
 
     Bind(listenfd_);
     Recvfrom(listenfd_);

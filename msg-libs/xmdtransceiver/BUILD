@@ -4,14 +4,13 @@ version = "1.0.0.0"
 
 cc_library(
 	name = "xmdtransceiver",
-	includes = ["include/xmdtransceiver"],
+	includes = ["include"],
 	hdrs = glob([
 		"include/**/*.h",
 	]),
 	copts = [
 		"-Os",
         "-fno-exceptions",
-        "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
 		"-fno-omit-frame-pointer",

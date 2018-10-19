@@ -18,7 +18,7 @@
 #include <map>
 #include <vector>
 #include <XMDTransceiver.h>
-#include <LoggerWrapper.h>
+#include <XMDLoggerWrapper.h>
 
 struct onLaunchedParam {
 	User* user;
@@ -35,7 +35,7 @@ public:
 	User(std::string appAccount, std::string resource = "cpp");
 	~User();
 
-	void setTestNetworkBlocked(bool testNetWorkBlocked) {this->testNetWorkBlocked = testNetWorkBlocked;this->xmdTranseiver->setTestNetFlag(testNetWorkBlocked);}
+	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}
 	void setPermitLogin(bool permitLogin) {this->permitLogin = permitLogin;}
 	void setLastLoginTimestamp(long ts) {this->lastLoginTimestamp = ts;}
 	void setLastCreateConnTimestamp(long ts) {this->lastCreateConnTimestamp = ts;}
@@ -50,6 +50,7 @@ public:
 	void setMaxCallNum(unsigned int num) {this->maxCallNum = num;}
 
 	void resetRelayLinkState();
+	void handleXMDConnClosed(unsigned long connId, ConnCloseType type);
 
 	int getChid() const {return this->chid;}
 	long getUuid() const {return this->uuid;}
@@ -59,7 +60,7 @@ public:
 	std::string getAppAccount() const {return this->appAccount;}
 	long getAppId() const {return this->appId;}
 	std::string getAppPackage() const {return this->appPackage;}
-	bool getTestNetworkBlocked() const {return this->testNetWorkBlocked;}
+	int getTestPacketLoss() const {return this->testPacketLoss;}
 	OnlineStatus getOnlineStatus() const {return this->onlineStatus;}
 	std::string getClientAttrs() const {return join(clientAttrs);}
 	std::string getCloudAttrs() const {return join(cloudAttrs);}
@@ -72,6 +73,7 @@ public:
 	std::map<long, P2PChatSession>* getCurrentChats() const {return this->currentChats;}
 	std::map<long, pthread_t>* getOnlaunchChats() const {return this->onlaunchChats;}
 	XMDTransceiver* getXmdTransceiver() const {return this->xmdTranseiver;}
+	mimc::StreamConfig* getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 	const mimc::BindRelayResponse& getBindRelayResponse() const {return this->bindRelayResponse;}
 	unsigned int getMaxCallNum() const {return this->maxCallNum;}
 
@@ -115,7 +117,7 @@ private:
 
 	long latestLegalRelayLinkStateTs;
 
-	bool testNetWorkBlocked;
+	int testPacketLoss;
 	bool permitLogin;
 	OnlineStatus onlineStatus;
 	RelayLinkState relayLinkState;
@@ -149,6 +151,8 @@ private:
 	RTSCallEventHandler* rtsCallEventHandler;
 
 	XMDTransceiver* xmdTranseiver;
+	mimc::StreamConfig* audioStreamConfig;
+	mimc::StreamConfig* videoStreamConfig;
 	std::map<long, P2PChatSession>* currentChats;
 	std::map<long, pthread_t>* onlaunchChats;
 	mimc::BindRelayResponse bindRelayResponse;
@@ -158,6 +162,8 @@ private:
 
 	void relayConnScanAndCallBack();
 	void rtsScanAndCallBack();
+
+	void checkAndCloseChats();
 };
 
 #endif //MIMC_CPP_SDK_USER_H

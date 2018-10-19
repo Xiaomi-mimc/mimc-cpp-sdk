@@ -15,9 +15,12 @@ public:
 		this->user->setLatestLegalRelayLinkStateTs(time(NULL));
 		RtsConnectionInfo* rtsConnectionInfo = (RtsConnectionInfo*)ctx;
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
-			LoggerWrapper::instance()->info("Relay connection create succeed");
+			XMDLoggerWrapper::instance()->info("Relay connection create succeed");
 			//创建控制流
-			unsigned short streamId = this->user->getXmdTransceiver()->createStream(connId, FEC_STREAM, XMD_TRAN_TIMEOUT);
+			unsigned short streamId = this->user->getXmdTransceiver()->createStream(connId, ACK_STREAM, STREAM_TIMEOUT, ACK_STREAM_WAIT_TIME_MS, false);
+
+			XMDLoggerWrapper::instance()->info("control streamId is %d", streamId);
+
 			this->user->setRelayControlStreamId(streamId);
 
 			if (!RtsSendData::sendBindRelayRequest(this->user)) {
@@ -39,35 +42,31 @@ public:
 		} else {
 			
 		}
+		delete rtsConnectionInfo;
 	}
 
 	void ConnCreateFail(uint64_t connId, void* ctx) {
 		this->user->setLatestLegalRelayLinkStateTs(time(NULL));
 		RtsConnectionInfo* rtsConnectionInfo = (RtsConnectionInfo*)ctx;
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
-			LoggerWrapper::instance()->error("Relay connection create failed");
+			XMDLoggerWrapper::instance()->error("Relay connection create failed");
 			this->user->getXmdTransceiver()->closeConnection(connId);
 			this->user->getCurrentChats()->clear();
 			this->user->resetRelayLinkState();
-			return;
 		}
+		delete rtsConnectionInfo;
 	}
 
 	void CloseConnection(uint64_t connId, ConnCloseType type) {
 		if (type == CLOSE_NORMAL) {
-			
+			XMDLoggerWrapper::instance()->info("XMDConnection is closed normally, connId is %ld, ConnCloseType is %d", connId, type);
 			return;
 		}
-
-		if (connId == user->getRelayConnId()) {
-			LoggerWrapper::instance()->error("Relay connection closed, connId is %ld, ConnCloseType is %d", connId, type);
-			this->user->resetRelayLinkState();
-			
-			return;
-		}
+		//连接被关闭时，重置本地XMD连接及处理会话状态
+		this->user->handleXMDConnClosed(connId, type);
 	}
 private:
 		User* user;
-	};
+};
 
 #endif

@@ -12,6 +12,7 @@
 #include "XMDPacketBuildThreadPool.h"
 #include "XMDPacketDecodeThreadPool.h"
 #include "PingThread.h"
+#include "PongThread.h"
 #include "ExternalLog.h"
 
 const int MAX_PACKET_LEN = 512 * 1024;
@@ -28,6 +29,7 @@ private:
     XMDPacketDecodeThreadPool* packetDecodeThreadPool_;
     XMDCallbackThread* callbackThread_;
     PingThread* pingThread_;
+    PongThread* pongThread_;
     int port_;
     
 public:
@@ -42,6 +44,7 @@ public:
         packetDecodeThreadPool_ = new XMDPacketDecodeThreadPool(1, commonData_, packetDispatcher_);
         callbackThread_ = new XMDCallbackThread(packetDispatcher_, commonData_);
         pingThread_ = new PingThread(packetDispatcher_, commonData_);
+        pongThread_ = new PongThread(commonData_);
     }
     ~XMDTransceiver() {
         if (commonData_) {
@@ -72,6 +75,10 @@ public:
             delete pingThread_;
             pingThread_ = NULL;
         }
+        if (pongThread_) {
+            delete pongThread_;
+            pongThread_ = NULL;
+        }
         if (packetbuildThreadPool_) {
             delete packetbuildThreadPool_;
             packetbuildThreadPool_ = NULL;
@@ -84,11 +91,11 @@ public:
     
     int sendDatagram(char* ip, int port, char* data, int len, uint64_t delay_ms);
 
-    uint64_t createConnection(char* ip, int port, char* data, int len, int timeout, void* ctx, bool isEncrypt = true);
-    int closeConnection(uint64_t conn_id);
+    uint64_t createConnection(char* ip, int port, char* data, int len, uint16_t timeout, void* ctx);
+    int closeConnection(uint64_t connId);
 
-    uint16_t createStream(uint64_t conn_id, StreamType streamType, int timeout);
-    int closeStream(uint64_t conn_id, uint16_t stream_id);
+    uint16_t createStream(uint64_t connId, StreamType streamType, uint16_t timeout, uint16_t waitTime, bool isEncrypt);
+    int closeStream(uint64_t connId, uint16_t streamId);
 
     void registerRecvDatagramHandler(DatagramRecvHandler* handler) { 
         packetDispatcher_->registerRecvDatagramHandler(handler); 
@@ -102,12 +109,14 @@ public:
     void registerNetStatusChangeHandler(NetStatusChangeHandler* handler) {
         packetDispatcher_->registerNetStatusChangeHandler(handler);
     }
+
+    int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, void* ctx = NULL);
     
-    int sendRTData(uint64_t conn_id, uint16_t stream_id, char* data, int len, void* ctx = NULL);
+    int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx = NULL);
 
-    int updatePeerInfo(uint64_t conn_id, char* ip, int port);
+    int updatePeerInfo(uint64_t connId, char* ip, int port);
 
-    int getPeerInfo(uint64_t conn_id, std::string &ip, int& port);
+    int getPeerInfo(uint64_t connId, std::string &ip, int& port);
 
     int getLocalInfo(std::string &ip, int& port);
     
@@ -115,18 +124,28 @@ public:
     void join();
     void stop();
 
-    /*void logger(log4cplus::Logger logger) {
-        LoggerWrapper::instance()->logger(logger);
-    }*/
+    void setXMDLogLevel(XMDLogLevel level) {
+        XMDLoggerWrapper::instance()->setXMDLogLevel(level);
+    }
 
     void setExternalLog(ExternalLog* externalLog) {
-        LoggerWrapper::instance()->externalLog(externalLog);
+        XMDLoggerWrapper::instance()->externalLog(externalLog);
     }
 
-    bool setTestNetFlag (bool flag) {
-        sendThread_->setTestFlat(flag);
-        recvThread_->setTestFlat(flag);
+    void setTestPacketLoss (int value) {
+        sendThread_->setTestPacketLoss(value);
+        recvThread_->setTestPacketLoss(value);
     }
+
+    void setSendBufferSize(int size);
+    void setRecvBufferSize(int size);
+    float getSendBufferUsageRate();
+    float getRecvBufferUsageRate();
+    void clearSendBuffer();
+    void clearRecvBuffer();
+
+    ConnectionState getConnState(uint64_t connId);
+    
 };
 
 #endif //RTSTREAM_H

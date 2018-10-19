@@ -15,6 +15,17 @@ private:
 
     static Galois* instance_;
     static pthread_mutex_t mutex_;
+
+    class DestructLogger {
+        public:
+            ~DestructLogger()
+            {
+                if( Galois::instance_ )
+                  delete Galois::instance_;
+            }
+     };
+
+     static DestructLogger destruct;
     
 
 public:

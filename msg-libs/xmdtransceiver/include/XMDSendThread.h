@@ -13,10 +13,10 @@ public:
 
     void send(uint32_t ip, int port, char* data , int len);
     void stop() { stopFlag_ = true; }
-    void setTestFlat(bool flag) { testNetFlag_ = flag; }
+    void setTestPacketLoss(int value) { testPacketLoss_ = value; }
 private:
     bool stopFlag_;
-    bool testNetFlag_;
+    uint32_t testPacketLoss_;
     int listenfd_;
     int port_;
     XMDCommonData* commonData_;

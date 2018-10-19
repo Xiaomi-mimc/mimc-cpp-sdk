@@ -17,6 +17,7 @@ namespace mimc {
 void protobuf_ShutdownFile_rts_5fdata_2eproto() {
   delete UserPacket::default_instance_;
   delete BindRelayRequest::default_instance_;
+  delete StreamConfig::default_instance_;
   delete BindRelayResponse::default_instance_;
   delete PingRelayRequest::default_instance_;
   delete PingRelayResponse::default_instance_;
@@ -42,6 +43,7 @@ void protobuf_AddDesc_rts_5fdata_2eproto() {
 #endif
   UserPacket::default_instance_ = new UserPacket();
   BindRelayRequest::default_instance_ = new BindRelayRequest();
+  StreamConfig::default_instance_ = new StreamConfig();
   BindRelayResponse::default_instance_ = new BindRelayResponse();
   PingRelayRequest::default_instance_ = new PingRelayRequest();
   PingRelayResponse::default_instance_ = new PingRelayResponse();
@@ -53,6 +55,7 @@ void protobuf_AddDesc_rts_5fdata_2eproto() {
   BurrowPacket::default_instance_ = new BurrowPacket();
   UserPacket::default_instance_->InitAsDefaultInstance();
   BindRelayRequest::default_instance_->InitAsDefaultInstance();
+  StreamConfig::default_instance_->InitAsDefaultInstance();
   BindRelayResponse::default_instance_->InitAsDefaultInstance();
   PingRelayRequest::default_instance_->InitAsDefaultInstance();
   PingRelayResponse::default_instance_->InitAsDefaultInstance();
@@ -92,6 +95,16 @@ bool PKT_TYPE_IsValid(int value) {
     case 9:
     case 10:
     case 11:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool STREAM_STRATEGY_IsValid(int value) {
+  switch(value) {
+    case 1:
+    case 2:
       return true;
     default:
       return false;
@@ -542,6 +555,8 @@ const int BindRelayRequest::kResourceFieldNumber;
 const int BindRelayRequest::kIntranetIpFieldNumber;
 const int BindRelayRequest::kIntranetPortFieldNumber;
 const int BindRelayRequest::kTokenFieldNumber;
+const int BindRelayRequest::kAudioStreamDefaultConfigFieldNumber;
+const int BindRelayRequest::kVideoStreamDefaultConfigFieldNumber;
 #endif  // !_MSC_VER
 
 BindRelayRequest::BindRelayRequest()
@@ -550,6 +565,18 @@ BindRelayRequest::BindRelayRequest()
 }
 
 void BindRelayRequest::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  audio_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(
+      ::mimc::StreamConfig::internal_default_instance());
+#else
+  audio_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(&::mimc::StreamConfig::default_instance());
+#endif
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  video_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(
+      ::mimc::StreamConfig::internal_default_instance());
+#else
+  video_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(&::mimc::StreamConfig::default_instance());
+#endif
 }
 
 BindRelayRequest::BindRelayRequest(const BindRelayRequest& from)
@@ -565,6 +592,8 @@ void BindRelayRequest::SharedCtor() {
   intranet_ip_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   intranet_port_ = 0;
   token_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  audio_stream_default_config_ = NULL;
+  video_stream_default_config_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -587,6 +616,8 @@ void BindRelayRequest::SharedDtor() {
   #else
   if (this != default_instance_) {
   #endif
+    delete audio_stream_default_config_;
+    delete video_stream_default_config_;
   }
 }
 
@@ -628,6 +659,12 @@ void BindRelayRequest::Clear() {
       if (token_ != &::google::protobuf::internal::kEmptyString) {
         token_->clear();
       }
+    }
+    if (has_audio_stream_default_config()) {
+      if (audio_stream_default_config_ != NULL) audio_stream_default_config_->::mimc::StreamConfig::Clear();
+    }
+    if (has_video_stream_default_config()) {
+      if (video_stream_default_config_ != NULL) video_stream_default_config_->::mimc::StreamConfig::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -708,6 +745,34 @@ bool BindRelayRequest::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(50)) goto parse_audio_stream_default_config;
+        break;
+      }
+
+      // optional .mimc.StreamConfig audio_stream_default_config = 6;
+      case 6: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_audio_stream_default_config:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_audio_stream_default_config()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(58)) goto parse_video_stream_default_config;
+        break;
+      }
+
+      // optional .mimc.StreamConfig video_stream_default_config = 7;
+      case 7: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_video_stream_default_config:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_video_stream_default_config()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -757,6 +822,18 @@ void BindRelayRequest::SerializeWithCachedSizes(
       5, this->token(), output);
   }
 
+  // optional .mimc.StreamConfig audio_stream_default_config = 6;
+  if (has_audio_stream_default_config()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      6, this->audio_stream_default_config(), output);
+  }
+
+  // optional .mimc.StreamConfig video_stream_default_config = 7;
+  if (has_video_stream_default_config()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      7, this->video_stream_default_config(), output);
+  }
+
 }
 
 int BindRelayRequest::ByteSize() const {
@@ -798,6 +875,20 @@ int BindRelayRequest::ByteSize() const {
           this->token());
     }
 
+    // optional .mimc.StreamConfig audio_stream_default_config = 6;
+    if (has_audio_stream_default_config()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->audio_stream_default_config());
+    }
+
+    // optional .mimc.StreamConfig video_stream_default_config = 7;
+    if (has_video_stream_default_config()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->video_stream_default_config());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -828,6 +919,12 @@ void BindRelayRequest::MergeFrom(const BindRelayRequest& from) {
     if (from.has_token()) {
       set_token(from.token());
     }
+    if (from.has_audio_stream_default_config()) {
+      mutable_audio_stream_default_config()->::mimc::StreamConfig::MergeFrom(from.audio_stream_default_config());
+    }
+    if (from.has_video_stream_default_config()) {
+      mutable_video_stream_default_config()->::mimc::StreamConfig::MergeFrom(from.video_stream_default_config());
+    }
   }
 }
 
@@ -840,6 +937,12 @@ void BindRelayRequest::CopyFrom(const BindRelayRequest& from) {
 bool BindRelayRequest::IsInitialized() const {
   if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
 
+  if (has_audio_stream_default_config()) {
+    if (!this->audio_stream_default_config().IsInitialized()) return false;
+  }
+  if (has_video_stream_default_config()) {
+    if (!this->video_stream_default_config().IsInitialized()) return false;
+  }
   return true;
 }
 
@@ -850,6 +953,8 @@ void BindRelayRequest::Swap(BindRelayRequest* other) {
     std::swap(intranet_ip_, other->intranet_ip_);
     std::swap(intranet_port_, other->intranet_port_);
     std::swap(token_, other->token_);
+    std::swap(audio_stream_default_config_, other->audio_stream_default_config_);
+    std::swap(video_stream_default_config_, other->video_stream_default_config_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
@@ -857,6 +962,280 @@ void BindRelayRequest::Swap(BindRelayRequest* other) {
 
 ::std::string BindRelayRequest::GetTypeName() const {
   return "mimc.BindRelayRequest";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int StreamConfig::kStreamStrategyFieldNumber;
+const int StreamConfig::kAckStreamWaitTimeMsFieldNumber;
+const int StreamConfig::kStreamTimeoutSFieldNumber;
+const int StreamConfig::kStreamIsEncryptFieldNumber;
+#endif  // !_MSC_VER
+
+StreamConfig::StreamConfig()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void StreamConfig::InitAsDefaultInstance() {
+}
+
+StreamConfig::StreamConfig(const StreamConfig& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void StreamConfig::SharedCtor() {
+  _cached_size_ = 0;
+  stream_strategy_ = 1;
+  ack_stream_wait_time_ms_ = 0u;
+  stream_timeout_s_ = 0u;
+  stream_is_encrypt_ = false;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+StreamConfig::~StreamConfig() {
+  SharedDtor();
+}
+
+void StreamConfig::SharedDtor() {
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+  }
+}
+
+void StreamConfig::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const StreamConfig& StreamConfig::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fdata_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fdata_2eproto();
+#endif
+  return *default_instance_;
+}
+
+StreamConfig* StreamConfig::default_instance_ = NULL;
+
+StreamConfig* StreamConfig::New() const {
+  return new StreamConfig;
+}
+
+void StreamConfig::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    stream_strategy_ = 1;
+    ack_stream_wait_time_ms_ = 0u;
+    stream_timeout_s_ = 0u;
+    stream_is_encrypt_ = false;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool StreamConfig::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required .mimc.STREAM_STRATEGY stream_strategy = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::mimc::STREAM_STRATEGY_IsValid(value)) {
+            set_stream_strategy(static_cast< ::mimc::STREAM_STRATEGY >(value));
+          }
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_ack_stream_wait_time_ms;
+        break;
+      }
+
+      // optional uint32 ack_stream_wait_time_ms = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_ack_stream_wait_time_ms:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &ack_stream_wait_time_ms_)));
+          set_has_ack_stream_wait_time_ms();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(24)) goto parse_stream_timeout_s;
+        break;
+      }
+
+      // optional uint32 stream_timeout_s = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_stream_timeout_s:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
+                 input, &stream_timeout_s_)));
+          set_has_stream_timeout_s();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(32)) goto parse_stream_is_encrypt;
+        break;
+      }
+
+      // optional bool stream_is_encrypt = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_stream_is_encrypt:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &stream_is_encrypt_)));
+          set_has_stream_is_encrypt();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void StreamConfig::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required .mimc.STREAM_STRATEGY stream_strategy = 1;
+  if (has_stream_strategy()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->stream_strategy(), output);
+  }
+
+  // optional uint32 ack_stream_wait_time_ms = 2;
+  if (has_ack_stream_wait_time_ms()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->ack_stream_wait_time_ms(), output);
+  }
+
+  // optional uint32 stream_timeout_s = 3;
+  if (has_stream_timeout_s()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->stream_timeout_s(), output);
+  }
+
+  // optional bool stream_is_encrypt = 4;
+  if (has_stream_is_encrypt()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->stream_is_encrypt(), output);
+  }
+
+}
+
+int StreamConfig::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required .mimc.STREAM_STRATEGY stream_strategy = 1;
+    if (has_stream_strategy()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->stream_strategy());
+    }
+
+    // optional uint32 ack_stream_wait_time_ms = 2;
+    if (has_ack_stream_wait_time_ms()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->ack_stream_wait_time_ms());
+    }
+
+    // optional uint32 stream_timeout_s = 3;
+    if (has_stream_timeout_s()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt32Size(
+          this->stream_timeout_s());
+    }
+
+    // optional bool stream_is_encrypt = 4;
+    if (has_stream_is_encrypt()) {
+      total_size += 1 + 1;
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void StreamConfig::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const StreamConfig*>(&from));
+}
+
+void StreamConfig::MergeFrom(const StreamConfig& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_stream_strategy()) {
+      set_stream_strategy(from.stream_strategy());
+    }
+    if (from.has_ack_stream_wait_time_ms()) {
+      set_ack_stream_wait_time_ms(from.ack_stream_wait_time_ms());
+    }
+    if (from.has_stream_timeout_s()) {
+      set_stream_timeout_s(from.stream_timeout_s());
+    }
+    if (from.has_stream_is_encrypt()) {
+      set_stream_is_encrypt(from.stream_is_encrypt());
+    }
+  }
+}
+
+void StreamConfig::CopyFrom(const StreamConfig& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool StreamConfig::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
+  return true;
+}
+
+void StreamConfig::Swap(StreamConfig* other) {
+  if (other != this) {
+    std::swap(stream_strategy_, other->stream_strategy_);
+    std::swap(ack_stream_wait_time_ms_, other->ack_stream_wait_time_ms_);
+    std::swap(stream_timeout_s_, other->stream_timeout_s_);
+    std::swap(stream_is_encrypt_, other->stream_is_encrypt_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string StreamConfig::GetTypeName() const {
+  return "mimc.StreamConfig";
 }
 
 

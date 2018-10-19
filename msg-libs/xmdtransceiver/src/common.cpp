@@ -33,23 +33,23 @@ uint32_t rand32() {
 }
 
 
-uint64_t ntohll(uint64_t val) {
-   if (__BYTE_ORDER == __LITTLE_ENDIAN)
+uint64_t xmd_ntohll(uint64_t val) {
+   if (BYTE_ORDER == LITTLE_ENDIAN)
    {
        return (((uint64_t)ntohl((int)((val << 32) >> 32))) << 32) | (unsigned int)ntohl((int)(val >> 32));
    }
-   else if (__BYTE_ORDER == __BIG_ENDIAN)
+   else if (BYTE_ORDER == BIG_ENDIAN)
    {
        return val;
    }
 }
 
-uint64_t htonll(uint64_t val) {
-    if (__BYTE_ORDER == __LITTLE_ENDIAN)
+uint64_t xmd_htonll(uint64_t val) {
+    if (BYTE_ORDER == LITTLE_ENDIAN)
     {
         return (((uint64_t)htonl((int)((val << 32) >> 32))) << 32) | (unsigned int)htonl((int)(val >> 32));
     }
-    else if (__BYTE_ORDER == __BIG_ENDIAN)
+    else if (BYTE_ORDER == BIG_ENDIAN)
     {
         return val;
     }

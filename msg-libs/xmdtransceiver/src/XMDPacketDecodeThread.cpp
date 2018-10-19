@@ -1,6 +1,6 @@
 #include "XMDPacketDecodeThread.h"
 #include "PacketDecoder.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 #include <unistd.h>
 
 PackketDecodeThread::PackketDecodeThread(int id, XMDCommonData* commonData, PacketDispatcher* dispatcher) {

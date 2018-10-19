@@ -5,7 +5,7 @@
 #include <mimc/user.h>
 #include <mimc/utils.h>
 
-enum ConnState {
+enum FEConnState {
     NOT_CONNECTED,
     SOCK_CONNECTED,
     HANDSHAKE_CONNECTED
@@ -18,7 +18,7 @@ public:
     ssize_t writen(int fd, const void *buf, size_t nbytes);
     ssize_t readn(int fd, void *buf, size_t nbytes);
 
-    void setState(ConnState state) { this->state = state; }
+    void setState(FEConnState state) { this->state = state; }
     void setUser(User * user) { this->user = user; }
     void setChallengeAndBodyKey(const std::string &challenge);
 
@@ -36,7 +36,7 @@ public:
     std::string getChallenge() const{ return challenge; }
     std::string getBodyKey() const{ return body_key; }
     User * getUser() const{ return user; }
-    ConnState getState() { return state; }
+    FEConnState getState() { return state; }
 
     long getNextResetSockTs() { return nextResetSockTimestamp; }
     void clearNextResetSockTs() { this->nextResetSockTimestamp = -1; }
@@ -56,7 +56,7 @@ private:
     std::string locale;
     std::string challenge;
     std::string body_key;
-    ConnState state;
+    FEConnState state;
     User * user;
 };
 

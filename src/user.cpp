@@ -12,7 +12,7 @@
 
 User::User(std::string appAccount, std::string resource) {
 	this->appAccount = appAccount;
-	this->testNetWorkBlocked = false;
+	this->testPacketLoss = 0;
 	this->permitLogin = false;
 	this->onlineStatus = Offline;
 	this->resetRelayLinkState();
@@ -30,9 +30,21 @@ User::User(std::string appAccount, std::string resource) {
 	this->rtsConnectionHandler = NULL;
 	this->rtsStreamHandler = NULL;
 	this->packetManager = new PacketManager();
-	this->xmdTranseiver = new XMDTransceiver(1);
+
+	this->audioStreamConfig = new mimc::StreamConfig();
+	this->audioStreamConfig->set_stream_strategy(mimc::ACK_STRATEGY);
+	this->audioStreamConfig->set_ack_stream_wait_time_ms(ACK_STREAM_WAIT_TIME_MS);
+	this->audioStreamConfig->set_stream_timeout_s(STREAM_TIMEOUT);
+	this->audioStreamConfig->set_stream_is_encrypt(false);
+
+	this->videoStreamConfig = new mimc::StreamConfig();
+	this->videoStreamConfig->set_stream_strategy(mimc::FEC_STRATEGY);
+	this->videoStreamConfig->set_stream_timeout_s(STREAM_TIMEOUT);
+	this->videoStreamConfig->set_stream_is_encrypt(false);
+
 	this->currentChats = new std::map<long, P2PChatSession>();
 	this->onlaunchChats = new std::map<long, pthread_t>();
+	this->xmdTranseiver = NULL;
 	this->maxCallNum = 1;
 	this->isDialCalling = false;
 	this->isFirstDialCall = true;
@@ -56,39 +68,28 @@ User::~User() {
 
 	if (!this->isFirstDialCall) {
 		this->xmdTranseiver->stop();
-		sleep(1);
+		this->xmdTranseiver->join();
 		this->isFirstDialCall = true;
 	}
 
+	delete this->audioStreamConfig;
+	delete this->videoStreamConfig;
 	delete this->packetManager;
-	delete this->xmdTranseiver;
 	delete this->currentChats;
 	delete this->onlaunchChats;
+	delete this->xmdTranseiver;
 	this->conn->resetSock();
 	delete this->conn;
-
-	if (this->tokenFetcher != NULL) {
-		delete this->tokenFetcher;
-	}
-	if (this->statusHandler != NULL) {
-		delete this->statusHandler;
-	}
-	if (this->messageHandler != NULL) {
-		delete this->messageHandler;
-	}
-	if (this->rtsCallEventHandler != NULL) {
-		delete this->rtsCallEventHandler;
-	}
-	if (this->rtsConnectionHandler != NULL) {
-		delete this->rtsConnectionHandler;
-	}
-	if (this->rtsStreamHandler != NULL) {
-		delete this->rtsStreamHandler;
-	}
+	delete this->tokenFetcher;
+	delete this->statusHandler;
+	delete this->messageHandler;
+	delete this->rtsCallEventHandler;
+	delete this->rtsConnectionHandler;
+	delete this->rtsStreamHandler;
 }
 
 void * User::sendPacket(void *arg) {
-	LoggerWrapper::instance()->info("sendThread start to run");
+	XMDLoggerWrapper::instance()->info("sendThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
 	unsigned char * packetBuffer = NULL;
@@ -103,17 +104,17 @@ void * User::sendPacket(void *arg) {
 				usleep(200000);
 				continue;
 			}
-			if (user->getTestNetworkBlocked()) {
+			if (user->getTestPacketLoss() >= 100) {
 				usleep(200000);
 				continue;
 			}
 			user->lastCreateConnTimestamp = time(NULL);
 			if (!conn->connect()) {
-				LoggerWrapper::instance()->error("In sendPacket, socket connect failed");
+				XMDLoggerWrapper::instance()->error("In sendPacket, socket connect failed");
 				continue;
 			}
 			conn->setState(SOCK_CONNECTED);
-			LoggerWrapper::instance()->info("In sendPacket, socket connect succeed");
+			XMDLoggerWrapper::instance()->info("In sendPacket, socket connect succeed");
 
 			packet_size = user->getPacketManager()->encodeConnectionPacket(packetBuffer, conn);
 			if (packet_size < 0) {
@@ -186,10 +187,10 @@ void * User::sendPacket(void *arg) {
 
 		user->lastPingTimestamp = time(NULL);
 
-		if (!user->getTestNetworkBlocked()) {
+		if (user->getTestPacketLoss() < 100) {
 			int ret = conn->writen(conn->getSock(), (void *)packetBuffer, packet_size);
 			if (ret != packet_size) {
-				LoggerWrapper::instance()->error("In sendPacket, ret != packet_size, ret=%d,packet_size=%d", ret, packet_size);
+				XMDLoggerWrapper::instance()->error("In sendPacket, ret != packet_size, ret=%d,packet_size=%d", ret, packet_size);
 				conn->resetSock();
 			}
 			else {
@@ -203,7 +204,7 @@ void * User::sendPacket(void *arg) {
 }
 
 void * User::receivePacket(void *arg) {
-	LoggerWrapper::instance()->info("receiveThread start to run");
+	XMDLoggerWrapper::instance()->info("receiveThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
 	while (true) {
@@ -240,7 +241,7 @@ void * User::receivePacket(void *arg) {
 				continue;
 			}
 			else {
-				if (user->getTestNetworkBlocked()) {
+				if (user->getTestPacketLoss() >= 100) {
 					delete[] packetHeaderBuffer;
 					packetHeaderBuffer = NULL;
 
@@ -274,12 +275,12 @@ void * User::receivePacket(void *arg) {
 }
 
 void * User::checkTimeout(void *arg) {
-	LoggerWrapper::instance()->info("checkThread start to run");
+	XMDLoggerWrapper::instance()->info("checkThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
 	while (true) {
 		if ((conn->getNextResetSockTs() > 0) && (time(NULL) - conn->getNextResetSockTs() > 0)) {
-			LoggerWrapper::instance()->info("In checkTimeout, packet recv timeout");
+			XMDLoggerWrapper::instance()->info("In checkTimeout, packet recv timeout");
 			conn->resetSock();
 		}
 		user->getPacketManager()->checkMessageSendTimeout(user);
@@ -303,7 +304,7 @@ void User::relayConnScanAndCallBack() {
 	}
 	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 		long chatId = iter->first;
-		LoggerWrapper::instance()->error("In relayConnScanAndCallBack >= RELAY_CONN_TIMEOUT, chatId=%d", chatId);
+		XMDLoggerWrapper::instance()->error("In relayConnScanAndCallBack >= RELAY_CONN_TIMEOUT, chatId=%d", chatId);
 		const P2PChatSession& chatSession = iter->second;
 		if (chatSession.getChatState() == WAIT_SEND_UPDATE_REQUEST) {
 			RtsSendSignal::sendByeRequest(this, chatId, UPDATE_TIMEOUT);
@@ -316,7 +317,6 @@ void User::relayConnScanAndCallBack() {
 
 void User::rtsScanAndCallBack() {
 	if (this->currentChats->empty()) {
-		LoggerWrapper::instance()->info("In rtsScanAndCallBack, currentChats is empty, user is %s, resource is %s, uuid is %ld", appAccount.c_str(), resource.c_str(), uuid);
 		return;
 	}
 
@@ -325,6 +325,7 @@ void User::rtsScanAndCallBack() {
 		const P2PChatSession& chatSession = iter->second;
 		const ChatState& chatState = chatSession.getChatState();
 		if (chatState == RUNNING) {
+			XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state RUNNING ping chatmanager, user is %s", chatId, appAccount.c_str());
 			RtsSendSignal::pingChatManager(this, chatId);
 			iter++;
 			continue;
@@ -337,7 +338,7 @@ void User::rtsScanAndCallBack() {
 
 		if (chatState == WAIT_CREATE_RESPONSE) {
 			if (time(NULL) - chatSession.getLatestLegalChatStateTs() >= RTS_CALL_TIMEOUT) {
-				LoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state WAIT_CREATE_RESPONSE is timeout, user is %s", chatId, appAccount.c_str());
+				XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state WAIT_CREATE_RESPONSE is timeout, user is %s", chatId, appAccount.c_str());
 				iter = this->currentChats->erase(iter);
 				rtsCallEventHandler->onAnswered(chatId, false, DIAL_CALL_TIMEOUT);
 			} else {
@@ -345,7 +346,7 @@ void User::rtsScanAndCallBack() {
 			}
 		} else if (chatState == WAIT_INVITEE_RESPONSE) {
 			if (time(NULL) - chatSession.getLatestLegalChatStateTs() >= RTS_CALL_TIMEOUT) {
-				LoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state WAIT_INVITEE_RESPONSE is timeout, user is %s", chatId, appAccount.c_str());
+				XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state WAIT_INVITEE_RESPONSE is timeout, user is %s", chatId, appAccount.c_str());
 				if (this->onlaunchChats->count(chatId) > 0) {
 					pthread_t onlaunchChatThread = this->onlaunchChats->at(chatId);
 					pthread_cancel(onlaunchChatThread);
@@ -357,6 +358,7 @@ void User::rtsScanAndCallBack() {
 				iter++;
 			}
 		} else if (chatState == WAIT_UPDATE_RESPONSE) {
+			XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, chatId %ld state WAIT_UPDATE_RESPONSE is timeout, user is %s", chatId, appAccount.c_str());
 			RtsSendSignal::sendByeRequest(this, chatId, UPDATE_TIMEOUT);
 			iter = this->currentChats->erase(iter);
 			rtsCallEventHandler->onClosed(chatId, UPDATE_TIMEOUT);
@@ -384,7 +386,7 @@ void * User::onLaunched(void *arg) {
 		return 0;
 	}
 
-	LoggerWrapper::instance()->info("In onLaunched thread, sendInviteResponse, chatId=%ld", chatId);
+	XMDLoggerWrapper::instance()->info("In onLaunched thread, sendInviteResponse, chatId=%ld", chatId);
 	RtsSendSignal::sendInviteResponse(user, chatId, p2pChatSession.getChatType(), mimc::SUCC, userResponse.getErrmsg());
 	p2pChatSession.setChatState(RUNNING);
 	p2pChatSession.setLatestLegalChatStateTs(time(NULL));
@@ -478,7 +480,7 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 long User::dialCall(const std::string& toAppAccount, const std::string& toResource, const std::string& appContent) {
 	pthread_mutex_lock(&mutex);
 	if (this->isDialCalling) {
-		LoggerWrapper::instance()->warn("In dialCall, another thread is dialCall!");
+		XMDLoggerWrapper::instance()->warn("In dialCall, another thread is dialCall!");
 		pthread_mutex_unlock(&mutex);
 		return -1;
 	}
@@ -486,25 +488,25 @@ long User::dialCall(const std::string& toAppAccount, const std::string& toResour
 	pthread_mutex_unlock(&mutex);
 
 	if (this->rtsCallEventHandler == NULL) {
-		LoggerWrapper::instance()->error("In dialCall, rtsCallEventHandler is not registered!");
+		XMDLoggerWrapper::instance()->error("In dialCall, rtsCallEventHandler is not registered!");
 		this->isDialCalling = false;
 		return -1;
 	}
 	if (toAppAccount == "") {
-		LoggerWrapper::instance()->error("In dialCall, toAppAccount can not be empty!");
+		XMDLoggerWrapper::instance()->error("In dialCall, toAppAccount can not be empty!");
 		this->isDialCalling = false;
 		return -1;
 	}
 	if (this->getOnlineStatus() == Offline) {
-		LoggerWrapper::instance()->warn("In dialCall, user:%ld is offline!", uuid);
+		XMDLoggerWrapper::instance()->warn("In dialCall, user:%ld is offline!", uuid);
 		this->isDialCalling = false;
 		return -1;
 	}
 	if (currentChats->size() == maxCallNum) {
-		LoggerWrapper::instance()->warn("In dialCall, currentChats size has reached maxCallNum %d!", maxCallNum);
+		XMDLoggerWrapper::instance()->warn("In dialCall, currentChats size has reached maxCallNum %d!", maxCallNum);
 		this->isDialCalling = false;
 		return -1;
-	} 
+	}
 
 	this->checkToRunXmdTranseiver();
 
@@ -521,7 +523,7 @@ long User::dialCall(const std::string& toAppAccount, const std::string& toResour
 		const mimc::UserInfo& session_toUser = chatSession.getPeerUser();
 		if (toUser.appid() == session_toUser.appid() && toUser.appaccount() == session_toUser.appaccount() && toUser.resource() == session_toUser.resource()
 		        && appContent == chatSession.getAppContent()) {
-			LoggerWrapper::instance()->warn("In dialCall, the dialCall is repeated!");
+			XMDLoggerWrapper::instance()->warn("In dialCall, the dialCall is repeated!");
 			this->isDialCalling = false;
 			return -1;
 		}
@@ -532,11 +534,11 @@ long User::dialCall(const std::string& toAppAccount, const std::string& toResour
 		chatId = Utils::generateRandomLong();
 	} while (currentChats->count(chatId) > 0);
 
-	LoggerWrapper::instance()->info("In dialCall, chatId is %ld", chatId);
+	XMDLoggerWrapper::instance()->info("In dialCall, chatId is %ld", chatId);
 	if (this->relayLinkState == NOT_CREATED) {
 
 		unsigned long relayConnId = RtsSendData::createRelayConn(this);
-		LoggerWrapper::instance()->info("In dialCall, relayConnId is %ld", relayConnId);
+		XMDLoggerWrapper::instance()->info("In dialCall, relayConnId is %ld", relayConnId);
 		if (relayConnId == 0) {
 
 			this->isDialCalling = false;
@@ -597,6 +599,7 @@ bool User::sendRtsData(long chatId, const std::string& data, RtsDataType dataTyp
 	}
 	if (channelType == RELAY) {
 
+
 		return RtsSendData::sendRtsDataByRelay(this, chatId, data, pktType);
 	}
 	return true;
@@ -608,7 +611,7 @@ void User::closeCall(long chatId, std::string byeReason) {
 		return;
 	}
 
-	LoggerWrapper::instance()->info("In closeCall, chatId is %ld, byeReason is %s", chatId, byeReason.c_str());
+	XMDLoggerWrapper::instance()->info("In closeCall, chatId is %ld, byeReason is %s", chatId, byeReason.c_str());
 	RtsSendSignal::sendByeRequest(this, chatId, byeReason);
 	currentChats->erase(chatId);
 	RtsSendData::closeRelayConnWhenNoChat(this);
@@ -618,7 +621,7 @@ void User::closeCall(long chatId, std::string byeReason) {
 bool User::login() {
 	this->permitLogin = false;
 	if (this->tokenFetcher == NULL || this->statusHandler == NULL || this->messageHandler == NULL) {
-		LoggerWrapper::instance()->info("login failed, user must register all essential callback functions first!");
+		XMDLoggerWrapper::instance()->info("login failed, user must register all essential callback functions first!");
 	} else {
 		std::string mimcToken = this->tokenFetcher->fetchToken();
 
@@ -658,9 +661,6 @@ bool User::login() {
 		}
 
 		json_object_put(pobj);
-		json_object_put(dataobj);
-		json_object_put(new_obj);
-		json_object_put(retobj);
 	}
 
 	return this->permitLogin;
@@ -695,12 +695,55 @@ bool User::logout() {
 }
 
 void User::resetRelayLinkState() {
-	LoggerWrapper::instance()->info("In resetRelayLinkState");
+	XMDLoggerWrapper::instance()->info("In resetRelayLinkState, relayConnId is %ld", this->relayConnId);
 	this->relayConnId = 0;
 	this->relayControlStreamId = 0;
 	this->relayAudioStreamId = 0;
 	this->relayVideoStreamId = 0;
 	this->relayLinkState = NOT_CREATED;
+	this->latestLegalRelayLinkStateTs = time(NULL);
+}
+
+void User::handleXMDConnClosed(unsigned long connId, ConnCloseType type) {
+	if (connId == this->relayConnId) {
+		XMDLoggerWrapper::instance()->warn("XMDConnection(RELAY) is closed abnormally, connId is %ld, ConnCloseType is %d", connId, type);
+		resetRelayLinkState();
+	} else {
+		for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
+			long chatId = iter->first;
+			P2PChatSession& chatSession = iter->second;
+			if (connId == chatSession.getP2PIntranetConnId()) {
+				XMDLoggerWrapper::instance()->warn("XMDConnection(P2PIntranet) is closed abnormally, connId is %ld, ConnCloseType is %d, chatId is %ld", connId, type, chatId);
+				chatSession.resetP2PIntranetConn();
+			} else if (connId == chatSession.getP2PInternetConnId()) {
+				XMDLoggerWrapper::instance()->warn("XMDConnection(P2PInternet) is closed abnormally, connId is %ld, ConnCloseType is %d, chatId is %ld", connId, type, chatId);
+				chatSession.resetP2PInternetConn();
+			}
+		}
+	}
+
+	checkAndCloseChats();
+}
+
+void User::checkAndCloseChats() {
+	if (this->relayConnId != 0) {
+		return;
+	}
+
+	std::vector<long> chatIdsToRemove;
+	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
+		long chatId = iter->first;
+		if (getP2PIntranetConnId(chatId) == 0 && getP2PInternetConnId(chatId) == 0) {
+			RtsSendSignal::sendByeRequest(this, chatId, ALL_DATA_CHANNELS_CLOSED);
+			chatIdsToRemove.push_back(chatId);
+			rtsCallEventHandler->onClosed(chatId, ALL_DATA_CHANNELS_CLOSED);
+		}
+	}
+
+	int toRemoveSize = chatIdsToRemove.size();
+	for (int i = 0; i < toRemoveSize; i++) {
+		currentChats->erase(chatIdsToRemove[i]);
+	}
 }
 
 unsigned long User::getP2PIntranetConnId(long chatId) const {
@@ -750,6 +793,8 @@ RTSCallEventHandler* User::getRTSCallEventHandler() const {
 void User::checkToRunXmdTranseiver() {
 	if (this->isFirstDialCall) {
 		this->isFirstDialCall = false;
+		this->xmdTranseiver = new XMDTransceiver(1);
+		this->xmdTranseiver->setXMDLogLevel(XMD_INFO);
 		this->rtsConnectionHandler = new RtsConnectionHandler(this);
 		this->rtsStreamHandler = new RtsStreamHandler(this);
 		this->xmdTranseiver->registerConnHandler(this->rtsConnectionHandler);

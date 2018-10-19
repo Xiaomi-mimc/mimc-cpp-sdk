@@ -1,4 +1,4 @@
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 #include "MutexLock.h"
 
 #include <cstdarg>
@@ -7,30 +7,39 @@
 
 using namespace std;
 
-LoggerWrapper* LoggerWrapper::_instance = NULL;
-pthread_mutex_t LoggerWrapper::_mutex = PTHREAD_MUTEX_INITIALIZER;
+XMDLoggerWrapper* XMDLoggerWrapper::_instance = NULL;
+pthread_mutex_t XMDLoggerWrapper::_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-LoggerWrapper::LoggerWrapper() {
+XMDLoggerWrapper::XMDLoggerWrapper() {
     _externalLog = NULL;
+    _logLevel = XMD_DEBUG;
 }
 
-LoggerWrapper* LoggerWrapper::instance() {
+XMDLoggerWrapper* XMDLoggerWrapper::instance() {
     if (_instance == NULL) {
         MutexLock lock(&_mutex);
         if (_instance == NULL) {
-            _instance = new LoggerWrapper();
+            _instance = new XMDLoggerWrapper();
         }
     }
 
     return _instance;
 }
 
-void LoggerWrapper::externalLog(ExternalLog* externalLog) {
+void XMDLoggerWrapper::externalLog(ExternalLog* externalLog) {
     _externalLog = externalLog;
 }
 
-void LoggerWrapper::debug(const char* format, ...) {
+void XMDLoggerWrapper::setXMDLogLevel(XMDLogLevel level) {
+   _logLevel = level;
+}
+
+
+void XMDLoggerWrapper::debug(const char* format, ...) {
     if (format == NULL) {
+        return;
+    }
+    if (_logLevel < XMD_DEBUG) {
         return;
     }
     const int LOG_MAX_LEN = 1024;
@@ -47,8 +56,11 @@ void LoggerWrapper::debug(const char* format, ...) {
     std::cout<<buf<<std::endl;
 }
 
-void LoggerWrapper::info(const char* format, ...) {
+void XMDLoggerWrapper::info(const char* format, ...) {
     if (format == NULL) {
+        return;
+    }
+    if (_logLevel < XMD_INFO) {
         return;
     }
 
@@ -66,8 +78,11 @@ void LoggerWrapper::info(const char* format, ...) {
     std::cout<<buf<<std::endl;
 }
 
-void LoggerWrapper::warn(const char* format, ...) {
+void XMDLoggerWrapper::warn(const char* format, ...) {
     if (format == NULL) {
+        return;
+    }
+    if (_logLevel < XMD_WARN) {
         return;
     }
 
@@ -85,8 +100,11 @@ void LoggerWrapper::warn(const char* format, ...) {
     std::cout<<buf<<std::endl;
 }
 
-void LoggerWrapper::error(const char* format, ...) {
+void XMDLoggerWrapper::error(const char* format, ...) {
     if (format == NULL) {
+        return;
+    }
+    if (_logLevel < XMD_ERROR) {
         return;
     }
 

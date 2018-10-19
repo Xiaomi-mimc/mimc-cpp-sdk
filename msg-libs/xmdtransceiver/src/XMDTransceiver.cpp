@@ -8,12 +8,12 @@
 
 int XMDTransceiver::sendDatagram(char* ip, int port, char* data, int len, uint64_t delay_ms) {
     if (len > MAX_PACKET_LEN) {
-        LoggerWrapper::instance()->warn("packet too large,len=%d.", len);
+        XMDLoggerWrapper::instance()->warn("packet too large,len=%d.", len);
         return -1;
     }
     
     if (NULL == data || NULL == ip) {
-        LoggerWrapper::instance()->warn("input invalid, ip or data is null.");
+        XMDLoggerWrapper::instance()->warn("input invalid, ip or data is null.");
         return -1;
     }
     XMDPacketManager packetMan;
@@ -37,9 +37,9 @@ int XMDTransceiver::sendDatagram(char* ip, int port, char* data, int len, uint64
     return 0;
 }
 
-uint64_t XMDTransceiver::createConnection(char* ip, int port, char* data, int len, int timeout, void* ctx, bool isEncrypt) {
+uint64_t XMDTransceiver::createConnection(char* ip, int port, char* data, int len, uint16_t timeout, void* ctx) {
     if (NULL == ip || (NULL == data && len != 0)) {
-        LoggerWrapper::instance()->warn("input invalid, ip is null");
+        XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return 0;
     }
     uint64_t conn_id = rand64();
@@ -59,17 +59,16 @@ uint64_t XMDTransceiver::createConnection(char* ip, int port, char* data, int le
     connInfo.ip = (in_addr_t)inet_addr(ip);
     connInfo.port = port;
     connInfo.timeout = timeout;
-    connInfo.isConnected = false;
+    connInfo.connState = CONNECTING;
     connInfo.created_stream_id = 0;  
     connInfo.max_stream_id = 0;
     connInfo.rsa = rsa;
-    connInfo.isEncrypt = isEncrypt;
     connInfo.ctx = ctx;
     commonData_->insertConn(conn_id, connInfo);
 
     
     XMDPacketManager packetMan;
-    packetMan.buildConn(conn_id, (unsigned char*)data, len, timeout, n_len, nbignum, e_len, ebignum, isEncrypt);
+    packetMan.buildConn(conn_id, (unsigned char*)data, len, timeout, n_len, nbignum, e_len, ebignum, true);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -85,33 +84,32 @@ uint64_t XMDTransceiver::createConnection(char* ip, int port, char* data, int le
     resendData->packetId = 0;
     resendData->ip = connInfo.ip;
     resendData->port = connInfo.port;
-    resendData->lastSendTime = current_ms();
-    resendData->reSendTime = current_ms() + RESEND_DATA_INTEVAL;
-    resendData->sendCount = 1;
+    resendData->reSendTime = current_ms() + getResendTimeInterval(1);
+    resendData->reSendCount = 2;
     commonData_->resendQueuePush(resendData);
 
     std::stringstream ss_ack;
     ss_ack << conn_id << 0;
     std::string ackpacketKey = ss_ack.str();
-    commonData_->updateResendMap(ackpacketKey, false);
+    commonData_->insertIsPacketRecvAckMap(ackpacketKey, false);
 
 
     return conn_id;
 }
 
-int XMDTransceiver::closeConnection(uint64_t conn_id) {
+int XMDTransceiver::closeConnection(uint64_t connId) {
     ConnInfo connInfo;
-    if(!commonData_->getConnInfo(conn_id, connInfo)){
-        LoggerWrapper::instance()->warn("connection(%ld) not exist.", conn_id);
+    if(!commonData_->getConnInfo(connId, connInfo)){
+        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return -1;
     }
     
-    if (commonData_->deleteConn(conn_id) != 0) {
+    if (commonData_->deleteConn(connId) != 0) {
         return -1;
     }
 
     XMDPacketManager packetMan;
-    packetMan.buildConnClose(conn_id);
+    packetMan.buildConnClose(connId);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -124,40 +122,42 @@ int XMDTransceiver::closeConnection(uint64_t conn_id) {
     return 0;
 }
 
-uint16_t XMDTransceiver::createStream(uint64_t conn_id, StreamType streamType, int timeout) {  
+uint16_t XMDTransceiver::createStream(uint64_t connId, StreamType streamType, uint16_t timeout, uint16_t waitTime, bool isEncrypt) {  
     ConnInfo connInfo;
-    if(!commonData_->getConnInfo(conn_id, connInfo)){
+    if(!commonData_->getConnInfo(connId, connInfo)){
         return 0;
     }
     
-    uint16_t streamId = commonData_->getConnStreamId(conn_id);
+    uint16_t streamId = commonData_->getConnStreamId(connId);
     StreamInfo streamInfo;
     streamInfo.timeout = timeout;
     streamInfo.sType = streamType;
-    if (commonData_->insertStream(conn_id, streamId, streamInfo) != 0) {
+    streamInfo.isEncrypt = isEncrypt;
+    streamInfo.callbackWaitTimeout = waitTime;
+    if (commonData_->insertStream(connId, streamId, streamInfo) != 0) {
         return 0;
     }
     
     return streamId;
 }
 
-int XMDTransceiver::closeStream(uint64_t conn_id, uint16_t stream_id) {
-    if (commonData_->deleteStream(conn_id, stream_id) != 0) {
+int XMDTransceiver::closeStream(uint64_t connId, uint16_t streamId) {
+    if (commonData_->deleteStream(connId, streamId) != 0) {
         return -1;
     }
 
     ConnInfo connInfo;
-    if(!commonData_->getConnInfo(conn_id, connInfo)){
-        LoggerWrapper::instance()->warn("connection(%ld) not exist.", conn_id);
+    if(!commonData_->getConnInfo(connId, connInfo)){
+        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return -1;
     }
-    if (!connInfo.isConnected) {
-        LoggerWrapper::instance()->warn("connection(%ld) has not been established.", conn_id);
+    if (!connInfo.connState == CONNECTED) {
+        XMDLoggerWrapper::instance()->warn("connection(%ld) has not been established.", connId);
         return -1;
     }
 
     XMDPacketManager packetMan;
-    packetMan.buildStreamClose(conn_id, stream_id, connInfo.isEncrypt, connInfo.sessionKey);
+    packetMan.buildStreamClose(connId, streamId, true, connInfo.sessionKey);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -170,55 +170,62 @@ int XMDTransceiver::closeStream(uint64_t conn_id, uint16_t stream_id) {
     return 0;
 }
 
-int XMDTransceiver::sendRTData(uint64_t conn_id, uint16_t stream_id, char* data, int len, void* ctx) {
+int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, void* ctx) {
+    return sendRTData(connId, streamId, data, len, false, P1, 2, ctx);
+}
+
+
+int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx) {
     if (len > MAX_PACKET_LEN) {
-        LoggerWrapper::instance()->warn("packet too large,len=%d.", len);
+        XMDLoggerWrapper::instance()->warn("packet too large,len=%d.", len);
         return -1;
     }
 
     if (NULL == data) {
-        LoggerWrapper::instance()->warn("input invalid, data is null.");
+        XMDLoggerWrapper::instance()->warn("input invalid, data is null.");
         return -1;
     }
 
     ConnInfo connInfo;
-    if(!commonData_->getConnInfo(conn_id, connInfo)){
-        LoggerWrapper::instance()->warn("connection(%ld) not exist.", conn_id);
+    if(!commonData_->getConnInfo(connId, connInfo)){
+        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return -1;
     }
 
     StreamInfo sInfo;
-    if(!commonData_->getStreamInfo(conn_id, stream_id, sInfo)) {
-        LoggerWrapper::instance()->warn("stream(%d) not exist.", stream_id);
+    if(!commonData_->getStreamInfo(connId, streamId, sInfo)) {
+        XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
         return -1;
     }
-
     
     StreamQueueData* queueData = new StreamQueueData(len);
-    queueData->connId = conn_id;
-    queueData->streamId = stream_id;
-    queueData->groupId = commonData_->getGroupId(conn_id, stream_id);
+    queueData->connId = connId;
+    queueData->streamId = streamId;
+    queueData->groupId = commonData_->getGroupId(connId, streamId);
     queueData->len = len;
+    queueData->canBeDropped = canBeDropped;
+    queueData->dataPriority = priority;
     queueData->ctx = ctx;
+    queueData->resendCount = resendCount;
     memcpy(queueData->data, data, len);
     commonData_->streamQueuePush(queueData);
     return queueData->groupId;
 }
 
 
-int XMDTransceiver::updatePeerInfo(uint64_t conn_id, char* ip, int port) {
+int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, int port) {
     if (NULL == ip) {
-        LoggerWrapper::instance()->warn("input invalid, ip is null");
+        XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return -1;
     }
 
-    return commonData_->updateConnIpInfo(conn_id, (in_addr_t)inet_addr(ip), port);;
+    return commonData_->updateConnIpInfo(connId, (in_addr_t)inet_addr(ip), port);
 }
 
-int XMDTransceiver::getPeerInfo(uint64_t conn_id, std::string &ip, int& port) {
+int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int& port) {
     ConnInfo connInfo;
-    if(!commonData_->getConnInfo(conn_id, connInfo)){
-        LoggerWrapper::instance()->warn("connection(%ld) not exist.", conn_id);
+    if(!commonData_->getConnInfo(connId, connInfo)){
+        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return -1;
     }
 
@@ -247,7 +254,7 @@ int XMDTransceiver::getLocalInfo(std::string &ip, int& port) {
     socklen_t len = sizeof(loc_addr);  
     memset(&loc_addr, 0, len); 
     if (-1 == getsockname(recvThread_->listenfd(), (struct sockaddr *)&loc_addr, &len)) {
-        LoggerWrapper::instance()->error("get ip failed.");
+        XMDLoggerWrapper::instance()->error("get ip failed.");
         return -1;
     }
 
@@ -276,6 +283,39 @@ int XMDTransceiver::getLocalInfo(std::string &ip, int& port) {
     return 0;
 }
 
+void XMDTransceiver::setSendBufferSize(int size) {
+    commonData_->setResendQueueSize(size);
+}
+
+void XMDTransceiver::setRecvBufferSize(int size) {
+    commonData_->setCallbackQueueSize(size);
+}
+
+float XMDTransceiver::getSendBufferUsageRate() {
+    return commonData_->getResendQueueUsageRate();
+}
+
+float XMDTransceiver::getRecvBufferUsageRate() {
+    return commonData_->getCallbackQueueUsegeRate();
+}
+
+void XMDTransceiver::clearSendBuffer() {
+    commonData_->clearResendQueue();
+}
+
+void XMDTransceiver::clearRecvBuffer() {
+    commonData_->clearCallbackQueue();
+}
+
+ConnectionState XMDTransceiver::getConnState(uint64_t connId) {
+    ConnInfo connInfo;
+    if(!commonData_->getConnInfo(connId, connInfo)){
+        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
+        return CLOSED;
+    }
+
+    return connInfo.connState;
+}
 
 
 void XMDTransceiver::run() {
@@ -286,6 +326,7 @@ void XMDTransceiver::run() {
     packetRecoverThreadPool_->run();
     callbackThread_->run();
     pingThread_->run();
+    pongThread_->run();
 }
 
 void XMDTransceiver::join() {
@@ -296,6 +337,7 @@ void XMDTransceiver::join() {
     packetRecoverThreadPool_->join();
     callbackThread_->join();
     pingThread_->join();
+    pongThread_->join();
 }
 
 void XMDTransceiver::stop() {
@@ -305,14 +347,14 @@ void XMDTransceiver::stop() {
     }
     usleep(1000);
     
-    packetbuildThreadPool_->stop();
-
+    packetbuildThreadPool_->stop();
     sendThread_->stop();
     recvThread_->stop();
     packetDecodeThreadPool_->stop();
     packetRecoverThreadPool_->stop();
     callbackThread_->stop();
     pingThread_->stop();
-    usleep(10);
+    pongThread_->stop();
+    usleep(1000);
 }
 

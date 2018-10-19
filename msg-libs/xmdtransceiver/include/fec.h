@@ -2,7 +2,7 @@
 #define FEC_H
 
 #include "galois.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 
 
 class Fec {

@@ -3,34 +3,34 @@
 
 #include <mimc/rts_callevent_handler.h>
 #include <mimc/threadsafe_queue.h>
-#include <LoggerWrapper.h>
-#include "rts_message_data.h"
+#include <XMDLoggerWrapper.h>
+#include <test/rts_message_data.h>
 
 class TestRTSCallDelayResponseEventHandler : public RTSCallEventHandler {
 public:
     LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
         inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
         sleep(4);
         if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
-        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
+        XMDLoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
     void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
+        XMDLoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
         createResponses.push(RtsMessageData(chatId, errmsg, accepted));
     }
 
     void onClosed(long chatId, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
+        XMDLoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
         byes.push(RtsMessageData(chatId, errmsg));
     }
 
     void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
-        LoggerWrapper::instance()->info("In handleData, chatId is %ld, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
+        XMDLoggerWrapper::instance()->info("In handleData, chatId is %ld, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
         avdata = data;
     }
 

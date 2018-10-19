@@ -12,6 +12,7 @@ public:
     ~XMDCallbackThread();
     virtual void* process();
     void stop();
+    void checkCallbackBuffer();
 
 private:
     bool stopFlag_;

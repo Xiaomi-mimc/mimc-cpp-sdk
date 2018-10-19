@@ -26,7 +26,7 @@ void* XMDPacketRecoverThread::process() {
         groupManager_->checkGroupMap();
         StreamData* streamData = commonData_->packetRecoverQueuePop(thread_id_);
         if (streamData == NULL) {
-            usleep(1000);
+            usleep(100);
             continue;
         }
 
@@ -53,7 +53,7 @@ int GroupManager::insertFecStreamPacket(XMDFECStreamData* packet, int len) {
     std::string tmpKey = ss.str();
     std::unordered_map<std::string, GroupPacket>::iterator it = groupMap_.find(tmpKey);
     if (it  == groupMap_.end()) {
-        //LoggerWrapper::instance()->debug("new group id=%d,pid=%d,slice id=%d",
+        //XMDLoggerWrapper::instance()->debug("new group id=%d,pid=%d,slice id=%d",
         //                                  packet->GetGroupId(),packet->PId,packet->GetSliceId());
         PartitionPacket parPacket;
         parPacket.FEC_OPN = packet->GetFECOPN();
@@ -82,12 +82,12 @@ int GroupManager::insertFecStreamPacket(XMDFECStreamData* packet, int len) {
     } else {
         GroupPacket &gPacket = it->second;
         if (gPacket.isComplete) {
-            //LoggerWrapper::instance()->debug("group(%d) already completed, drop this packet.", it->second.groupId);
+            //XMDLoggerWrapper::instance()->debug("group(%d) already completed, drop this packet.", it->second.groupId);
             return 1;
         }
         std::map<uint8_t, PartitionPacket>::iterator iter = gPacket.partitionMap.find(packet->PId);
         if (iter == gPacket.partitionMap.end()) {
-            //LoggerWrapper::instance()->debug("group exist id=%d, new pid=%d,slice id=%d",
+            //XMDLoggerWrapper::instance()->debug("group exist id=%d, new pid=%d,slice id=%d",
             //                                  packet->GetGroupId(),packet->PId,packet->GetSliceId());
         
             PartitionPacket parPacket;
@@ -104,17 +104,17 @@ int GroupManager::insertFecStreamPacket(XMDFECStreamData* packet, int len) {
             }
             gPacket.partitionMap[packet->PId] = parPacket;
         } else {
-            //LoggerWrapper::instance()->debug("group&p exist id=%d,pid=%d,slice id=%d",
+            //XMDLoggerWrapper::instance()->debug("group&p exist id=%d,pid=%d,slice id=%d",
              //                                 packet->GetGroupId(),packet->PId,packet->GetSliceId());
         
             PartitionPacket &pPacket = iter->second;
             if (pPacket.isComplete) {
-                //LoggerWrapper::instance()->debug("partition(%d) already completed, drop this packet.", iter->first);
+                //XMDLoggerWrapper::instance()->debug("partition(%d) already completed, drop this packet.", iter->first);
                 return 1;
             }
             std::map<uint16_t, SlicePacket>::iterator sliceIt = pPacket.sliceMap.find(packet->GetSliceId());
             if (sliceIt != pPacket.sliceMap.end()) {
-                LoggerWrapper::instance()->debug("drop repeated packet, partition(%d),slice(%d).", 
+                XMDLoggerWrapper::instance()->debug("drop repeated packet, partition(%d),slice(%d).", 
                                                   iter->first, packet->GetSliceId());
                 return 1;
             }
@@ -140,9 +140,9 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
     std::stringstream ss_stream;
     ss_stream << packet->GetConnId() << packet->GetStreamId();
     std::string streamKey = ss_stream.str();
-    uint32_t lastRecvGroupId = 0;
-    if (commonData_->getLastRecvGroupId(streamKey, lastRecvGroupId) && lastRecvGroupId >= packet->GetGroupId()) {
-        LoggerWrapper::instance()->debug("conn(%ld), group(%d),already received, drop packet.", 
+    uint32_t lastCallbackGroupId = 0;
+    if (commonData_->getLastCallbackGroupId(streamKey, lastCallbackGroupId) && lastCallbackGroupId >= packet->GetGroupId()) {
+        XMDLoggerWrapper::instance()->debug("conn(%ld), group(%d),already received, drop packet.", 
                                           packet->GetConnId(), packet->GetGroupId());
         return 0;
     }
@@ -166,9 +166,9 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
             memcpy(cbData, packet->GetPayload(), cbLen);
             CallbackQueueData* callbackData = new CallbackQueueData(packet->GetConnId(), packet->GetStreamId(), 
                                               packet->GetGroupId(), ACK_STREAM, 
-                                              cbLen, cbData);
+                                              cbLen, current_ms(), cbData);
             commonData_->callbackQueuePush(callbackData);
-            commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());
+            //commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());
         } else {
             ackGroup.sliceMap[packet->GetSliceId()] = slice;
             ackGroupMap_[tmpKey] = ackGroup;
@@ -178,12 +178,12 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
         AckGroupPakcet &ackGroup = it->second;
         std::map<uint16_t, AckStreamSlice>::iterator sliceIt = ackGroup.sliceMap.find(packet->GetSliceId());
         if (sliceIt != ackGroup.sliceMap.end()) {
-            LoggerWrapper::instance()->debug("conn(%ld), drop repeated packet, packetid(%ld),slice(%d).", 
+            XMDLoggerWrapper::instance()->debug("conn(%ld), drop repeated packet, packetid(%ld),slice(%d).", 
                                               packet->GetConnId(), packet->GetPacketId(), packet->GetSliceId());
             return 0;
         }
         if (packet->GetSliceId() > ackGroup.groupSize) {
-            LoggerWrapper::instance()->debug("conn(%ld), invalid slice id, packetid(%ld),slice(%d).", 
+            XMDLoggerWrapper::instance()->debug("conn(%ld), invalid slice id, packetid(%ld),slice(%d).", 
                                                   packet->GetConnId(), packet->GetPacketId(), packet->GetSliceId());
             return 0;
         }
@@ -194,7 +194,7 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
             int pos = 0;
             for (unsigned int i = 0; i < ackGroup.groupSize; i++) {
                 if (pos + ackGroup.sliceMap[i].len > ackGroup.len) {
-                    LoggerWrapper::instance()->debug("conn(%ld), invalid slice len,slice(%d) pos=%d len=%d, group len=%d", 
+                    XMDLoggerWrapper::instance()->debug("conn(%ld), invalid slice len,slice(%d) pos=%d len=%d, group len=%d", 
                                                       packet->GetConnId(), i, pos, ackGroup.sliceMap[i].len, ackGroup.len);
                     return -1;
                 }
@@ -203,10 +203,10 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
             }
     
             CallbackQueueData* callbackData = new CallbackQueueData(packet->GetConnId(), packet->GetStreamId(), 
-                                                  packet->GetGroupId(), ACK_STREAM, ackGroup.len, gData);
+                                                  packet->GetGroupId(), ACK_STREAM, ackGroup.len, current_ms(), gData);
             commonData_->callbackQueuePush(callbackData);
             ackGroupMap_.erase(it);
-            commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());
+            //commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());
         }
     }
 
@@ -222,16 +222,16 @@ int GroupManager::getCompletePacket(GroupPacket& gPakcet, unsigned char* &data, 
     for (int i = 0; i < gPakcet.partitionSize; i++) {
         for (int j = 0; j < gPakcet.partitionMap[i].FEC_OPN; j++) {
             uint16_t* tmpLen = (uint16_t*)gPakcet.partitionMap[i].sliceMap[j].data;
-            uint16_t sliceLen = (ntohs)(*tmpLen);
+            uint16_t sliceLen = ntohs(*tmpLen);
             if (sliceLen > MAX_PACKET_SIZE) {
-                LoggerWrapper::instance()->debug("invalid slice len=%d", sliceLen);
+                XMDLoggerWrapper::instance()->debug("invalid slice len=%d", sliceLen);
                 return -1;
             }
             if (pos + sliceLen > len) {
-                LoggerWrapper::instance()->debug("invalid slice len=%d", sliceLen);
+                XMDLoggerWrapper::instance()->debug("invalid slice len=%d", sliceLen);
                 return -1;
             }
-            LoggerWrapper::instance()->debug("group(%d), partition(%d), slice(%d) len=%d", gPakcet.groupId, i, j, sliceLen);
+            XMDLoggerWrapper::instance()->debug("group(%d), partition(%d), slice(%d) len=%d", gPakcet.groupId, i, j, sliceLen);
             memcpy(data + pos, gPakcet.partitionMap[i].sliceMap[j].data + STREAM_LEN_SIZE, sliceLen);
             pos += sliceLen;
         }
@@ -249,9 +249,8 @@ void GroupManager::checkGroupMap() {
     std::unordered_map<std::string, GroupPacket>::iterator it = groupMap_.begin();
     for(; it != groupMap_.end(); ) {
         if (currentTime - it->second.create_time > FEC_GROUP_DELETE_INTERVAL) {
-
             if (!it->second.isComplete) {
-                LoggerWrapper::instance()->warn("fec group is not completed when deleting, conn(%ld) stream(%d) group(%d)", 
+                XMDLoggerWrapper::instance()->warn("fec group is not completed when deleting, conn(%ld) stream(%d) group(%d)", 
                                                 it->second.connId, it->second.streamId, it->second.groupId);
             }
             groupMap_.erase(it++);
@@ -285,9 +284,9 @@ void GroupManager::checkGroupMap() {
                 int groupLen = 0;
                 if (getCompletePacket(it->second, groupData, groupLen) == 0) {
                     CallbackQueueData* queueData = new CallbackQueueData(it->second.connId, it->second.streamId, 
-                                                       it->second.groupId, FEC_STREAM, groupLen, groupData);
+                                                       it->second.groupId, FEC_STREAM, groupLen, current_ms(), groupData);
                                                            
-                    LoggerWrapper::instance()->debug("conn=%ld, stream=%d, group id = %d, packet len =%d", 
+                    XMDLoggerWrapper::instance()->debug("conn=%ld, stream=%d, group id = %d, packet len =%d", 
                                                       it->second.connId, it->second.streamId, it->second.groupId, queueData->len);
                     commonData_->callbackQueuePush(queueData);
                 }
@@ -301,7 +300,7 @@ void GroupManager::checkGroupMap() {
     std::unordered_map<std::string, AckGroupPakcet>::iterator iter = ackGroupMap_.begin();
     for (; iter != ackGroupMap_.end(); ) {
         if (currentTime - iter->second.create_time > ACK_GROUP_DELETE_INTERVAL) {
-            LoggerWrapper::instance()->warn("ack stream group is not completed, conn(%ld) stream(%d) group(%d)", 
+            XMDLoggerWrapper::instance()->warn("ack stream group is not completed, conn(%ld) stream(%d) group(%d)", 
                                              iter->second.connId, iter->second.streamId, iter->second.groupId);
             ackGroupMap_.erase(iter++);
         } else {
@@ -364,7 +363,7 @@ bool GroupManager::doFecRecover(PartitionPacket& pPacket) {
 
 
     if (!isNeedFec) {
-        LoggerWrapper::instance()->debug("no need to do fec.");
+        XMDLoggerWrapper::instance()->debug("no need to do fec.");
         goto fecend;
     }
 
@@ -380,14 +379,13 @@ bool GroupManager::doFecRecover(PartitionPacket& pPacket) {
             memcpy(pPacket.sliceMap[i].data, output + i * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), 
                    MAX_PACKET_SIZE + STREAM_LEN_SIZE);
         } else {
-
             unsigned char* tmpChar = new unsigned char[MAX_PACKET_SIZE + STREAM_LEN_SIZE];
             memcpy(tmpChar, output + i * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), MAX_PACKET_SIZE + STREAM_LEN_SIZE);
             SlicePacket slicePacket(tmpChar, MAX_PACKET_SIZE + STREAM_LEN_SIZE);
             pPacket.sliceMap[i] = slicePacket;
             uint16_t* tmpLen = (uint16_t*)(output + i * (MAX_PACKET_SIZE + STREAM_LEN_SIZE));
-            uint16_t sliceLen = (ntohs)(*tmpLen);
-            LoggerWrapper::instance()->debug("do fec recover %d len =%d.", i, sliceLen);
+            uint16_t sliceLen = ntohs(*tmpLen);
+            XMDLoggerWrapper::instance()->debug("do fec recover %d len =%d.", i, sliceLen);
             pPacket.len += sliceLen;
         }
     }

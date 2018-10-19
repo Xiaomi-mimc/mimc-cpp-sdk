@@ -1,4 +1,4 @@
-#include "XMDTransceiver.h"
+#include "../include/XMDTransceiver.h"
 #include <iostream>
 
 class DataGramHandler : public DatagramRecvHandler {
@@ -48,11 +48,9 @@ public:
     virtual void RecvStreamData(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, char* data, int len) { 
         std::string tmpStr(data, len);
         //std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<",data="<<tmpStr<<std::endl;
-        std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<
-std::endl;
-
+        std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<std::endl;
         std::cout<<"time="<<current_ms()<<std::endl;
-        transceiver->sendRTData(conn_id, stream_id, data, len);
+        transceiver->sendRTData(conn_id, stream_id, data, len, false, P0, 2);
     }
     virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
         std::cout<<"send stream data succ, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;

@@ -51,7 +51,7 @@ bool Fec::reverse_matrix(int* input) {
             }
         }
         if (input[i * n + i] == 0) {
-            LoggerWrapper::instance()->warn("the input matrix has no reverse matrix.");
+            XMDLoggerWrapper::instance()->warn("the input matrix has no reverse matrix.");
             return false;
         }
 
@@ -113,11 +113,11 @@ void Fec::swap(int* input, int* output, int dimension, int row1, int row2) {
 
 int Fec::fec_encode(unsigned char* input, int len, unsigned char* output) {
     if (NULL == input) {
-        LoggerWrapper::instance()->warn("fec encode input invalid.");
+        XMDLoggerWrapper::instance()->warn("fec encode input invalid.");
         return -1;
     }
     if (NULL == output) {
-        LoggerWrapper::instance()->warn("fec encode output invalid.");
+        XMDLoggerWrapper::instance()->warn("fec encode output invalid.");
         return -1;
     }
 
@@ -136,15 +136,15 @@ int Fec::fec_encode(unsigned char* input, int len, unsigned char* output) {
 
 int Fec::fec_decode(unsigned char* input, int len, unsigned char* output) {
     if (NULL == input) {
-        LoggerWrapper::instance()->warn("fec decode input invalid.");
+        XMDLoggerWrapper::instance()->warn("fec decode input invalid.");
         return -1;
     }
     if (NULL == output) {
-        LoggerWrapper::instance()->warn("fec decode output invalid.");
+        XMDLoggerWrapper::instance()->warn("fec decode output invalid.");
         return -1;
     }
 
-    LoggerWrapper::instance()->warn("do fec encode.");
+    XMDLoggerWrapper::instance()->warn("do fec decode.");
     for (int i = 0; i < origin_packet_num_; ++i) {
         for (int j = 0; j < origin_packet_num_; ++j) {
             for (int k = 0; k < len; ++k) {

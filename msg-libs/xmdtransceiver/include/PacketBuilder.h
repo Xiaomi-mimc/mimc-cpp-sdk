@@ -6,6 +6,7 @@
 #include <memory>
 #include "XMDCommonData.h"
 #include "XMDPacket.h"
+#include <iostream>
 
 
 struct partitionData {
@@ -24,6 +25,7 @@ struct groupData {
     int timeout;
     bool isEncrypt;
     std::string sessionKey;
+    uint8_t flags;
     partitionData* partitionVec;
 
     groupData() {
@@ -31,7 +33,7 @@ struct groupData {
         partitionSize = 0;
     }
 
-    construct(uint32_t i, int p, int size, uint64_t cId, uint32_t sId, uint32_t gId, int t, bool e, std::string key) {
+    void construct(uint32_t i, int p, int size, uint64_t cId, uint32_t sId, uint32_t gId, int t, bool e, std::string key, uint8_t flag) {
         ip = i;
         port = p;
         partitionSize = size;
@@ -41,6 +43,7 @@ struct groupData {
         timeout = t;
         isEncrypt = e;
         sessionKey = key;
+        flags = flag;
         partitionVec = new partitionData[partitionSize];
     }
     ~groupData() {
@@ -63,6 +66,7 @@ public:
 
 private:
     XMDCommonData* commonData_;
+    //PacketDispatcher* dispatcher_;
     unsigned char fecRedundancyData_[MAX_ORIGIN_PACKET_NUM_IN_PARTITION * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
     int partition_size_;
     groupData groupData_;

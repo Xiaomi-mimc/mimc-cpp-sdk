@@ -8,9 +8,6 @@
 using namespace std;
 
 #ifndef STAGING
-/*string appId = "2882303761517613988";
-string appKey = "5361761377988";
-string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";*/
 string appId = "2882303761517669588";
 string appKey = "5111766983588";
 string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
@@ -26,7 +23,7 @@ string appAccount3 = "Jerry";
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
     void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
-        LoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
+        XMDLoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
     }
 };
 
@@ -60,24 +57,24 @@ private:
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
     LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        LoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
         if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
         }
-        LoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
+        XMDLoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
         chatIds.push_back(chatId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
     void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
+        XMDLoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
         if (accepted) {
             chatIds.push_back(chatId);
         }
     }
 
     void onClosed(long chatId, const std::string& errmsg) {
-        LoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
+        XMDLoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
         std::list<long>::iterator iter;
         for (iter = chatIds.begin(); iter != chatIds.end();) {
             if(*iter == chatId) {
@@ -90,7 +87,7 @@ public:
     }
 
     void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
-        LoggerWrapper::instance()->info("In handleData, chatId is %ld, data is %s, dataType is %d", chatId, data.c_str(), dataType);
+        XMDLoggerWrapper::instance()->info("In handleData, chatId is %ld, data is %s, dataType is %d", chatId, data.c_str(), dataType);
     }
 
     std::list<long>& getChatIds() {return this->chatIds;}
@@ -120,8 +117,8 @@ public:
 #endif
         const string body = "{\"appId\":\"" + this->appId + "\",\"appKey\":\"" + this->appKey + "\",\"appSecret\":\"" + this->appSecret + "\",\"appAccount\":\"" + this->appAccount + "\"}";
         
-        LoggerWrapper::instance()->info("In fetchToken, body is %s", body.c_str());
-        LoggerWrapper::instance()->info("In fetchToken, url is %s", url.c_str());
+        XMDLoggerWrapper::instance()->info("In fetchToken, body is %s", body.c_str());
+        XMDLoggerWrapper::instance()->info("In fetchToken, url is %s", url.c_str());
 
         string result;
         if (curl) {
@@ -141,11 +138,13 @@ public:
 
             res = curl_easy_perform(curl);
             if (res != CURLE_OK) {
-                
+                XMDLoggerWrapper::instance()->error("curl perform error, error code is %d", res);
             }
+            curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
         }
 
-        curl_easy_cleanup(curl);
+        curl_global_cleanup();
 
         return result;
     }
@@ -153,9 +152,7 @@ public:
     static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
         string *bodyp = (string *)userp;
         bodyp->append((const char *)contents, size * nmemb);
-        
-        
-        
+
         return bodyp->size();
     }
 

@@ -217,7 +217,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			return -1;
 		}
 		connection->setState(HANDSHAKE_CONNECTED);
-		LoggerWrapper::instance()->info("connresp receive succeed, connection build succeed");
+		XMDLoggerWrapper::instance()->info("connresp receive succeed, connection build succeed");
 		std::string challenge = resp.challenge();
 		connection->setChallengeAndBodyKey(challenge);
 	}
@@ -228,7 +228,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			return -1;
 		}
 		OnlineStatus onlineStatus = resp.result() ? Online : Offline;
-		LoggerWrapper::instance()->info("bindresp receive succeed, onlineStatus is %d, user is %s, uuid is %ld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
+		XMDLoggerWrapper::instance()->info("bindresp receive succeed, onlineStatus is %d, user is %s, uuid is %ld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
 		if (onlineStatus == Online) {
 			
 		} else {
@@ -297,7 +297,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					return -1;
 				}
 
-				LoggerWrapper::instance()->info("In COMPOUND, user is %s", user->getAppAccount().c_str());
+				XMDLoggerWrapper::instance()->info("In COMPOUND, user is %s", user->getAppAccount().c_str());
 
 				mimc::MIMCSequenceAck mimcSequenceAck;
 				mimcSequenceAck.set_uuid(mimcPacketList.uuid());
@@ -368,15 +368,15 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 				switch (rtsMessage.type()) {
 					case mimc::INVITE_REQUEST:
 						{
-						LoggerWrapper::instance()->info("In INVITE_REQUEST, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
+						XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
 						mimc::InviteRequest inviteRequest;
 						if (!inviteRequest.ParseFromString(rtsMessage.payload())) {
-							LoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RTS_PAYLOAD_PARSE_ERROR");
+							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RTS_PAYLOAD_PARSE_ERROR");
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::INTERNAL_ERROR1, "RTS_PAYLOAD_PARSE_ERROR");
 							return -1;
 						}
 						if (!inviteRequest.has_streamtype() || inviteRequest.members_size() == 0) {
-							LoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: INVALID_PARAM");
+							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: INVALID_PARAM");
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "INVALID_PARAM");
 							return -1;
 						}
@@ -392,13 +392,13 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							}
 						}
 						if (!uuid_in_members) {
-							LoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: MEMBERS_NOT_CONTAIN_SENDER");
+							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: MEMBERS_NOT_CONTAIN_SENDER");
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "MEMBERS_NOT_CONTAIN_SENDER");
 							return -1;
 						}
 
 						if (user->getCurrentChats()->size() == user->getMaxCallNum()) {
-							LoggerWrapper::instance()->warn("In INVITE_REQUEST, currentChats size has reached maxCallNum %d!", user->getMaxCallNum());
+							XMDLoggerWrapper::instance()->warn("In INVITE_REQUEST, currentChats size has reached maxCallNum %d!", user->getMaxCallNum());
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_REFUSE, "USER_BUSY");
 							return -1;
 						}
@@ -406,20 +406,20 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							
 							user->checkToRunXmdTranseiver();
 							unsigned long connId = RtsSendData::createRelayConn(user);
-							LoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is NOT_CREATED, relayConnId is %ld", connId);
+							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is NOT_CREATED, relayConnId is %ld", connId);
 							if (connId == 0) {
-								LoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RELAY CAN NOT BE CONNECTED");
+								XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RELAY CAN NOT BE CONNECTED");
 								RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_OFFLINE, "RELAY CAN NOT BE CONNECTED");
 								return -1;
 							}
 							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else if (user->getRelayLinkState() == BEING_CREATED) {
-							LoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is BEING_CREATED");
+							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is BEING_CREATED");
 							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else {
-							LoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is SUCC_CREATED");
+							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is SUCC_CREATED");
 							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_INVITEE_RESPONSE, time(NULL), false, inviteRequest.appcontent())));
 							
 							struct onLaunchedParam* param = new struct onLaunchedParam();
@@ -431,12 +431,13 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 							pthread_create (&onLaunchedThread, &attr, User::onLaunched, (void *)param);
 							user->getOnlaunchChats()->insert(std::pair<long, pthread_t>(chatId, onLaunchedThread));
+							pthread_attr_destroy(&attr);
 						}
 						}
 						break;
 					case mimc::CREATE_RESPONSE:
 						{
-						LoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
+						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							return -1;
 						}
@@ -477,8 +478,10 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							}
 							chatSession.setChatState(RUNNING);
 							chatSession.setLatestLegalChatStateTs(time(NULL));
+
+							//会话接通，开始打洞
 						} else {
-							LoggerWrapper::instance()->info("In CREATE_RESPONSE, accepted is false");	
+							XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, accepted is false");	
 							user->getCurrentChats()->erase(chatId);
 							RtsSendData::closeRelayConnWhenNoChat(user);
 						}
@@ -487,7 +490,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						break;
 					case mimc::BYE_REQUEST:
 						{
-						LoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
+						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							return -1;
 						}
@@ -511,7 +514,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						break;
 					case mimc::BYE_RESPONSE:
 						{
-						LoggerWrapper::instance()->info("In BYE_RESPONSE, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
+						XMDLoggerWrapper::instance()->info("In BYE_RESPONSE, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							
 							return 0;

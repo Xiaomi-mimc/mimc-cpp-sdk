@@ -18,7 +18,6 @@ public:
 
 private:
     bool stopFlag_;
-    int pingCount_;
     XMDCommonData* commonData_;
     PacketDispatcher* dispatcher_;
 };

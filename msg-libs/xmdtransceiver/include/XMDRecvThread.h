@@ -13,13 +13,13 @@ public:
 
     void stop();
     int listenfd() { return listenfd_; }
-    void setTestFlat(bool flag) { testNetFlag_ = flag; }
+    void setTestPacketLoss(int value) { testPacketLoss_ = value; }
 
 private:
     int listenfd_;
     bool stopFlag_;
     uint32_t port_;
-    bool testNetFlag_;
+    uint32_t testPacketLoss_;
     XMDCommonData* commonData_;
 
     struct sockaddr_in* getSvrAddr();

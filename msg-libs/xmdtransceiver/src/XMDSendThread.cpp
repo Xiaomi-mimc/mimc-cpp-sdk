@@ -9,7 +9,7 @@
 #include "XMDSendThread.h"
 #include "common.h"
 #include "PacketBuilder.h"
-#include "LoggerWrapper.h"
+#include "XMDLoggerWrapper.h"
 
 XMDSendThread::XMDSendThread(int fd, int port, XMDCommonData* commonData, PacketDispatcher* dispactcher) {
     stopFlag_ = false;
@@ -17,7 +17,7 @@ XMDSendThread::XMDSendThread(int fd, int port, XMDCommonData* commonData, Packet
     port_ = port;
     commonData_ = commonData;
     dispatcher_ = dispactcher;
-    testNetFlag_ = false;
+    testPacketLoss_ = 0;
 }
 
 XMDSendThread::XMDSendThread() {
@@ -44,33 +44,49 @@ void* XMDSendThread::process() {
             ResendData* resendData = commonData_->resendQueuePop();
             if (resendData != NULL) {
                 isSleep = false;
-                send(resendData->ip, resendData->port, (char*)resendData->data, resendData->len);
-                if (resendData->sendCount < MAX_SEND_TIME) {
+                if (resendData->reSendCount > 0 || resendData->reSendCount == -1) {
+                    XMDLoggerWrapper::instance()->debug("resend,connid=%ld, packet id=%ld", 
+                                                         resendData->connId, resendData->packetId);
+                    send(resendData->ip, resendData->port, (char*)resendData->data, resendData->len);
                     uint64_t current_time = current_ms();
-                    resendData->lastSendTime = current_time;
-                    resendData->reSendTime = current_time + RESEND_DATA_INTEVAL;
-                    resendData->sendCount++;
+                    resendData->reSendTime = current_time + getResendTimeInterval(1);
+                    if (resendData->reSendCount != -1) {
+                        resendData->reSendCount--;
+                    }
                     commonData_->resendQueuePush(resendData);
                 } else {
                      std::stringstream ss_ack;
                      ss_ack << resendData->connId << resendData->packetId;
                      std::string ackpacketKey = ss_ack.str();
-                     ackPacketInfo ackPacket;
-                     if (commonData_->getDeleteAckPacketInfo(ackpacketKey, ackPacket)) {
+                     commonData_->deleteIsPacketRecvAckMap(ackpacketKey);
+                     
+                     PacketCallbackInfo packetInfo;
+                     if (commonData_->getDeletePacketCallbackInfo(ackpacketKey, packetInfo)) {
                          std::stringstream ss;
-                         ss << ackPacket.connId << ackPacket.streamId << ackPacket.groupId;
+                         ss << packetInfo.connId << packetInfo.streamId << packetInfo.groupId;
                          std::string key = ss.str();
-                         commonData_->deleteSendCallbackMap(key);
-                         dispatcher_->streamDataSendFail(ackPacket.connId, ackPacket.streamId, 
-                                                         ackPacket.groupId, ackPacket.ctx);
+                         if (commonData_->SendCallbackMapRecordExist(key)) {
+                             commonData_->deleteSendCallbackMap(key);
+                             dispatcher_->streamDataSendFail(packetInfo.connId, packetInfo.streamId, 
+                                                             packetInfo.groupId, packetInfo.ctx);
+                         }
                      }
 
-                     commonData_->deleteConn(ackPacket.connId);
-                     dispatcher_->handleCloseConn(ackPacket.connId, CLOSE_SEND_FAIL);
+                     if (resendData->packetId == 0) {
+                         XMDLoggerWrapper::instance()->warn("conn create fail, didn't recv resp,connid=%ld", resendData->connId);
+                         ConnInfo connInfo;
+                         if(commonData_->getConnInfo(resendData->connId, connInfo)){
+                             dispatcher_->handleCreateConnFail(resendData->connId, connInfo.ctx);
+                             commonData_->deleteConn(resendData->connId);
+                         }
+                     }
+
+                     //commonData_->deleteConn(ackPacket.connId);
+                     //dispatcher_->handleCloseConn(ackPacket.connId, CLOSE_SEND_FAIL);
     
-                    delete resendData;
-                    LoggerWrapper::instance()->debug("packet resend %d times, drop it,packet id=%ld", 
-                                                     MAX_SEND_TIME, resendData->packetId);
+                     delete resendData;
+                     XMDLoggerWrapper::instance()->debug("packet resend fail, drop it,connid=%ld, packet id=%ld", 
+                                                          resendData->connId, resendData->packetId);
                 }
             }
         }
@@ -84,10 +100,11 @@ void* XMDSendThread::process() {
 }
 
 void XMDSendThread::send(uint32_t ip, int port, char* data , int len) {
-    if (testNetFlag_) {
-        LoggerWrapper::instance()->warn("test do not send data");
+    if (rand32() % 100 < testPacketLoss_) {
+        XMDLoggerWrapper::instance()->debug("test drop this packet");
         return;
     }
+    
     sockaddr_in addr;
     socklen_t addrLen = sizeof(addr);
     memset(&addr, 0, addrLen);
@@ -98,12 +115,11 @@ void XMDSendThread::send(uint32_t ip, int port, char* data , int len) {
 
     int ret = sendto(listenfd_, data, len, MSG_DONTWAIT, (struct sockaddr*)&addr, addrLen);
     if (ret < 0) {
-        LoggerWrapper::instance()->warn("XMDSendThread send fail, ip:%u,port:%u,errmsg:%s,len:%d.", ip, port, strerror(errno), len);
+        XMDLoggerWrapper::instance()->warn("XMDSendThread send fail, ip:%u,port:%u,errmsg:%s,len:%d.", ip, port, strerror(errno), len);
         return;
     }
 
-    LoggerWrapper::instance()->debug("XMDSendThread send data, len:%d, ip:%u,port:%u.", len, ip, port);
-    //std::cout<<"time="<<current_ms()<<std::endl;
+    XMDLoggerWrapper::instance()->debug("XMDSendThread send data, len:%d, ip:%u,port:%u.", len, ip, port);
 }
 
 

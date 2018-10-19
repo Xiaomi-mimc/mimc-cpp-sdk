@@ -1,4 +1,4 @@
-#include "XMDTransceiver.h"
+#include "../include/XMDTransceiver.h"
 #include <iostream>
 #include "handler.h"
 
@@ -7,6 +7,7 @@ int main() {
     transceiver->registerRecvDatagramHandler(new DataGramHandler());
     transceiver->registerConnHandler(new newConn());
     transceiver->registerStreamHandler(new streamServerHandler(transceiver));
+    transceiver->setXMDLogLevel(XMD_INFO);
 
     transceiver->run();
 

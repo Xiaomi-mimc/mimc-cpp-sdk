@@ -66,6 +66,8 @@ const int XMD_TRAN_TIMEOUT = 5;
 const int RELAY_CONN_TIMEOUT = 5;
 const int RTS_CHECK_TIMEOUT = 5;
 const int RTS_CALL_TIMEOUT = 35;
+const int ACK_STREAM_WAIT_TIME_MS = 200;
+const int STREAM_TIMEOUT = 21600;
 
 const char* const BODY_CLIENTHEADER_CMD_CONN = "CONN";
 const char* const BODY_CLIENTHEADER_CMD_BIND = "BIND";

@@ -34,6 +34,7 @@ void protobuf_ShutdownFile_rts_5fdata_2eproto();
 
 class UserPacket;
 class BindRelayRequest;
+class StreamConfig;
 class BindRelayResponse;
 class PingRelayRequest;
 class PingRelayResponse;
@@ -61,6 +62,15 @@ bool PKT_TYPE_IsValid(int value);
 const PKT_TYPE PKT_TYPE_MIN = BIND_RELAY_REQUEST;
 const PKT_TYPE PKT_TYPE_MAX = INTERNET_CONN_REQUEST;
 const int PKT_TYPE_ARRAYSIZE = PKT_TYPE_MAX + 1;
+
+enum STREAM_STRATEGY {
+  FEC_STRATEGY = 1,
+  ACK_STRATEGY = 2
+};
+bool STREAM_STRATEGY_IsValid(int value);
+const STREAM_STRATEGY STREAM_STRATEGY_MIN = FEC_STRATEGY;
+const STREAM_STRATEGY STREAM_STRATEGY_MAX = ACK_STRATEGY;
+const int STREAM_STRATEGY_ARRAYSIZE = STREAM_STRATEGY_MAX + 1;
 
 enum KICK_REASON {
   REALY_CHEANGED = 1
@@ -358,6 +368,24 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
   inline ::std::string* release_token();
   inline void set_allocated_token(::std::string* token);
 
+  // optional .mimc.StreamConfig audio_stream_default_config = 6;
+  inline bool has_audio_stream_default_config() const;
+  inline void clear_audio_stream_default_config();
+  static const int kAudioStreamDefaultConfigFieldNumber = 6;
+  inline const ::mimc::StreamConfig& audio_stream_default_config() const;
+  inline ::mimc::StreamConfig* mutable_audio_stream_default_config();
+  inline ::mimc::StreamConfig* release_audio_stream_default_config();
+  inline void set_allocated_audio_stream_default_config(::mimc::StreamConfig* audio_stream_default_config);
+
+  // optional .mimc.StreamConfig video_stream_default_config = 7;
+  inline bool has_video_stream_default_config() const;
+  inline void clear_video_stream_default_config();
+  static const int kVideoStreamDefaultConfigFieldNumber = 7;
+  inline const ::mimc::StreamConfig& video_stream_default_config() const;
+  inline ::mimc::StreamConfig* mutable_video_stream_default_config();
+  inline ::mimc::StreamConfig* release_video_stream_default_config();
+  inline void set_allocated_video_stream_default_config(::mimc::StreamConfig* video_stream_default_config);
+
   // @@protoc_insertion_point(class_scope:mimc.BindRelayRequest)
  private:
   inline void set_has_uuid();
@@ -370,15 +398,21 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
   inline void clear_has_intranet_port();
   inline void set_has_token();
   inline void clear_has_token();
+  inline void set_has_audio_stream_default_config();
+  inline void clear_has_audio_stream_default_config();
+  inline void set_has_video_stream_default_config();
+  inline void clear_has_video_stream_default_config();
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
   ::std::string* intranet_ip_;
   ::std::string* token_;
+  ::mimc::StreamConfig* audio_stream_default_config_;
+  ::mimc::StreamConfig* video_stream_default_config_;
   ::google::protobuf::int32 intranet_port_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -390,6 +424,119 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
 
   void InitAsDefaultInstance();
   static BindRelayRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class StreamConfig : public ::google::protobuf::MessageLite {
+ public:
+  StreamConfig();
+  virtual ~StreamConfig();
+
+  StreamConfig(const StreamConfig& from);
+
+  inline StreamConfig& operator=(const StreamConfig& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const StreamConfig& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const StreamConfig* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(StreamConfig* other);
+
+  // implements Message ----------------------------------------------
+
+  StreamConfig* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const StreamConfig& from);
+  void MergeFrom(const StreamConfig& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required .mimc.STREAM_STRATEGY stream_strategy = 1;
+  inline bool has_stream_strategy() const;
+  inline void clear_stream_strategy();
+  static const int kStreamStrategyFieldNumber = 1;
+  inline ::mimc::STREAM_STRATEGY stream_strategy() const;
+  inline void set_stream_strategy(::mimc::STREAM_STRATEGY value);
+
+  // optional uint32 ack_stream_wait_time_ms = 2;
+  inline bool has_ack_stream_wait_time_ms() const;
+  inline void clear_ack_stream_wait_time_ms();
+  static const int kAckStreamWaitTimeMsFieldNumber = 2;
+  inline ::google::protobuf::uint32 ack_stream_wait_time_ms() const;
+  inline void set_ack_stream_wait_time_ms(::google::protobuf::uint32 value);
+
+  // optional uint32 stream_timeout_s = 3;
+  inline bool has_stream_timeout_s() const;
+  inline void clear_stream_timeout_s();
+  static const int kStreamTimeoutSFieldNumber = 3;
+  inline ::google::protobuf::uint32 stream_timeout_s() const;
+  inline void set_stream_timeout_s(::google::protobuf::uint32 value);
+
+  // optional bool stream_is_encrypt = 4;
+  inline bool has_stream_is_encrypt() const;
+  inline void clear_stream_is_encrypt();
+  static const int kStreamIsEncryptFieldNumber = 4;
+  inline bool stream_is_encrypt() const;
+  inline void set_stream_is_encrypt(bool value);
+
+  // @@protoc_insertion_point(class_scope:mimc.StreamConfig)
+ private:
+  inline void set_has_stream_strategy();
+  inline void clear_has_stream_strategy();
+  inline void set_has_ack_stream_wait_time_ms();
+  inline void clear_has_ack_stream_wait_time_ms();
+  inline void set_has_stream_timeout_s();
+  inline void clear_has_stream_timeout_s();
+  inline void set_has_stream_is_encrypt();
+  inline void clear_has_stream_is_encrypt();
+
+  int stream_strategy_;
+  ::google::protobuf::uint32 ack_stream_wait_time_ms_;
+  ::google::protobuf::uint32 stream_timeout_s_;
+  bool stream_is_encrypt_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fdata_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fdata_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fdata_2eproto();
+
+  void InitAsDefaultInstance();
+  static StreamConfig* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1932,6 +2079,183 @@ inline void BindRelayRequest::set_allocated_token(::std::string* token) {
     clear_has_token();
     token_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional .mimc.StreamConfig audio_stream_default_config = 6;
+inline bool BindRelayRequest::has_audio_stream_default_config() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void BindRelayRequest::set_has_audio_stream_default_config() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void BindRelayRequest::clear_has_audio_stream_default_config() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void BindRelayRequest::clear_audio_stream_default_config() {
+  if (audio_stream_default_config_ != NULL) audio_stream_default_config_->::mimc::StreamConfig::Clear();
+  clear_has_audio_stream_default_config();
+}
+inline const ::mimc::StreamConfig& BindRelayRequest::audio_stream_default_config() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return audio_stream_default_config_ != NULL ? *audio_stream_default_config_ : *default_instance().audio_stream_default_config_;
+#else
+  return audio_stream_default_config_ != NULL ? *audio_stream_default_config_ : *default_instance_->audio_stream_default_config_;
+#endif
+}
+inline ::mimc::StreamConfig* BindRelayRequest::mutable_audio_stream_default_config() {
+  set_has_audio_stream_default_config();
+  if (audio_stream_default_config_ == NULL) audio_stream_default_config_ = new ::mimc::StreamConfig;
+  return audio_stream_default_config_;
+}
+inline ::mimc::StreamConfig* BindRelayRequest::release_audio_stream_default_config() {
+  clear_has_audio_stream_default_config();
+  ::mimc::StreamConfig* temp = audio_stream_default_config_;
+  audio_stream_default_config_ = NULL;
+  return temp;
+}
+inline void BindRelayRequest::set_allocated_audio_stream_default_config(::mimc::StreamConfig* audio_stream_default_config) {
+  delete audio_stream_default_config_;
+  audio_stream_default_config_ = audio_stream_default_config;
+  if (audio_stream_default_config) {
+    set_has_audio_stream_default_config();
+  } else {
+    clear_has_audio_stream_default_config();
+  }
+}
+
+// optional .mimc.StreamConfig video_stream_default_config = 7;
+inline bool BindRelayRequest::has_video_stream_default_config() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void BindRelayRequest::set_has_video_stream_default_config() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void BindRelayRequest::clear_has_video_stream_default_config() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void BindRelayRequest::clear_video_stream_default_config() {
+  if (video_stream_default_config_ != NULL) video_stream_default_config_->::mimc::StreamConfig::Clear();
+  clear_has_video_stream_default_config();
+}
+inline const ::mimc::StreamConfig& BindRelayRequest::video_stream_default_config() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return video_stream_default_config_ != NULL ? *video_stream_default_config_ : *default_instance().video_stream_default_config_;
+#else
+  return video_stream_default_config_ != NULL ? *video_stream_default_config_ : *default_instance_->video_stream_default_config_;
+#endif
+}
+inline ::mimc::StreamConfig* BindRelayRequest::mutable_video_stream_default_config() {
+  set_has_video_stream_default_config();
+  if (video_stream_default_config_ == NULL) video_stream_default_config_ = new ::mimc::StreamConfig;
+  return video_stream_default_config_;
+}
+inline ::mimc::StreamConfig* BindRelayRequest::release_video_stream_default_config() {
+  clear_has_video_stream_default_config();
+  ::mimc::StreamConfig* temp = video_stream_default_config_;
+  video_stream_default_config_ = NULL;
+  return temp;
+}
+inline void BindRelayRequest::set_allocated_video_stream_default_config(::mimc::StreamConfig* video_stream_default_config) {
+  delete video_stream_default_config_;
+  video_stream_default_config_ = video_stream_default_config;
+  if (video_stream_default_config) {
+    set_has_video_stream_default_config();
+  } else {
+    clear_has_video_stream_default_config();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// StreamConfig
+
+// required .mimc.STREAM_STRATEGY stream_strategy = 1;
+inline bool StreamConfig::has_stream_strategy() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void StreamConfig::set_has_stream_strategy() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void StreamConfig::clear_has_stream_strategy() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void StreamConfig::clear_stream_strategy() {
+  stream_strategy_ = 1;
+  clear_has_stream_strategy();
+}
+inline ::mimc::STREAM_STRATEGY StreamConfig::stream_strategy() const {
+  return static_cast< ::mimc::STREAM_STRATEGY >(stream_strategy_);
+}
+inline void StreamConfig::set_stream_strategy(::mimc::STREAM_STRATEGY value) {
+  assert(::mimc::STREAM_STRATEGY_IsValid(value));
+  set_has_stream_strategy();
+  stream_strategy_ = value;
+}
+
+// optional uint32 ack_stream_wait_time_ms = 2;
+inline bool StreamConfig::has_ack_stream_wait_time_ms() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void StreamConfig::set_has_ack_stream_wait_time_ms() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void StreamConfig::clear_has_ack_stream_wait_time_ms() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void StreamConfig::clear_ack_stream_wait_time_ms() {
+  ack_stream_wait_time_ms_ = 0u;
+  clear_has_ack_stream_wait_time_ms();
+}
+inline ::google::protobuf::uint32 StreamConfig::ack_stream_wait_time_ms() const {
+  return ack_stream_wait_time_ms_;
+}
+inline void StreamConfig::set_ack_stream_wait_time_ms(::google::protobuf::uint32 value) {
+  set_has_ack_stream_wait_time_ms();
+  ack_stream_wait_time_ms_ = value;
+}
+
+// optional uint32 stream_timeout_s = 3;
+inline bool StreamConfig::has_stream_timeout_s() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void StreamConfig::set_has_stream_timeout_s() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void StreamConfig::clear_has_stream_timeout_s() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void StreamConfig::clear_stream_timeout_s() {
+  stream_timeout_s_ = 0u;
+  clear_has_stream_timeout_s();
+}
+inline ::google::protobuf::uint32 StreamConfig::stream_timeout_s() const {
+  return stream_timeout_s_;
+}
+inline void StreamConfig::set_stream_timeout_s(::google::protobuf::uint32 value) {
+  set_has_stream_timeout_s();
+  stream_timeout_s_ = value;
+}
+
+// optional bool stream_is_encrypt = 4;
+inline bool StreamConfig::has_stream_is_encrypt() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void StreamConfig::set_has_stream_is_encrypt() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void StreamConfig::clear_has_stream_is_encrypt() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void StreamConfig::clear_stream_is_encrypt() {
+  stream_is_encrypt_ = false;
+  clear_has_stream_is_encrypt();
+}
+inline bool StreamConfig::stream_is_encrypt() const {
+  return stream_is_encrypt_;
+}
+inline void StreamConfig::set_stream_is_encrypt(bool value) {
+  set_has_stream_is_encrypt();
+  stream_is_encrypt_ = value;
 }
 
 // -------------------------------------------------------------------
