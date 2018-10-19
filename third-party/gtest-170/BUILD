@@ -7,8 +7,8 @@ cc_library(
 	copts = [
 		"-DGTEST_HAS_PTHREAD=1",
 		"-Os",
-        "-ffunction-sections",
-        "-fdata-sections",
+		"-ffunction-sections",
+		"-fdata-sections",
 		"-Wall",
 		"-Wextra",
 		"-Wno-missing-field-initializers",

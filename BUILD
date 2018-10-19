@@ -1,14 +1,14 @@
 cc_library(
     name = "mimc_cpp_sdk",
     copts = [
-                "-Os",
-                "-fno-omit-frame-pointer",
-#                "-fno-rtti",
-                "-fno-exceptions",
-                "-ffunction-sections",
-                "-fdata-sections",
-                "-pthread",
-#                "-DSTAGING",
+        "-Os",
+        "-fno-omit-frame-pointer",
+#        "-fno-rtti",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-pthread",
+#        "-DSTAGING",
     ],
     linkopts = [
         "-lm",

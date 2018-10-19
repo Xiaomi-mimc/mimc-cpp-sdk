@@ -10,9 +10,9 @@ cc_library(
 	]),
 	copts = [
 		"-Os",
-        "-fno-exceptions",
-        "-ffunction-sections",
-        "-fdata-sections",
+		"-fno-exceptions",
+		"-ffunction-sections",
+		"-fdata-sections",
 		"-fno-omit-frame-pointer",
 		"-Wall",
 		"-D_REENTRANT",
@@ -21,10 +21,10 @@ cc_library(
 		"-DBUILD_DATE=UNKNOWN", # TODO: fix this
 	],
 	linkopts = [
-	    "-lcrypto",
-	    "-lm",
+		"-lcrypto",
+		"-lm",
 		"-pthread",
-        "-Wl,--gc-sections",
+		"-Wl,--gc-sections",
 	],
 #	linkstatic = 1,
 	srcs = glob([
@@ -35,56 +35,56 @@ cc_library(
 )
 
 cc_test(
-  name = "xmdtransceiver_test",
-  srcs = glob([
+	name = "xmdtransceiver_test",
+	srcs = glob([
 		"test/test*.cpp",
-  ]),
-  copts = [
-	"-O2",
-	"-Wall",
-	"-pthread",
-	"-D_REENTRANT",
-	"-Wno-unused-variable",
-	"-Wno-deprecated-declarations",
-  ],
-  deps = [
-    "//third-party/gtest-170",
-	":xmdtransceiver",
-  ],
+	]),
+	copts = [
+		"-O2",
+		"-Wall",
+		"-pthread",
+		"-D_REENTRANT",
+		"-Wno-unused-variable",
+		"-Wno-deprecated-declarations",
+	],
+	deps = [
+		"//third-party/gtest-170",
+		":xmdtransceiver",
+	],
 ) # cc_test:xmdtransceiver_test
 
 cc_binary(
-  name = "xmdtransceiver_server",
-  srcs = glob([
+	name = "xmdtransceiver_server",
+	srcs = glob([
 		"test/server/*.*",
-  ]),
-  copts = [
-	"-O2",
-	"-Wall",
-	"-pthread",
-	"-D_REENTRANT",
-	"-Wno-unused-variable",
-	"-Wno-deprecated-declarations",
-  ],
-  deps = [
-	":xmdtransceiver",
-  ],
+	]),
+	copts = [
+		"-O2",
+		"-Wall",
+		"-pthread",
+		"-D_REENTRANT",
+		"-Wno-unused-variable",
+		"-Wno-deprecated-declarations",
+	],
+	deps = [
+		":xmdtransceiver",
+	],
 ) # cc_binary:xmdtransceiver_server
 
 cc_binary(
-  name = "xmdtransceiver_client",
-  srcs = glob([
+	name = "xmdtransceiver_client",
+	srcs = glob([
 		"test/client/*.*",
-  ]),
-  copts = [
-	"-O2",
-	"-Wall",
-	"-pthread",
-	"-D_REENTRANT",
-	"-Wno-unused-variable",
-	"-Wno-deprecated-declarations",
-  ],
-  deps = [
-	":xmdtransceiver",
-  ],
+	]),
+	copts = [
+		"-O2",
+		"-Wall",
+		"-pthread",
+		"-D_REENTRANT",
+		"-Wno-unused-variable",
+		"-Wno-deprecated-declarations",
+	],
+	deps = [
+		":xmdtransceiver",
+	],
 ) # cc_binary:xmdtransceiver_client
