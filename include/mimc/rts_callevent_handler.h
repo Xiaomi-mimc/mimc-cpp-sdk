@@ -10,7 +10,7 @@ public:
 	/**
 	 * 新会话接入回调
 	 **/
-	virtual LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) = 0;
+	virtual LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) = 0;
 	/**
 	 * 会话被接通回调
 	 **/

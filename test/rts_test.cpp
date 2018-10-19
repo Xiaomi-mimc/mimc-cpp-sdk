@@ -86,7 +86,7 @@ protected:
         rtsUser2_r1->logout();
         rtsUser2_r2->logout();
         rtsUser3->logout();
-        sleep(5);
+        sleep(2);
         delete rtsUser1_r1;
         rtsUser1_r1 = NULL;
         delete rtsUser1_r2;

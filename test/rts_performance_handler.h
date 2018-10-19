@@ -13,9 +13,9 @@ using namespace std;
 
 class RtsPerformanceHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(string fromAccount, string fromResource, long chatId, const string& appContent) {
-        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
-        inviteRequests.push(RtsMessageData(fromAccount, fromResource, chatId, appContent));
+    LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
+        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
+        inviteRequests.push(RtsMessageData(chatId, fromAccount, appContent, fromResource));
         return LaunchedResponse(true, LAUNCH_OK);
     }
 

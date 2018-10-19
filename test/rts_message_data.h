@@ -18,11 +18,11 @@ private:
 	RtsChannelType channelType;
 public:
 	RtsMessageData(){}
-	RtsMessageData(string fromAccount, string fromResource, long chatId, string appContent) {
-		this->fromAccount = fromAccount;
-		this->fromResource = fromResource;
+	RtsMessageData(long chatId, string fromAccount, string appContent, string fromResource) {
 		this->chatId = chatId;
+		this->fromAccount = fromAccount;
 		this->appContent = appContent;
+		this->fromResource = fromResource;
 	}
 
 	RtsMessageData(long chatId, string errmsg, bool accepted = false) {

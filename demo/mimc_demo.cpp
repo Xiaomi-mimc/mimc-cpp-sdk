@@ -56,8 +56,8 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
-        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, fromResource is %s, appContent is %s", chatId, fromAccount.c_str(), fromResource.c_str(), appContent.c_str());
+    LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
+        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
         }

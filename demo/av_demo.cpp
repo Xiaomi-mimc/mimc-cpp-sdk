@@ -124,7 +124,7 @@ private:
 
 class AVRTSCallEventHandler : public RTSCallEventHandler {
 public:
-	virtual LaunchedResponse onLaunched(std::string fromAccount, std::string fromResource, long chatId, const std::string& appContent) {
+	virtual LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
 		LaunchedResponse response = LaunchedResponse(true, LAUNCH_OK);
 		chatIds.push_back(chatId);
 

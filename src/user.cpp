@@ -376,7 +376,7 @@ void * User::onLaunched(void *arg) {
 	long chatId = param->chatId;
 	P2PChatSession& p2pChatSession = user->getCurrentChats()->at(chatId);
 	const mimc::UserInfo& fromUser = p2pChatSession.getPeerUser();
-	LaunchedResponse userResponse = user->getRTSCallEventHandler()->onLaunched(fromUser.appaccount(), fromUser.resource(), chatId, p2pChatSession.getAppContent());
+	LaunchedResponse userResponse = user->getRTSCallEventHandler()->onLaunched(chatId, fromUser.appaccount(), p2pChatSession.getAppContent(), fromUser.resource());
 	if (!userResponse.isAccepted()) {
 		RtsSendSignal::sendInviteResponse(user, chatId, p2pChatSession.getChatType(), mimc::PEER_REFUSE, userResponse.getErrmsg());
 		user->getCurrentChats()->erase(chatId);
