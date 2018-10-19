@@ -32,7 +32,7 @@ class RtsStreamHandler;
 
 class User {
 public:
-	User(std::string appAccount, std::string resource = "cpp");
+	User(std::string appAccount, std::string resource = "");
 	~User();
 
 	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}
@@ -80,8 +80,7 @@ public:
 	unsigned long getP2PIntranetConnId(long chatId) const;
 	unsigned long getP2PInternetConnId(long chatId) const;
 
-	std::string sendMessage(const std::string& toAppAccount, const std::string& msg);
-	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore);
+	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore = true);
 	long dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
 	bool sendRtsData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType = RELAY);
 	void closeCall(long chatId, std::string byeReason = "");

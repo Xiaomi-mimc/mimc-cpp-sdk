@@ -186,7 +186,7 @@ private:
 	map<long, list<string>> chatDataMap;
 };
 
-class AVDemo {
+class RtsDemo {
 public:
 	static void receiveDataToFile() {
 		string resource1 = Utils::generateRandomString(8);
@@ -282,7 +282,7 @@ public:
 
 		user1->dialCall("5566","AUDIO");
 
-		sleep(60);
+		sleep(6000);
 
 		user1->logout();
 		sleep(2);
@@ -295,6 +295,6 @@ private:
 };
 
 int main(int argc, char **argv) {
-	AVDemo::call();
+	RtsDemo::call();
 	return 0;
 }

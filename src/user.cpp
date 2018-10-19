@@ -17,7 +17,7 @@ User::User(std::string appAccount, std::string resource) {
 	this->onlineStatus = Offline;
 	this->resetRelayLinkState();
 	if (resource == "") {
-		resource = DEFAULT_RESOURCE;
+		resource = "CPP_" + Utils::generateRandomString(8);
 	}
 	this->resource = resource;
 	this->lastLoginTimestamp = 0;
@@ -414,13 +414,6 @@ std::string User::join(const std::map<std::string, std::string>& kvs) const {
 	}
 
 	return oss.str();
-}
-
-std::string User::sendMessage(const std::string& toAppAccount, const std::string& msg) {
-	if (this->onlineStatus == Offline || toAppAccount == "" || msg == "" || msg.size() > MIMC_MAX_PAYLOAD_SIZE) {
-		return "";
-	}
-	return sendMessage(toAppAccount, msg, true);
 }
 
 std::string User::sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore) {

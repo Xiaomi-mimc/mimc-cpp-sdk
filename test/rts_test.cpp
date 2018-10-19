@@ -22,11 +22,11 @@ string appKey = "5221747911657";
 string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
 #endif
 
-string appAccount1 = "MI153_cpp";
-string appAccount2 = "MI108_cpp";
-string appAccount3 = "MI110_cpp";
-string appAccount4 = "MI111_cpp";
-string appAccount5 = "MI112_cpp";
+string appAccount1 = "MI153";
+string appAccount2 = "MI108";
+string appAccount3 = "MI110";
+string appAccount4 = "MI111";
+string appAccount5 = "MI112";
 const int WAIT_TIME_FOR_MESSAGE = 1;
 const int UDP_CONN_TIMEOUT = 5;
 

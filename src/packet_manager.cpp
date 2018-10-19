@@ -216,10 +216,10 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			
 			return -1;
 		}
-		connection->setState(HANDSHAKE_CONNECTED);
-		XMDLoggerWrapper::instance()->info("connresp receive succeed, connection build succeed");
 		std::string challenge = resp.challenge();
 		connection->setChallengeAndBodyKey(challenge);
+		connection->setState(HANDSHAKE_CONNECTED);
+		XMDLoggerWrapper::instance()->info("connresp receive succeed, connection build succeed");
 	}
 	else if (cmd == BODY_CLIENTHEADER_CMD_BIND) {
 		ims::XMMsgBindResp resp;

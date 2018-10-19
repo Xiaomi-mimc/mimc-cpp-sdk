@@ -50,7 +50,7 @@ cc_binary(
 )
 
 cc_binary(
-    name = "mimc_av_demo",
+    name = "rts_cpp_demo",
     copts = [
          "-Os",
          "-fno-exceptions",
@@ -65,7 +65,7 @@ cc_binary(
          "-Wl,--gc-sections",
     ],
     linkstatic=True,
-    srcs = ["demo/av_demo.cpp"],
+    srcs = ["demo/rts_demo.cpp"],
     deps = [
         ":mimc_cpp_sdk",
         "//third-party/curl-7-59-0"
