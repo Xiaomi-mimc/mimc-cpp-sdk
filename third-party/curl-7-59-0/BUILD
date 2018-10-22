@@ -10,7 +10,9 @@ cc_library(
             "-Wno-pointer-sign",
         ],
         linkstatic = 1,
-        linkopts = [],
+        linkopts = [
+            "-lrt",
+        ],
         includes = ["include"],
         hdrs = glob(["include/curl/*.h"]),
         srcs = [

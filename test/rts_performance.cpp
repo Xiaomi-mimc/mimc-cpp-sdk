@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <mimc/user.h>
 #include <mimc/utils.h>
-#include <mimc/error.h>
 #include <test/mimc_tokenfetcher.h>
 #include <test/mimc_onlinestatus_handler.h>
 #include <test/mimc_message_handler.h>
