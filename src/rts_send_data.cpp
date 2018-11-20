@@ -67,17 +67,26 @@ bool RtsSendData::sendBindRelayRequest(User* user) {
 	bindRelayRequest.set_intranet_ip(localIp);
 	bindRelayRequest.set_intranet_port(localPort);
 	bindRelayRequest.set_token(user->getToken());
-	mimc::StreamConfig* localAudioStreamConfig = user->getStreamConfig(AUDIO);
-	mimc::StreamConfig* audioStreamConfig = bindRelayRequest.mutable_audio_stream_default_config();
-	audioStreamConfig->set_stream_strategy(localAudioStreamConfig->stream_strategy());
-	audioStreamConfig->set_ack_stream_wait_time_ms(localAudioStreamConfig->ack_stream_wait_time_ms());
-	audioStreamConfig->set_stream_timeout_s(localAudioStreamConfig->stream_timeout_s());
-	audioStreamConfig->set_stream_is_encrypt(localAudioStreamConfig->stream_is_encrypt());
-	mimc::StreamConfig* localVideoStreamConfig = user->getStreamConfig(VIDEO);
-	mimc::StreamConfig* videoStreamConfig = bindRelayRequest.mutable_video_stream_default_config();
-	videoStreamConfig->set_stream_strategy(localVideoStreamConfig->stream_strategy());
-	videoStreamConfig->set_stream_timeout_s(localVideoStreamConfig->stream_timeout_s());
-	videoStreamConfig->set_stream_is_encrypt(localVideoStreamConfig->stream_is_encrypt());
+	const RtsStreamConfig& audioStreamConfig = user->getStreamConfig(AUDIO);
+	mimc::StreamConfig* audioStreamConfigPb = bindRelayRequest.mutable_audio_stream_default_config();
+	mimc::STREAM_STRATEGY streamStrategy = mimc::ACK_STRATEGY;
+	if (audioStreamConfig.getType() == FEC_TYPE) {
+		streamStrategy = mimc::FEC_STRATEGY;
+	}
+	audioStreamConfigPb->set_stream_strategy(streamStrategy);
+	audioStreamConfigPb->set_ack_stream_wait_time_ms(audioStreamConfig.getAckStreamWaitTimeMs());
+	audioStreamConfigPb->set_stream_timeout_s(STREAM_TIMEOUT);
+	audioStreamConfigPb->set_stream_is_encrypt(audioStreamConfig.getEncrypt());
+	const RtsStreamConfig& videoStreamConfig = user->getStreamConfig(VIDEO);
+	mimc::StreamConfig* videoStreamConfigPb = bindRelayRequest.mutable_video_stream_default_config();
+	streamStrategy = mimc::FEC_STRATEGY;
+	if (videoStreamConfig.getType() == ACK_TYPE) {
+		streamStrategy = mimc::ACK_STRATEGY;
+	}
+	videoStreamConfigPb->set_stream_strategy(streamStrategy);
+	videoStreamConfigPb->set_ack_stream_wait_time_ms(videoStreamConfig.getAckStreamWaitTimeMs());
+	videoStreamConfigPb->set_stream_timeout_s(STREAM_TIMEOUT);
+	videoStreamConfigPb->set_stream_is_encrypt(videoStreamConfig.getEncrypt());
 
 	int userPacketPayloadSize = bindRelayRequest.ByteSize();
 	char userPacketPayload[userPacketPayloadSize];
@@ -159,12 +168,12 @@ bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string&
 	XMDTransceiver* xmdTransceiver = user->getXmdTransceiver();
 	if (pktType == mimc::USER_DATA_AUDIO) {
 		if (user->getRelayAudioStreamId() == 0) {
-			mimc::StreamConfig* localAudioStreamConfig = user->getStreamConfig(AUDIO);
+			const RtsStreamConfig& audioStreamConfig = user->getStreamConfig(AUDIO);
 			StreamType streamType = ACK_STREAM;
-			if (localAudioStreamConfig->stream_strategy() == mimc::FEC_STRATEGY) {
+			if (audioStreamConfig.getType() == FEC_TYPE) {
 				streamType = FEC_STREAM;
 			}
-			user->setRelayAudioStreamId(xmdTransceiver->createStream(relayConnId, streamType, localAudioStreamConfig->stream_timeout_s(), localAudioStreamConfig->ack_stream_wait_time_ms(), localAudioStreamConfig->stream_is_encrypt()));
+			user->setRelayAudioStreamId(xmdTransceiver->createStream(relayConnId, streamType, STREAM_TIMEOUT, audioStreamConfig.getAckStreamWaitTimeMs(), audioStreamConfig.getEncrypt()));
 			XMDLoggerWrapper::instance()->info("audio streamId is %d", user->getRelayAudioStreamId());
 		}
 		if (user->getRelayAudioStreamId() != 0) {
@@ -178,12 +187,12 @@ bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string&
 		}
 	} else {
 		if (user->getRelayVideoStreamId() == 0) {
-			mimc::StreamConfig* localVideoStreamConfig = user->getStreamConfig(VIDEO);
+			const RtsStreamConfig& videoStreamConfig = user->getStreamConfig(VIDEO);
 			StreamType streamType = FEC_STREAM;
-			if (localVideoStreamConfig->stream_strategy() == mimc::ACK_STRATEGY) {
+			if (videoStreamConfig.getType() == ACK_TYPE) {
 				streamType = ACK_STREAM;
 			}
-			user->setRelayVideoStreamId(xmdTransceiver->createStream(relayConnId, streamType, localVideoStreamConfig->stream_timeout_s(), localVideoStreamConfig->ack_stream_wait_time_ms(), localVideoStreamConfig->stream_is_encrypt()));
+			user->setRelayVideoStreamId(xmdTransceiver->createStream(relayConnId, streamType, STREAM_TIMEOUT, videoStreamConfig.getAckStreamWaitTimeMs(), videoStreamConfig.getEncrypt()));
 			XMDLoggerWrapper::instance()->info("video streamId is %d", user->getRelayVideoStreamId());
 		}
 		if (user->getRelayVideoStreamId() != 0) {

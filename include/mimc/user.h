@@ -13,6 +13,7 @@
 #include <mimc/rts_signal.pb.h>
 #include <mimc/rts_send_data.h>
 #include <mimc/rts_send_signal.h>
+#include <mimc/rts_stream_config.h>
 #include <mimc/p2p_chatsession.h>
 #include <json-c/json.h>
 #include <pthread.h>
@@ -52,11 +53,16 @@ public:
 	void setTokenExpired(bool tokenExpired) {this->tokenExpired = tokenExpired;}
 	void setAddressInvalid(bool addressInvalid) {this->addressInvalid = addressInvalid;}
 
-	void setAudioStreamStrategy(mimc::STREAM_STRATEGY value) {this->audioStreamConfig->set_stream_strategy(value);}
-	void setAudioAckStreamWaitTimeMs(unsigned int value) {this->audioStreamConfig->set_ack_stream_wait_time_ms(value);}
-	void setAudioStreamIsEncrypt(bool value) {this->audioStreamConfig->set_stream_is_encrypt(value);}
-	void setVideoStreamStrategy(mimc::STREAM_STRATEGY value) {this->videoStreamConfig->set_stream_strategy(value);}
-	void setVideoStreamIsEncrypt(bool value) {this->videoStreamConfig->set_stream_is_encrypt(value);}
+	void setAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {this->audioStreamConfig = audioStreamConfig;}
+	void setVideoStreamConfig(const RtsStreamConfig& videoStreamConfig) {this->videoStreamConfig = videoStreamConfig;}
+	void setSendBufferSize(int size) {if(this->xmdTranseiver) {this->xmdTranseiver->setSendBufferSize(size);}}
+	void setRecvBufferSize(int size) {if(this->xmdTranseiver) {this->xmdTranseiver->setRecvBufferSize(size);}}
+	int getSendBufferSize() {return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferSize() : 0;}
+	int getRecvBufferSize() {return this->xmdTranseiver ? this->xmdTranseiver->getRecvBufferSize() : 0;}
+	float getSendBufferUsageRate() {return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferUsageRate() : 0;}
+	float getRecvBufferUsageRate() {return this->xmdTranseiver ? this->xmdTranseiver->getRecvBufferUsageRate() : 0;}
+	void clearSendBuffer() {if(this->xmdTranseiver) {this->xmdTranseiver->clearSendBuffer();}}
+	void clearRecvBuffer() {if(this->xmdTranseiver) {this->xmdTranseiver->clearRecvBuffer();}}
 
 	int getChid() const {return this->chid;}
 	long getUuid() const {return this->uuid;}
@@ -85,9 +91,9 @@ public:
 	std::map<long, P2PChatSession>* getCurrentChats() const {return this->currentChats;}
 	std::map<long, pthread_t>* getOnlaunchChats() const {return this->onlaunchChats;}
 	XMDTransceiver* getXmdTransceiver() const {return this->xmdTranseiver;}
-	mimc::StreamConfig* getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 	const mimc::BindRelayResponse& getBindRelayResponse() const {return this->bindRelayResponse;}
 	unsigned int getMaxCallNum() const {return this->maxCallNum;}
+	const RtsStreamConfig& getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 
 	unsigned long getP2PIntranetConnId(long chatId) const;
 	unsigned long getP2PInternetConnId(long chatId) const;
@@ -188,8 +194,8 @@ private:
 	RTSCallEventHandler* rtsCallEventHandler;
 
 	XMDTransceiver* xmdTranseiver;
-	mimc::StreamConfig* audioStreamConfig;
-	mimc::StreamConfig* videoStreamConfig;
+	RtsStreamConfig audioStreamConfig;
+	RtsStreamConfig videoStreamConfig;
 	std::map<long, P2PChatSession>* currentChats;
 	std::map<long, pthread_t>* onlaunchChats;
 	mimc::BindRelayResponse bindRelayResponse;

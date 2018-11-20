@@ -6,7 +6,8 @@ cc_library(
 	name = "xmdtransceiver",
 	includes = ["include"],
 	hdrs = glob([
-		"include/**/*.h",
+		"include/*.h",
+		"include/*.hpp",
 	]),
 	copts = [
 		"-Os",

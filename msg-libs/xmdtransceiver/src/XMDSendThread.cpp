@@ -84,9 +84,10 @@ void* XMDSendThread::process() {
                      //commonData_->deleteConn(ackPacket.connId);
                      //dispatcher_->handleCloseConn(ackPacket.connId, CLOSE_SEND_FAIL);
     
-                     delete resendData;
+                     
                      XMDLoggerWrapper::instance()->debug("packet resend fail, drop it,connid=%ld, packet id=%ld", 
                                                           resendData->connId, resendData->packetId);
+                     delete resendData;
                 }
             }
         }
@@ -119,7 +120,7 @@ void XMDSendThread::send(uint32_t ip, int port, char* data , int len) {
         return;
     }
 
-    XMDLoggerWrapper::instance()->debug("XMDSendThread send data, len:%d, ip:%u,port:%u.", len, ip, port);
+    //XMDLoggerWrapper::instance()->debug("XMDSendThread send data, len:%d, ip:%u,port:%u.", len, ip, port);
 }
 
 

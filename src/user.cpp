@@ -55,16 +55,8 @@ User::User(std::string appAccount, std::string resource, std::string cachePath) 
 	this->rtsStreamHandler = NULL;
 	this->packetManager = new PacketManager();
 
-	this->audioStreamConfig = new mimc::StreamConfig();
-	this->audioStreamConfig->set_stream_strategy(mimc::ACK_STRATEGY);
-	this->audioStreamConfig->set_ack_stream_wait_time_ms(ACK_STREAM_WAIT_TIME_MS);
-	this->audioStreamConfig->set_stream_timeout_s(STREAM_TIMEOUT);
-	this->audioStreamConfig->set_stream_is_encrypt(false);
-
-	this->videoStreamConfig = new mimc::StreamConfig();
-	this->videoStreamConfig->set_stream_strategy(mimc::FEC_STRATEGY);
-	this->videoStreamConfig->set_stream_timeout_s(STREAM_TIMEOUT);
-	this->videoStreamConfig->set_stream_is_encrypt(false);
+	this->audioStreamConfig = RtsStreamConfig(ACK_TYPE, ACK_STREAM_WAIT_TIME_MS, false);
+	this->videoStreamConfig = RtsStreamConfig(FEC_TYPE, ACK_STREAM_WAIT_TIME_MS, false);
 
 	this->currentChats = new std::map<long, P2PChatSession>();
 	this->onlaunchChats = new std::map<long, pthread_t>();
@@ -97,8 +89,6 @@ User::~User() {
 		this->isFirstDialCall = true;
 	}
 
-	delete this->audioStreamConfig;
-	delete this->videoStreamConfig;
 	delete this->packetManager;
 	delete this->currentChats;
 	delete this->onlaunchChats;

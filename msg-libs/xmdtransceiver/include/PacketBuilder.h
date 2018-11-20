@@ -7,7 +7,7 @@
 #include "XMDCommonData.h"
 #include "XMDPacket.h"
 #include <iostream>
-
+#include "PacketDispatcher.h"
 
 struct partitionData {
     uint16_t fec_opn;
@@ -57,7 +57,7 @@ struct groupData {
 class PacketBuilder {
 public:
     ~PacketBuilder();
-    PacketBuilder(XMDCommonData* data);
+    PacketBuilder(XMDCommonData* data, PacketDispatcher* dispatcher);
     void build(StreamQueueData* queueData);
     void buildFecStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo);
     void buildAckStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo);
@@ -66,7 +66,7 @@ public:
 
 private:
     XMDCommonData* commonData_;
-    //PacketDispatcher* dispatcher_;
+    PacketDispatcher* dispatcher_;
     unsigned char fecRedundancyData_[MAX_ORIGIN_PACKET_NUM_IN_PARTITION * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
     int partition_size_;
     groupData groupData_;

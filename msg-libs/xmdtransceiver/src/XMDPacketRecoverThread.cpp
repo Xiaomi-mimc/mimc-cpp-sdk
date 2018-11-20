@@ -167,6 +167,8 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
             CallbackQueueData* callbackData = new CallbackQueueData(packet->GetConnId(), packet->GetStreamId(), 
                                               packet->GetGroupId(), ACK_STREAM, 
                                               cbLen, current_ms(), cbData);
+            XMDLoggerWrapper::instance()->debug("packet recover succ, connid(%ld),streamid(%d),groupid(%d)",
+                                                 packet->GetConnId(), packet->GetStreamId(), packet->GetGroupId());
             commonData_->callbackQueuePush(callbackData);
             //commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());
         } else {
@@ -204,6 +206,8 @@ int GroupManager::insertAckStreamPacket(XMDACKStreamData* packet, int len) {
     
             CallbackQueueData* callbackData = new CallbackQueueData(packet->GetConnId(), packet->GetStreamId(), 
                                                   packet->GetGroupId(), ACK_STREAM, ackGroup.len, current_ms(), gData);
+            XMDLoggerWrapper::instance()->debug("packet recover succ, connid(%ld),streamid(%d),groupid(%d)",
+                                                 packet->GetConnId(), packet->GetStreamId(), packet->GetGroupId());
             commonData_->callbackQueuePush(callbackData);
             ackGroupMap_.erase(it);
             //commonData_->updateLastRecvGroupId(streamKey, packet->GetGroupId());

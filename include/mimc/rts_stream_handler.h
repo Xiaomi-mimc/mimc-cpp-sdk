@@ -157,6 +157,14 @@ public:
 			delete rtsContext;
 		}
 	}
+
+	virtual void sendFECStreamDataComplete(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendFECStreamDataComplete, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		if (ctx != NULL) {
+			RtsContext* rtsContext = (RtsContext*)ctx;
+			delete rtsContext;
+		}
+	}
 private:
 	User* user;
 };

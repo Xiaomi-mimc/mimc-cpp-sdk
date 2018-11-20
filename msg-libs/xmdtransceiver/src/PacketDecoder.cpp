@@ -328,7 +328,7 @@ void PacketDecoder::handleStreamDataAck(ConnInfo connInfo, uint32_t ip, int port
     if (NULL == ack) {
         return;
     }
-    XMDLoggerWrapper::instance()->debug("recv ack packet,packetid=%ld", ack->GetPacketId());
+    XMDLoggerWrapper::instance()->debug("recv ack packet,packetid=%ld, acked packet id=%ld,", ack->GetPacketId(), ack->GetAckedPacketId());
 
     commonData_->updatePacketLossInfoMap(ack->GetConnId(), ack->GetPacketId());
 

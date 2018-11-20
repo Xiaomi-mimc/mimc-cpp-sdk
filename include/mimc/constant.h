@@ -31,6 +31,11 @@ enum RtsDataType {
 	VIDEO
 };
 
+enum RtsStreamType {
+	FEC_TYPE,
+	ACK_TYPE
+};
+
 enum RtsChannelType {
 	RELAY,
 	P2P_INTRANET,

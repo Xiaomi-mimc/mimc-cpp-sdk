@@ -134,6 +134,11 @@ void XMDCommonData::setCallbackQueueSize(int size) {
     callbackQueueMaxLen_ = size;
 }
 
+int XMDCommonData::getCallbackQueueSize() {
+    return callbackQueueMaxLen_;
+}
+
+
 float XMDCommonData::getCallbackQueueUsegeRate() {
     return float(callbackQueueSize_) / float(callbackQueueMaxLen_);
 }
@@ -511,6 +516,11 @@ void XMDCommonData::setResendQueueSize(int size) {
     resendQueueMaxLen_ = size;
 }
 
+int XMDCommonData::getResendQueueSize() {
+    return resendQueueMaxLen_;
+}
+
+
 float XMDCommonData::getResendQueueUsageRate() {
     return float(resendQueueSize_) / float(resendQueueMaxLen_);
 }
@@ -663,6 +673,8 @@ int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQu
             data = it2->second;
             if (data->groupId > groupId + 1) {
                 if ((it->second.StreamWaitTime != -1) && ((int)(current_ms() - data->recvTime) > it->second.StreamWaitTime)) {
+                    XMDLoggerWrapper::instance()->info("callback wait timeout,connid=%ld,streamid=%d,groupid=%d",
+                                                         data->connId, data->streamId, groupId + 1);
                     it->second.groupMap.erase(it2);
                     result = 1;
                 } else {

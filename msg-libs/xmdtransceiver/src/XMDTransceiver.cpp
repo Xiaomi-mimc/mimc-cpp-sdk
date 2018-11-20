@@ -206,7 +206,9 @@ int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, i
     queueData->canBeDropped = canBeDropped;
     queueData->dataPriority = priority;
     queueData->ctx = ctx;
-    queueData->resendCount = resendCount;
+    if (resendCount >= 0) {
+        queueData->resendCount = resendCount + 1;
+    }
     memcpy(queueData->data, data, len);
     commonData_->streamQueuePush(queueData);
     return queueData->groupId;
@@ -290,6 +292,15 @@ void XMDTransceiver::setSendBufferSize(int size) {
 void XMDTransceiver::setRecvBufferSize(int size) {
     commonData_->setCallbackQueueSize(size);
 }
+
+int XMDTransceiver::getSendBufferSize() {
+    return commonData_->getResendQueueSize();
+}
+
+int XMDTransceiver::getRecvBufferSize() {
+    return commonData_->getCallbackQueueSize();
+}
+
 
 float XMDTransceiver::getSendBufferUsageRate() {
     return commonData_->getResendQueueUsageRate();

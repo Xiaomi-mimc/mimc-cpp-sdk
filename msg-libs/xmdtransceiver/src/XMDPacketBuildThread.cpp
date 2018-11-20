@@ -3,10 +3,11 @@
 #include "XMDLoggerWrapper.h"
 #include <unistd.h>
 
-PackketBuildThread::PackketBuildThread(int threadId, XMDCommonData* commonData) {
+PackketBuildThread::PackketBuildThread(int threadId, XMDCommonData* commonData, PacketDispatcher* dispatcher) {
     commonData_ = commonData;
     stopFlag_ = false;
     thread_id_ = threadId;
+    dispatcher_ = dispatcher;
 }
 
 PackketBuildThread::~PackketBuildThread() {}
@@ -18,7 +19,7 @@ void* PackketBuildThread::process() {
             usleep(1000);
             continue;
         }
-        PacketBuilder builder(commonData_);
+        PacketBuilder builder(commonData_, dispatcher_);
         builder.build(streamData);
         delete streamData;
     }

@@ -324,7 +324,6 @@ private:
     STLSafeHashMap<std::string, PacketCallbackInfo> packetCallbackInfoMap_;
     STLSafeHashMap<uint64_t, netStatus> netStatusMap_;
     STLSafeHashMap<std::string, uint64_t> lastPacketTimeMap_;
-    //STLSafeHashMap<std::string, uint32_t> lastRecvedGroupIdMap_;
     STLSafeHashMap<std::string, uint32_t> lastCallbackGroupIdMap_;
     STLSafeHashMap<std::string, bool> isPacketRecvAckMap_;
     STLSafeHashMap<uint64_t, PingPacket>  pingMap_;
@@ -338,13 +337,13 @@ private:
     pthread_rwlock_t conn_mutex_;
     pthread_rwlock_t group_id_mutex_;
 
-    int decodeThreadSize_;
-    int datagramQueueMaxLen_;
-    int datagramQueueSize_;
-    int callbackQueueSize_;
-    int callbackQueueMaxLen_;
-    int resendQueueSize_;
-    int resendQueueMaxLen_;
+    unsigned int decodeThreadSize_;
+    unsigned int datagramQueueMaxLen_;
+    unsigned int datagramQueueSize_;
+    unsigned int callbackQueueSize_;
+    unsigned int callbackQueueMaxLen_;
+    unsigned int resendQueueSize_;
+    unsigned int resendQueueMaxLen_;
     
 public:
     XMDCommonData(int decodeThreadSize);
@@ -409,10 +408,6 @@ public:
     void updateNetStatus(uint64_t connId, netStatus status);
     void deleteNetStatus(uint64_t connId);
 
-    /*bool getLastRecvGroupId(std::string id, uint32_t& groupId);
-    void updateLastRecvGroupId(std::string id, uint32_t groupId);
-    void deleteLastRecvGroupId(std::string id);*/
-
     bool getLastCallbackGroupId(std::string id, uint32_t& groupId);
     void updateLastCallbackGroupId(std::string id, uint32_t groupId);
     void deleteLastCallbackGroupId(std::string id);
@@ -437,10 +432,12 @@ public:
     void setResendQueueSize(int size);
     float getResendQueueUsageRate();
     void clearResendQueue();
+    int getResendQueueSize();
 
     void setCallbackQueueSize(int size);
     float getCallbackQueueUsegeRate();
     void clearCallbackQueue();
+    int getCallbackQueueSize();
 
     void insertPacketLossInfoMap(uint64_t connId);
     void updatePacketLossInfoMap(uint64_t connId, uint64_t packetId);

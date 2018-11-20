@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
                                    
     usleep(500000);
 
-    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 100, false);
+    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 400, false);
 
     transceiver->setTestPacketLoss(packetLossRate);
     transceiver->setXMDLogLevel(XMD_INFO);
@@ -45,16 +45,16 @@ int main(int argc, char *argv[]) {
 
 
         
-        transceiver->sendRTData(connId, streamId, data, size, false, P0, 2);
+        transceiver->sendRTData(connId, streamId, data, size, true, P0, 2);
 
         usleep(1000000 / qps);
     }
 
-    usleep(1500000);
+    usleep(2500000);
     std::cout<<"close"<<std::endl;
 
     transceiver->closeStream(connId, streamId);
-    usleep(20000);
+    usleep(200000);
     transceiver->closeConnection(connId);
 
 

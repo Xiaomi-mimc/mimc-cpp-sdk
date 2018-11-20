@@ -39,7 +39,7 @@ public:
         packetDispatcher_ = new PacketDispatcher();
         recvThread_ = new XMDRecvThread(port, commonData_);
         sendThread_ = new XMDSendThread(recvThread_->listenfd(), port, commonData_, packetDispatcher_);
-        packetbuildThreadPool_ = new XMDPacketBuildThreadPool(1, commonData_);
+        packetbuildThreadPool_ = new XMDPacketBuildThreadPool(1, commonData_, packetDispatcher_);
         packetRecoverThreadPool_ = new XMDPacketRecoverThreadPool(decodeThreadSize, commonData_);
         packetDecodeThreadPool_ = new XMDPacketDecodeThreadPool(1, commonData_, packetDispatcher_);
         callbackThread_ = new XMDCallbackThread(packetDispatcher_, commonData_);
@@ -139,6 +139,8 @@ public:
 
     void setSendBufferSize(int size);
     void setRecvBufferSize(int size);
+    int getSendBufferSize();
+    int getRecvBufferSize();
     float getSendBufferUsageRate();
     float getRecvBufferUsageRate();
     void clearSendBuffer();

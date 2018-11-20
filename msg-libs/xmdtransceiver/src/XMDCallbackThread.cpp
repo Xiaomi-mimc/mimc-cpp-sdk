@@ -20,6 +20,7 @@ void* XMDCallbackThread::process() {
         if (NULL == data) {
             isSleep = true;
         } else {
+            isSleep = false;
             if (data->type == FEC_STREAM) {
                 dispatcher_->handleStreamData(data->connId, data->streamId, data->groupId, (char*)data->data, data->len);
                 delete data;
@@ -27,24 +28,27 @@ void* XMDCallbackThread::process() {
                 std::stringstream ss;
                 ss << data->connId << data->streamId;
                 std::string tmpKey = ss.str();
-                uint32_t lastCallbackGroupId = 0;
+                uint32_t lastCallbackGroupId = -1;
                 commonData_->getLastCallbackGroupId(tmpKey, lastCallbackGroupId);
-                if ((data->groupId != 0) && (lastCallbackGroupId + 1 != data->groupId)) {
-                    if(data->groupId <= lastCallbackGroupId) {
+                if (lastCallbackGroupId + 1 != data->groupId) {
+                    if(data->groupId <= lastCallbackGroupId && (int32_t)lastCallbackGroupId != -1) {
                         XMDLoggerWrapper::instance()->debug("data group id less than last callback group id.conn(%ld),stream(%d),group(%d)",
                                                              data->connId, data->streamId, data->groupId);
                     } else {
                         StreamInfo sInfo;
                         if(commonData_->getStreamInfo(data->connId, data->streamId, sInfo)) {
                             commonData_->insertCallbackDataMap(tmpKey, data->groupId, sInfo.callbackWaitTimeout, data);
+                        } else {
+                            XMDLoggerWrapper::instance()->warn("callback thread get stream info failed.conn(%ld),stream(%d)",
+                                                                data->connId, data->streamId);
                         }
                     }
                 }else {
                     dispatcher_->handleStreamData(data->connId, data->streamId, data->groupId, (char*)data->data, data->len);
                     commonData_->updateLastCallbackGroupId(tmpKey, data->groupId);
-                    uint32_t lastGroupId = data->groupId;
                     delete data;
-                    
+
+                    /*uint32_t lastGroupId = data->groupId;
                     bool flag = true;
                     while (flag) {
                         CallbackQueueData* callbackData = NULL;
@@ -56,7 +60,7 @@ void* XMDCallbackThread::process() {
                                                       callbackData->groupId, (char*)callbackData->data, callbackData->len);
                         commonData_->updateLastCallbackGroupId(tmpKey, callbackData->groupId);
                         delete callbackData;
-                    }
+                    }*/
                 }
             }
         }
@@ -93,14 +97,16 @@ void XMDCallbackThread::checkCallbackBuffer() {
             std::string tmpKey = ss.str();
 
             CallbackQueueData* callbackData = NULL;
-            uint32_t lastCallbackGroupId = 0;
+            uint32_t lastCallbackGroupId = -1;
             commonData_->getLastCallbackGroupId(tmpKey, lastCallbackGroupId);
             while (commonData_->getCallbackData(tmpKey, lastCallbackGroupId, callbackData) >= 0) {
                 if (callbackData == NULL) {
                     break;
                 }
 
-                if (callbackData->groupId == lastCallbackGroupId) {
+                if (callbackData->groupId <= lastCallbackGroupId && (int32_t)lastCallbackGroupId != -1) {
+                    XMDLoggerWrapper::instance()->debug("callback thread drop repeated data.connid(%ld),streamid(%d),groupid(%d)",
+                                                         callbackData->connId, callbackData->streamId, callbackData->groupId);
                     delete callbackData;
                     callbackData = NULL;
                     continue;

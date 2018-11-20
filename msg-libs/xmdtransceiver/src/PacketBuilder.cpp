@@ -3,13 +3,13 @@
 #include "fec.h"
 #include <sstream>
 
-PacketBuilder::PacketBuilder(XMDCommonData* data) {
+PacketBuilder::PacketBuilder(XMDCommonData* data, PacketDispatcher* dispatcher) {
     partition_size_ = 0;
     commonData_ = data;
     isBigPacket_ = false;
     sendPacketPreMS_ = FLOW_CONTROL_SEND_SPEED;
     sendTime_ = 0;
-    //dispatcher_ = dispatcher;
+    dispatcher_ = dispatcher;
 }
 
 PacketBuilder::~PacketBuilder() {
@@ -43,6 +43,8 @@ void PacketBuilder::build(StreamQueueData* queueData) {
 }
 
 void PacketBuilder::buildFecStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo) {
+    dispatcher_->FECStreamDataSendComplete(queueData->connId, queueData->streamId, queueData->groupId, queueData->ctx);
+    
     int total_packet = queueData->len / MAX_PACKET_SIZE;
     if (queueData->len % MAX_PACKET_SIZE != 0) {
         total_packet++;
@@ -217,13 +219,11 @@ void PacketBuilder::buildRedundancyPacket() {
 
 void PacketBuilder::buildAckStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo) {
     float resendQueueUsage = commonData_->getResendQueueUsageRate();
-    bool isBufferFull = ((resendQueueUsage > QUEUE_USAGERAGE_80) && (queueData->dataPriority == P2)) || 
-                ((resendQueueUsage > QUEUE_USAGERAGE_90) && (queueData->dataPriority == P1)) ||
-                (resendQueueUsage > QUEUE_USAGERAGE_FULL);
-    if (isBufferFull) {
-        if (!queueData->canBeDropped) {
-            //dispatcher_->streamDataSendFail(queueData->connId, queueData->streamId, queueData->groupId, queueData->ctx);
-        }
+    bool isOverUsage = ((resendQueueUsage > QUEUE_USAGERAGE_80) && (queueData->dataPriority == P2)) || 
+                ((resendQueueUsage > QUEUE_USAGERAGE_90) && (queueData->dataPriority == P1));
+    bool canBeDropped = (isOverUsage && queueData->canBeDropped) || (resendQueueUsage > QUEUE_USAGERAGE_FULL);
+    if (canBeDropped) {
+        dispatcher_->streamDataSendFail(queueData->connId, queueData->streamId, queueData->groupId, queueData->ctx);
     }
             
     int groupSize = queueData->len / MAX_PACKET_SIZE;
@@ -231,7 +231,7 @@ void PacketBuilder::buildAckStreamPacket(StreamQueueData* queueData, ConnInfo co
         groupSize++;
     }
 
-    if ((queueData->resendCount >= 0 || queueData->resendCount == -1) && !isBufferFull) {
+    if ((queueData->resendCount >= 0 || queueData->resendCount == -1) && !canBeDropped) {
         std::stringstream ss;
         ss << queueData->connId << queueData->streamId << queueData->groupId;
         std::string callbackKey = ss.str();
@@ -300,36 +300,36 @@ void PacketBuilder::buildAckStreamPacket(StreamQueueData* queueData, ConnInfo co
         slice_id++;
         left = right;
 
-        if (queueData->resendCount >= 0 || queueData->resendCount == -1) {
-            if (isBufferFull) {
-                XMDLoggerWrapper::instance()->debug("resend queue full, do not resend this packet.conn:%ld,packetid%ld",
-                                                     streamData.connId, streamData.packetId);
-                return;
-            }
-            ResendData* resendData = new ResendData((unsigned char*)data, len);
-            resendData->connId = streamData.connId;
-            resendData->packetId = streamData.packetId;
-            resendData->ip = connInfo.ip;
-            resendData->port = connInfo.port;
-            resendData->reSendTime = sendData->sendTime + getResendTimeInterval(1);
-            resendData->reSendCount= queueData->resendCount;
-            commonData_->resendQueuePush(resendData);
-    
-            std::stringstream ss_ack;
-            ss_ack << streamData.connId << streamData.packetId;
-            std::string ackpacketKey = ss_ack.str();
-            commonData_->insertIsPacketRecvAckMap(ackpacketKey, false);
-            
-    
-            PacketCallbackInfo packetInfo;
-            packetInfo.connId = streamData.connId;
-            packetInfo.streamId = streamData.streamId;
-            packetInfo.packetId = streamData.packetId;
-            packetInfo.groupId = streamData.groupId;
-            packetInfo.sliceId = streamData.sliceId;
-            packetInfo.ctx = queueData->ctx;
-            commonData_->insertPacketCallbackInfoMap(ackpacketKey, packetInfo);
+
+        if (canBeDropped) {
+            XMDLoggerWrapper::instance()->debug("resend queue full, do not resend this packet.conn:%ld,packetid%ld",
+                                                 streamData.connId, streamData.packetId);
+            return;
         }
+        ResendData* resendData = new ResendData((unsigned char*)data, len);
+        resendData->connId = streamData.connId;
+        resendData->packetId = streamData.packetId;
+        resendData->ip = connInfo.ip;
+        resendData->port = connInfo.port;
+        resendData->reSendTime = sendData->sendTime + getResendTimeInterval(1);
+        resendData->reSendCount= queueData->resendCount;
+        commonData_->resendQueuePush(resendData);
+    
+        std::stringstream ss_ack;
+        ss_ack << streamData.connId << streamData.packetId;
+        std::string ackpacketKey = ss_ack.str();
+        commonData_->insertIsPacketRecvAckMap(ackpacketKey, false);
+        
+    
+        PacketCallbackInfo packetInfo;
+        packetInfo.connId = streamData.connId;
+        packetInfo.streamId = streamData.streamId;
+        packetInfo.packetId = streamData.packetId;
+        packetInfo.groupId = streamData.groupId;
+        packetInfo.sliceId = streamData.sliceId;
+        packetInfo.ctx = queueData->ctx;
+        commonData_->insertPacketCallbackInfoMap(ackpacketKey, packetInfo);
+
     }
 }
 

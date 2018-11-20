@@ -73,6 +73,10 @@ public:
     virtual void sendStreamDataFail(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
         std::cout<<"send stream data fail, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
     }
+
+    virtual void sendFECStreamDataComplete(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) { 
+        std::cout<<"fec stream data, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
+    }
 };
 
 
@@ -137,8 +141,8 @@ TEST(test_xmdtransceiver, test_send_delay) {
     std::cout<<"test"<<std::endl;
 }
 
-
 */
+
 
 
 
@@ -167,7 +171,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::string message = "test_send_createconn";
     std::string message2 = "test_send_RTDATA";
     std::string message3 = "1234567890abcdefghijklmnopqrstuvwxyz1234567无法威风威风威风无法为违法未访问涉非法为二分ssfefefefefefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    std::string ip = "10.239.36.185";
+    std::string ip = "10.239.44.232";
     int port = 44564;
 
     int len = 10;
@@ -188,7 +192,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
     usleep(200000);
-    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 100, false);
+    uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 10, 100, false);
     std::cout<<"stream id="<<streamId<<std::endl;
 
 
@@ -200,7 +204,8 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     usleep(200000);
     transceiver->closeConnection(connId);
     usleep(100000);
-    std::cout<<"test="<< connId << std::endl;
+    transceiver->setSendBufferSize(12345);
+    std::cout<<"test="<< connId <<",size="<<transceiver->getSendBufferSize() << std::endl;
 
 
     transceiver2->stop();
@@ -472,11 +477,12 @@ TEST(test_xmdtransceiver, test_fec) {
 
 /*
 
+
 TEST(TESTIP, IP) {
     const int IP_STR_LEN = 32;
     char ipStr[IP_STR_LEN];
     memset(ipStr, 0, IP_STR_LEN);
-    int ip = 1077557770;
+    int ip = 1765407612;
     inet_ntop(AF_INET, &ip, ipStr, IP_STR_LEN);
     std::cout<<"ip="<<ipStr<<std::endl;
 }

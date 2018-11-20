@@ -1,6 +1,6 @@
 #include "XMDPacketBuildThreadPool.h"
 
-XMDPacketBuildThreadPool::XMDPacketBuildThreadPool(int pool_size, XMDCommonData* commonData) {
+XMDPacketBuildThreadPool::XMDPacketBuildThreadPool(int pool_size, XMDCommonData* commonData, PacketDispatcher* dispatcher) {
     if (pool_size <= 0) {
         pool_size_ = 1;
     } else {
@@ -8,7 +8,7 @@ XMDPacketBuildThreadPool::XMDPacketBuildThreadPool(int pool_size, XMDCommonData*
     }
 
     for (int i = 0; i < pool_size_; i++) {
-        PackketBuildThread* buildThread = new PackketBuildThread(i, commonData);
+        PackketBuildThread* buildThread = new PackketBuildThread(i, commonData, dispatcher);
         build_thread_pool_.push_back(buildThread);
     }
 }

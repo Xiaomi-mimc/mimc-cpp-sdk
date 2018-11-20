@@ -46,18 +46,18 @@ public:
         std::cout<<"close stream, connid="<<connId<<",stream id="<<streamId<<std::endl;
     }
     virtual void RecvStreamData(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, char* data, int len) { 
-        std::string tmpStr(data, len);
-        //std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<",data="<<tmpStr<<std::endl;
-        std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<std::endl;
-
         uint64_t recvtime = current_ms();
         uint32_t* index = (uint32_t*)data;
         uint64_t* sendtime = (uint64_t*)(data + 4);
         
+        std::string tmpStr(data, len);
+        //std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<",len="<<len<<",data="<<tmpStr<<std::endl;
+        std::cout<<recvtime<<":recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<",len="<<len<<std::endl;
+
         std::cout<<"index="<<*index<<",sendtime="<<*sendtime<<",recvtime="<<recvtime<<",ttl="<<(recvtime - *sendtime)<<std::endl;
     }
     virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
-        std::cout<<"send stream data succ, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
+        std::cout<<current_ms()<<":send stream data succ, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
     }
     
     virtual void sendStreamDataFail(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {

@@ -82,6 +82,11 @@ public:
             streamHandler_->sendStreamDataFail(conn_id, stream_id, groupId, ctx);
         }
     }
+    void FECStreamDataSendComplete(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
+        if (streamHandler_) {
+            streamHandler_->sendFECStreamDataComplete(conn_id, stream_id, groupId, ctx);
+        }
+    }
     void registerNetStatusChangeHandler(NetStatusChangeHandler* handler) { netStatusChangeHandler_ = handler; }
     void handleNetStatusChange(uint64_t conn_id, short delay_ms, float packet_loss) {
         netStatusChangeHandler_->handle(conn_id, delay_ms, packet_loss);
