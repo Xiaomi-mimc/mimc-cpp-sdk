@@ -15,8 +15,8 @@ public:
     Connection();
     bool connect();
     void resetSock();
-    ssize_t writen(int fd, const void *buf, size_t nbytes);
-    ssize_t readn(int fd, void *buf, size_t nbytes);
+    ssize_t writen(const void *buf, size_t nbytes);
+    ssize_t readn(void *buf, size_t nbytes);
 
     void setState(FEConnState state) { this->state = state; }
     void setUser(User * user) { this->user = user; }

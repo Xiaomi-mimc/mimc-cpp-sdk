@@ -3,6 +3,7 @@
 
 #include <StreamHandler.h>
 #include <mimc/user.h>
+#include <mimc/rts_context.h>
 
 class RtsStreamHandler : public StreamHandler {
 public:
@@ -136,6 +137,24 @@ public:
 			} else {
 				return;
 			}
+		}
+	}
+
+	virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataSucc, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		if (ctx != NULL) {
+			RtsContext* rtsContext = (RtsContext*)ctx;
+			this->user->getRTSCallEventHandler()->handleSendDataSucc(rtsContext->getChatId(), groupId, rtsContext->getCtx());
+			delete rtsContext;
+		}
+	}
+
+	virtual void sendStreamDataFail(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataFail, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		if (ctx != NULL) {
+			RtsContext* rtsContext = (RtsContext*)ctx;
+			this->user->getRTSCallEventHandler()->handleSendDataFail(rtsContext->getChatId(), groupId, rtsContext->getCtx());
+			delete rtsContext;
 		}
 	}
 private:

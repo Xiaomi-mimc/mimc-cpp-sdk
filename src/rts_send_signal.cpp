@@ -50,7 +50,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, long chatId) {
 	chatSession.setChatState(WAIT_CREATE_RESPONSE);
 	chatSession.setLatestLegalChatStateTs(time(NULL));
 
-	XMDLoggerWrapper::instance()->info("In sendCreateRequest, user is %s, chatId is %ld", user->getAppAccount().c_str(), chatId);
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, chatId is %ld", user->getAppAccount().c_str(), chatId);
 
 	return true;
 }
@@ -92,13 +92,12 @@ bool RtsSendSignal::sendInviteResponse(const User* user, long chatId, mimc::Chat
 
 	std::string packetId = sendRtsMessage(user, chatId, mimc::INVITE_RESPONSE, chatType, inviteResponseBytesStr);
 
-	XMDLoggerWrapper::instance()->info("In sendInviteResponse, user is %s, chatId is %ld, result is %d, errmsg is %s", user->getAppAccount().c_str(), chatId, result, errmsg.c_str());
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, chatId is %ld, result is %d, errmsg is %s", user->getAppAccount().c_str(), chatId, result, errmsg.c_str());
 
 	return true;
 }
 
 bool RtsSendSignal::sendByeRequest(const User* user, long chatId, std::string byeReason) {
-	XMDLoggerWrapper::instance()->info("In sendByeRequest, user is %s, chatId is %ld, byeReason is %s", user->getAppAccount().c_str(), chatId, byeReason.c_str());
 	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 	mimc::ByeRequest byeRequest;
 	if (byeReason != "") {
@@ -113,7 +112,7 @@ bool RtsSendSignal::sendByeRequest(const User* user, long chatId, std::string by
 
 	std::string packetId = sendRtsMessage(user, chatId, mimc::BYE_REQUEST, chatSession.getChatType(), byeRequestBytesStr);
 
-	
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, chatId is %ld, byeReason is %s", user->getAppAccount().c_str(), chatId, byeReason.c_str());
 
 	return true;
 }

@@ -49,6 +49,7 @@ const short HEADER_VERSION = 0x0005;
 const short BODY_HEADER_PAYLOADTYPE = PROTOBUF;
 const unsigned int BODY_PAYLOAD_CONN_VERSION = 106;
 const int BODY_PAYLOAD_CONN_SDK = 33;
+const char* const RESOLVER_URL = "resolver.msg.xiaomi.net/gslb/";
 #ifndef STAGING
 const char* const FE_DOMAIN = "app.chat.xiaomi.net";
 #else

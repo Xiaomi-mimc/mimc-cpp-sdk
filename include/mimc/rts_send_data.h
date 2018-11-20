@@ -3,6 +3,8 @@
 
 #include <string>
 #include <mimc/rts_data.pb.h>
+#include <XMDCommonData.h>
+
 class User;
 
 class RtsSendData {
@@ -10,7 +12,7 @@ public:
 	static unsigned long createRelayConn(User* user);
 	static bool sendBindRelayRequest(User* user);
 	static bool sendPingRelayRequest(User* user);
-	static bool sendRtsDataByRelay(User* user, long chatId, const std::string& data, mimc::PKT_TYPE pktType);
+	static bool sendRtsDataByRelay(User* user, long chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount);
 	static bool closeRelayConnWhenNoChat(User* user);
 };
 

@@ -2854,6 +2854,7 @@ const int MIMCP2PMessage::kFromFieldNumber;
 const int MIMCP2PMessage::kToFieldNumber;
 const int MIMCP2PMessage::kPayloadFieldNumber;
 const int MIMCP2PMessage::kIsStoreFieldNumber;
+const int MIMCP2PMessage::kBizTypeFieldNumber;
 #endif  // !_MSC_VER
 
 MIMCP2PMessage::MIMCP2PMessage()
@@ -2888,6 +2889,7 @@ void MIMCP2PMessage::SharedCtor() {
   to_ = NULL;
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   isstore_ = false;
+  biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -2898,6 +2900,9 @@ MIMCP2PMessage::~MIMCP2PMessage() {
 void MIMCP2PMessage::SharedDtor() {
   if (payload_ != &::google::protobuf::internal::kEmptyString) {
     delete payload_;
+  }
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
   }
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
@@ -2943,6 +2948,11 @@ void MIMCP2PMessage::Clear() {
       }
     }
     isstore_ = false;
+    if (has_biztype()) {
+      if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+        biztype_->clear();
+      }
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -3006,6 +3016,20 @@ bool MIMCP2PMessage::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(42)) goto parse_bizType;
+        break;
+      }
+
+      // optional bytes bizType = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_bizType:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_biztype()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -3050,6 +3074,12 @@ void MIMCP2PMessage::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->isstore(), output);
   }
 
+  // optional bytes bizType = 5;
+  if (has_biztype()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      5, this->biztype(), output);
+  }
+
 }
 
 int MIMCP2PMessage::ByteSize() const {
@@ -3082,6 +3112,13 @@ int MIMCP2PMessage::ByteSize() const {
       total_size += 1 + 1;
     }
 
+    // optional bytes bizType = 5;
+    if (has_biztype()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->biztype());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -3109,6 +3146,9 @@ void MIMCP2PMessage::MergeFrom(const MIMCP2PMessage& from) {
     if (from.has_isstore()) {
       set_isstore(from.isstore());
     }
+    if (from.has_biztype()) {
+      set_biztype(from.biztype());
+    }
   }
 }
 
@@ -3129,6 +3169,7 @@ void MIMCP2PMessage::Swap(MIMCP2PMessage* other) {
     std::swap(to_, other->to_);
     std::swap(payload_, other->payload_);
     std::swap(isstore_, other->isstore_);
+    std::swap(biztype_, other->biztype_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
@@ -3146,6 +3187,7 @@ const int MIMCP2TMessage::kFromFieldNumber;
 const int MIMCP2TMessage::kToFieldNumber;
 const int MIMCP2TMessage::kPayloadFieldNumber;
 const int MIMCP2TMessage::kIsStoreFieldNumber;
+const int MIMCP2TMessage::kBizTypeFieldNumber;
 #endif  // !_MSC_VER
 
 MIMCP2TMessage::MIMCP2TMessage()
@@ -3180,6 +3222,7 @@ void MIMCP2TMessage::SharedCtor() {
   to_ = NULL;
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   isstore_ = false;
+  biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -3190,6 +3233,9 @@ MIMCP2TMessage::~MIMCP2TMessage() {
 void MIMCP2TMessage::SharedDtor() {
   if (payload_ != &::google::protobuf::internal::kEmptyString) {
     delete payload_;
+  }
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
   }
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
@@ -3235,6 +3281,11 @@ void MIMCP2TMessage::Clear() {
       }
     }
     isstore_ = false;
+    if (has_biztype()) {
+      if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+        biztype_->clear();
+      }
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -3298,6 +3349,20 @@ bool MIMCP2TMessage::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(42)) goto parse_bizType;
+        break;
+      }
+
+      // optional bytes bizType = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_bizType:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_biztype()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -3342,6 +3407,12 @@ void MIMCP2TMessage::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteBool(4, this->isstore(), output);
   }
 
+  // optional bytes bizType = 5;
+  if (has_biztype()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      5, this->biztype(), output);
+  }
+
 }
 
 int MIMCP2TMessage::ByteSize() const {
@@ -3374,6 +3445,13 @@ int MIMCP2TMessage::ByteSize() const {
       total_size += 1 + 1;
     }
 
+    // optional bytes bizType = 5;
+    if (has_biztype()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->biztype());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -3401,6 +3479,9 @@ void MIMCP2TMessage::MergeFrom(const MIMCP2TMessage& from) {
     if (from.has_isstore()) {
       set_isstore(from.isstore());
     }
+    if (from.has_biztype()) {
+      set_biztype(from.biztype());
+    }
   }
 }
 
@@ -3421,6 +3502,7 @@ void MIMCP2TMessage::Swap(MIMCP2TMessage* other) {
     std::swap(to_, other->to_);
     std::swap(payload_, other->payload_);
     std::swap(isstore_, other->isstore_);
+    std::swap(biztype_, other->biztype_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }

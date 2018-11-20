@@ -10,6 +10,8 @@ public:
         std::vector<MIMCMessage>::iterator it = packets.begin();
         for (; it != packets.end(); ++it) {
             messages.push(*it);
+            MIMCMessage& message = *it;
+            printf("recv message, payload is %s, bizType is %s\n", message.getPayload().c_str(), message.getBizType().c_str());
         }
     }
 

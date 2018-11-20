@@ -1,19 +1,37 @@
 #include <mimc/rts_send_data.h>
 #include <mimc/user.h>
+#include <cstdlib>
 
 unsigned long RtsSendData::createRelayConn(User* user) {
-	//待加入getRelayAddress
+if (user->getRelayConnId() != 0) {
+	return user->getRelayConnId();
+}
+std::string relayAddress;
 #ifndef STAGING
-	std::string relayIp = "58.83.177.218";
-	int relayPort = 80;
+	if (!User::fetchServerAddr(user)) {
+		return 0;
+	}
+	srand(time(NULL));
+
+	pthread_mutex_lock(&user->getAddressMutex());
+	std::vector<std::string>& relayAddresses = user->getRelayAddresses();
+	if (!relayAddresses.empty()) {
+		relayAddress = relayAddresses.at(rand()%(relayAddresses.size()));
+	}
+	pthread_mutex_unlock(&user->getAddressMutex());
+	int pos = relayAddress.find(":");
+	if (pos == std::string::npos) {
+		return 0;
+	}
+	std::string relayIp = relayAddress.substr(0, pos);
+	int relayPort = atoi(relayAddress.substr(pos+1).c_str());
 #else
 	std::string relayIp = "10.38.162.142";
 	int relayPort = 6777;
+	char relayPortStr[5];
+	itoa(relayPort, relayPortStr, 10); 
+	relayAddress = relayIp + ":" + relayPortStr;
 #endif
-	if (user->getRelayConnId() != 0) {
-		return user->getRelayConnId();
-	}
-
 	mimc::UserPacket userPacket;
 	userPacket.set_uuid(user->getUuid());
 	userPacket.set_resource(user->getResource());
@@ -24,7 +42,7 @@ unsigned long RtsSendData::createRelayConn(User* user) {
 	memset(messageBytes, 0, message_size);
 	userPacket.SerializeToArray(messageBytes, message_size);
 
-	unsigned long relayConnId = user->getXmdTransceiver()->createConnection((char *)relayIp.c_str(), relayPort, messageBytes, message_size, XMD_TRAN_TIMEOUT, new RtsConnectionInfo(RELAY_CONN));
+	unsigned long relayConnId = user->getXmdTransceiver()->createConnection((char *)relayIp.c_str(), relayPort, messageBytes, message_size, XMD_TRAN_TIMEOUT, new RtsConnectionInfo(relayAddress, RELAY_CONN));
 	if (relayConnId == 0) {
 		return 0;
 	}
@@ -112,16 +130,15 @@ bool RtsSendData::sendPingRelayRequest(User* user) {
 	memset(messageBytes, 0, message_size);
 	userPacket.SerializeToArray(messageBytes, message_size);
 
-	if (user->getXmdTransceiver()->sendRTData(user->getRelayConnId(), user->getRelayControlStreamId(), messageBytes, message_size) < 0) {
+	if (user->getXmdTransceiver()->sendRTData(user->getRelayConnId(), user->getRelayControlStreamId(), messageBytes, message_size, true, P1, 0, NULL) < 0) {
 		
 		return false;
 	}
-
 	
 	return true;
 }
 
-bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string& data, mimc::PKT_TYPE pktType) {
+bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
 	unsigned long relayConnId = user->getRelayConnId();
 	if (relayConnId == 0) {
 		
@@ -151,7 +168,7 @@ bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string&
 			XMDLoggerWrapper::instance()->info("audio streamId is %d", user->getRelayAudioStreamId());
 		}
 		if (user->getRelayAudioStreamId() != 0) {
-			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayAudioStreamId(), messageBytes, message_size) < 0) {
+			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayAudioStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx) < 0) {
 				
 				return false;
 			}
@@ -170,7 +187,7 @@ bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string&
 			XMDLoggerWrapper::instance()->info("video streamId is %d", user->getRelayVideoStreamId());
 		}
 		if (user->getRelayVideoStreamId() != 0) {
-			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayVideoStreamId(), messageBytes, message_size) < 0) {
+			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayVideoStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx) < 0) {
 				
 				return false;
 			}

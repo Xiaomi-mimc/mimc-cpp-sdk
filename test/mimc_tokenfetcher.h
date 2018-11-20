@@ -51,7 +51,7 @@ public:
         string *bodyp = (string *)userp;
         bodyp->append((const char *)contents, size * nmemb);
 
-        return bodyp->size();
+        return size * nmemb;
     }
 
     TestTokenFetcher(string appId, string appKey, string appSecret, string appAccount)

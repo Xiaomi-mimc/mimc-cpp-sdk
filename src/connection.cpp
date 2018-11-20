@@ -7,6 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cerrno>
+#include <cstdlib>
 #include <time.h>
 #include <crypto/rc4_crypto.h>
 
@@ -29,42 +30,79 @@ void Connection::resetSock() {
 }
 
 bool Connection::connect() {
-    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        return false;
-    }
     struct sockaddr_in dest_addr;
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(FE_PORT);
+
 #ifndef STAGING
-   struct hostent *pHostEnt = NULL;
-   pHostEnt = gethostbyname(FE_DOMAIN);
-   dest_addr.sin_addr.s_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
-#else
-    dest_addr.sin_addr.s_addr = inet_addr(FE_IP);
-#endif
+    pthread_mutex_lock(&user->getAddressMutex());
+    std::vector<std::string>& feAddresses = user->getFeAddresses();
+    for (std::vector<std::string>::iterator iter = feAddresses.begin(); iter != feAddresses.end(); iter++) {
+        if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            continue;
+        }
+        std::string& feAddr = *iter;
+        int pos = feAddr.find(":");
+        if (pos == std::string::npos) {
+            continue;
+        }
+        std::string feIp = feAddr.substr(0, pos);
+        std::string fePort = feAddr.substr(pos + 1);
+        dest_addr.sin_addr.s_addr = inet_addr(feIp.c_str());
+        dest_addr.sin_port = htons(atoi(fePort.c_str()));
+        if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
+            close(socketfd);
+            iter = feAddresses.erase(iter);
+        } else {
+            pthread_mutex_unlock(&user->getAddressMutex());
+            return true;
+        }
+    }
+
+    user->setAddressInvalid(true);
+    pthread_mutex_unlock(&user->getAddressMutex());
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        return false;
+    }
+    struct hostent *pHostEnt = NULL;
+    pHostEnt = gethostbyname(FE_DOMAIN);
+    dest_addr.sin_addr.s_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
+    dest_addr.sin_port = htons(FE_PORT);
     if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
         close(socketfd);
         return false;
     } else {
         return true;
     }
+#else
+    if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        return false;
+    }
+    dest_addr.sin_addr.s_addr = inet_addr(FE_IP);
+    dest_addr.sin_port = htons(FE_PORT);
+    if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
+        close(socketfd);
+        return false;
+    } else {
+        return true;
+    }
+#endif
 }
 
-ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
-    if (fd < 0 || buf == NULL || nbytes == 0) {
+ssize_t Connection::writen(const void *buf, size_t nbytes) {
+    if (socketfd < 0 || buf == NULL || nbytes == 0) {
         return -1;
     }
     size_t nLeft = nbytes;
     const unsigned char *bufTemp = (unsigned char *)buf;
     while (nLeft > 0) {
         ssize_t nWrite = 0;
-        nWrite = write(fd, bufTemp, nLeft);
+        nWrite = write(socketfd, bufTemp, nLeft);
         if (nWrite <= 0) {
             if (errno == EINTR) {
                 continue;
             }
-            
+
             return -1;
         }
         nLeft -= nWrite;
@@ -73,20 +111,20 @@ ssize_t Connection::writen(int fd, const void *buf, size_t nbytes) {
     return nbytes;
 }
 
-ssize_t Connection::readn(int fd, void *buf, size_t nbytes) {
-    if (fd < 0 || buf == NULL || nbytes == 0) {
+ssize_t Connection::readn(void *buf, size_t nbytes) {
+    if (socketfd < 0 || buf == NULL || nbytes == 0) {
         return -1;
     }
     size_t nLeft = nbytes;
     char *bufTemp = (char *)buf;
     while (nLeft > 0) {
         ssize_t nRead = 0;
-        nRead = read(fd, bufTemp, nLeft);
+        nRead = read(socketfd, bufTemp, nLeft);
         if (nRead < 0) {
             if (errno == EINTR) {
                 continue;
             }
-            
+
             return -1;
         }
         if (nRead == 0) {

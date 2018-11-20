@@ -5,21 +5,45 @@
 #include <mimc/threadsafe_queue.h>
 #include <mimc/rts_connection_handler.h>
 #include <mimc/rts_stream_handler.h>
-#include <json-c/json.h>
 #include <mimc/ims_push_service.pb.h>
+#include <mimc/rts_context.h>
+#include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
 
-User::User(std::string appAccount, std::string resource) {
+User::User(std::string appAccount, std::string resource, std::string cachePath) {
+	XMDLoggerWrapper::instance()->setXMDLogLevel(XMD_INFO);
 	this->appAccount = appAccount;
 	this->testPacketLoss = 0;
 	this->permitLogin = false;
 	this->onlineStatus = Offline;
+	this->tokenExpired = false;
+	this->addressInvalid = false;
+	this->tokenFetchSucceed = false;
+	this->serverFetchSucceed = false;
 	this->resetRelayLinkState();
 	if (resource == "") {
-		resource = "CPP_" + Utils::generateRandomString(8);
+		resource = "cpp_default";
 	}
-	this->resource = resource;
+	this->cacheExist = false;
+	if (cachePath == "") {
+		char buffer[MAXPATHLEN];
+		Utils::getCwd(buffer, MAXPATHLEN);
+		cachePath = buffer;
+		XMDLoggerWrapper::instance()->info("cachePath is %s", cachePath.c_str());
+	}
+	if (cachePath.back() == '/') {
+		cachePath.pop_back();
+	}
+	this->cachePath = cachePath + '/' + appAccount + '/' + resource;
+	this->cacheFile = this->cachePath + '/' + "mimc.info";
+	createCacheFileIfNotExist(this);
+	if (resource == "cpp_default") {
+		this->resource = Utils::generateRandomString(8);
+	} else {
+		this->resource = resource;
+	}
+
 	this->lastLoginTimestamp = 0;
 	this->lastCreateConnTimestamp = 0;
 	this->lastPingTimestamp = 0;
@@ -48,7 +72,8 @@ User::User(std::string appAccount, std::string resource) {
 	this->maxCallNum = 1;
 	this->isDialCalling = false;
 	this->isFirstDialCall = true;
-	this->mutex = PTHREAD_MUTEX_INITIALIZER;
+	this->mutex_0 = PTHREAD_MUTEX_INITIALIZER;
+	this->mutex_1 = PTHREAD_MUTEX_INITIALIZER;
 
 	this->conn = new Connection();
 	this->conn->setUser(this);
@@ -88,7 +113,7 @@ User::~User() {
 	delete this->rtsStreamHandler;
 }
 
-void * User::sendPacket(void *arg) {
+void* User::sendPacket(void *arg) {
 	XMDLoggerWrapper::instance()->info("sendThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
@@ -101,20 +126,24 @@ void * User::sendPacket(void *arg) {
 
 			long now = time(NULL);
 			if (now - user->lastCreateConnTimestamp <= CONNECT_TIMEOUT) {
-				usleep(200000);
+				usleep(10000);
 				continue;
 			}
 			if (user->getTestPacketLoss() >= 100) {
-				usleep(200000);
+				usleep(10000);
+				continue;
+			}
+			if (!fetchToken(user) || !fetchServerAddr(user)) {
+				usleep(1000);
 				continue;
 			}
 			user->lastCreateConnTimestamp = time(NULL);
 			if (!conn->connect()) {
-				XMDLoggerWrapper::instance()->error("In sendPacket, socket connect failed");
+				XMDLoggerWrapper::instance()->error("In sendPacket, socket connect failed, user is %s", user->getAppAccount().c_str());
 				continue;
 			}
+
 			conn->setState(SOCK_CONNECTED);
-			XMDLoggerWrapper::instance()->info("In sendPacket, socket connect succeed");
 
 			packet_size = user->getPacketManager()->encodeConnectionPacket(packetBuffer, conn);
 			if (packet_size < 0) {
@@ -128,28 +157,21 @@ void * User::sendPacket(void *arg) {
 		if (conn->getState() == HANDSHAKE_CONNECTED) {
 			long now = time(NULL);
 			if (user->getOnlineStatus() == Offline) {
-				if (now - user->lastLoginTimestamp <= LOGIN_TIMEOUT) {
-					usleep(200000);
-					continue;
-				} else {
-					if (!user->permitLogin) {
-						usleep(200000);
-						continue;
-					}
+				if (now - user->lastLoginTimestamp > LOGIN_TIMEOUT || user->tokenExpired) {
+					if (user->permitLogin && fetchToken(user)) {
+						packet_size = user->getPacketManager()->encodeBindPacket(packetBuffer, conn);
+						if (packet_size < 0) {
 
-					packet_size = user->getPacketManager()->encodeBindPacket(packetBuffer, conn);
-					if (packet_size < 0) {
-
-						continue;
+							continue;
+						}
+						user->lastLoginTimestamp = time(NULL);
 					}
-					user->lastLoginTimestamp = time(NULL);
 				}
 			} else {
 				struct waitToSendContent *obj;
-				(user->getPacketManager()->packetsWaitToSend).pop(&obj);
+				user->getPacketManager()->packetsWaitToSend.pop(&obj);
 				if (obj != NULL) {
 					msgType = obj->type;
-
 					if (obj->cmd == BODY_CLIENTHEADER_CMD_SECMSG) {
 						packet_size = user->getPacketManager()->encodeSecMsgPacket(packetBuffer, conn, obj->message);
 						if (packet_size < 0) {
@@ -171,13 +193,14 @@ void * User::sendPacket(void *arg) {
 
 							continue;
 						}
+
 					}
 				}
 			}
 		}
 
 		if (packetBuffer == NULL) {
-			usleep(20000);
+			usleep(10000);
 			continue;
 		}
 
@@ -188,9 +211,9 @@ void * User::sendPacket(void *arg) {
 		user->lastPingTimestamp = time(NULL);
 
 		if (user->getTestPacketLoss() < 100) {
-			int ret = conn->writen(conn->getSock(), (void *)packetBuffer, packet_size);
+			int ret = conn->writen((void *)packetBuffer, packet_size);
 			if (ret != packet_size) {
-				XMDLoggerWrapper::instance()->error("In sendPacket, ret != packet_size, ret=%d,packet_size=%d", ret, packet_size);
+				XMDLoggerWrapper::instance()->error("In sendPacket, ret != packet_size, ret=%d, packet_size=%d", ret, packet_size);
 				conn->resetSock();
 			}
 			else {
@@ -203,7 +226,7 @@ void * User::sendPacket(void *arg) {
 	}
 }
 
-void * User::receivePacket(void *arg) {
+void* User::receivePacket(void *arg) {
 	XMDLoggerWrapper::instance()->info("receiveThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
@@ -216,7 +239,7 @@ void * User::receivePacket(void *arg) {
 		unsigned char * packetHeaderBuffer = new unsigned char[HEADER_LENGTH];
 		memset(packetHeaderBuffer, 0, HEADER_LENGTH);
 
-		int ret = conn->readn(conn->getSock(), (void *)packetHeaderBuffer, HEADER_LENGTH);
+		int ret = conn->readn((void *)packetHeaderBuffer, HEADER_LENGTH);
 		if (ret != HEADER_LENGTH) {
 
 			conn->resetSock();
@@ -230,7 +253,7 @@ void * User::receivePacket(void *arg) {
 			int body_len = user->getPacketManager()->char2int(packetHeaderBuffer, HEADER_BODYLEN_OFFSET) + BODY_CRC_LEN;
 			unsigned char * packetBodyBuffer = new unsigned char[body_len];
 			memset(packetBodyBuffer, 0, body_len);
-			ret = conn->readn(conn->getSock(), (void *)packetBodyBuffer, body_len);
+			ret = conn->readn((void *)packetBodyBuffer, body_len);
 			if (ret != body_len) {
 
 				conn->resetSock();
@@ -274,7 +297,7 @@ void * User::receivePacket(void *arg) {
 	}
 }
 
-void * User::checkTimeout(void *arg) {
+void* User::checkTimeout(void *arg) {
 	XMDLoggerWrapper::instance()->info("checkThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
@@ -369,7 +392,7 @@ void User::rtsScanAndCallBack() {
 	}
 }
 
-void * User::onLaunched(void *arg) {
+void* User::onLaunched(void *arg) {
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 	onLaunchedParam* param = (onLaunchedParam*)arg;
 	User* user = param->user;
@@ -386,7 +409,6 @@ void * User::onLaunched(void *arg) {
 		return 0;
 	}
 
-	XMDLoggerWrapper::instance()->info("In onLaunched thread, sendInviteResponse, chatId=%ld", chatId);
 	RtsSendSignal::sendInviteResponse(user, chatId, p2pChatSession.getChatType(), mimc::SUCC, userResponse.getErrmsg());
 	p2pChatSession.setChatState(RUNNING);
 	p2pChatSession.setLatestLegalChatStateTs(time(NULL));
@@ -396,6 +418,354 @@ void * User::onLaunched(void *arg) {
 
 	user->getOnlaunchChats()->erase(chatId);
 	return 0;
+}
+
+void User::createCacheFileIfNotExist(User * user) {
+	if (Utils::createDirIfNotExist(user->getCachePath())) {
+		std::fstream file;
+		file.open(user->getCacheFile().c_str());
+		if (file) {
+			user->cacheExist = true;
+			if (file.is_open()) {
+				file.close();
+			}
+		} else {
+			XMDLoggerWrapper::instance()->info("cacheFile is not exist, create now");
+			file.open(user->getCacheFile().c_str(), std::ios::out);
+			if (file) {
+				XMDLoggerWrapper::instance()->info("cacheFile create succeed");
+				user->cacheExist = true;
+				if (file.is_open()) {
+					file.close();
+				}
+			}
+		}
+	}
+}
+
+bool User::fetchToken(User * user) {
+	if (user->tokenFetchSucceed && !user->tokenExpired) {
+		return true;
+	}
+	const char* str = NULL;
+	int str_size = 0;
+	if (user->cacheExist) {
+		std::ifstream file(user->getCacheFile(), std::ios::in | std::ios::ate);
+		long size = file.tellg();
+		file.seekg(0, std::ios::beg);
+		char localStr[size];
+		file.read(localStr, size);
+		file.close();
+		json_object* pobj_local;
+		if (user->parseToken(localStr, pobj_local) && !user->tokenExpired) {
+			json_object_put(pobj_local);
+			return true;
+		} else {
+			if (user->getTokenFetcher() == NULL) {
+				json_object_put(pobj_local);
+				return false;
+			}
+			std::string remoteStr = user->getTokenFetcher()->fetchToken();
+			json_object* pobj_remote;
+			if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
+				user->tokenExpired = false;
+				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
+				if (file.is_open()) {
+					if (pobj_local == NULL) {
+						str = remoteStr.c_str();
+						str_size = remoteStr.size();
+					} else {
+						str = json_object_get_string(pobj_local);
+						json_object* dataobj = json_object_new_object();
+						char s[20];
+						json_object_object_add(dataobj, "appId", json_object_new_string(Utils::ltoa(user->getAppId(), s)));
+						json_object_object_add(dataobj, "appPackage", json_object_new_string(user->getAppPackage().c_str()));
+						json_object_object_add(dataobj, "appAccount", json_object_new_string(user->getAppAccount().c_str()));
+						json_object_object_add(dataobj, "miChid", json_object_new_int(user->getChid()));
+						json_object_object_add(dataobj, "miUserId", json_object_new_string(Utils::ltoa(user->getUuid(), s)));
+						json_object_object_add(dataobj, "miUserSecurityKey", json_object_new_string(user->getSecurityKey().c_str()));
+						json_object_object_add(dataobj, "token", json_object_new_string(user->getToken().c_str()));
+						json_object_object_add(dataobj, "regionBucket", json_object_new_int(user->getRegionBucket()));
+						json_object_object_add(dataobj, "feDomainName", json_object_new_string(user->getFeDomain().c_str()));
+						json_object_object_add(dataobj, "relayDomainName", json_object_new_string(user->getRelayDomain().c_str()));
+						json_object_object_add(pobj_local, "code", json_object_new_int(200));
+						json_object_object_add(pobj_local, "data", dataobj);
+
+						str = json_object_get_string(pobj_local);
+						str_size = strlen(str);
+					}
+					file.write(str, str_size);
+					file.close();
+				}
+				json_object_put(pobj_local);
+				json_object_put(pobj_remote);
+				return true;
+			} else {
+				json_object_put(pobj_local);
+				json_object_put(pobj_remote);
+				return false;
+			}
+		}
+	} else {
+		if (user->getTokenFetcher() == NULL) {
+			return false;
+		}
+		std::string remoteStr = user->getTokenFetcher()->fetchToken();
+		json_object* pobj_remote;
+		if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
+			user->tokenExpired = false;
+			createCacheFileIfNotExist(user);
+			if (user->cacheExist) {
+				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
+				if (file.is_open()) {
+					str = remoteStr.c_str();
+					str_size = remoteStr.size();
+					file.write(str, str_size);
+					file.close();
+				}
+			}
+			json_object_put(pobj_remote);
+			return true;
+		} else {
+			json_object_put(pobj_remote);
+			return false;
+		}
+	}
+}
+
+bool User::fetchServerAddr(User* user) {
+	pthread_mutex_lock(&user->mutex_1);
+	if (user->serverFetchSucceed && !user->addressInvalid) {
+		pthread_mutex_unlock(&user->mutex_1);
+		return true;
+	}
+	if (user->feDomain == "" || user->relayDomain == "") {
+		XMDLoggerWrapper::instance()->error("User::fetchServerAddr, feDomain or relayDomain is empty");
+		pthread_mutex_unlock(&user->mutex_1);
+		return false;
+	}
+	const char* str = NULL;
+	int str_size = 0;
+	if (user->cacheExist) {
+		std::ifstream file(user->getCacheFile(), std::ios::in | std::ios::ate);
+		long size = file.tellg();
+		file.seekg(0, std::ios::beg);
+		char localStr[size];
+		file.read(localStr, size);
+		file.close();
+		json_object* pobj_local;
+		if (user->parseServerAddr(localStr, pobj_local) && !user->addressInvalid) {
+			json_object_put(pobj_local);
+			pthread_mutex_unlock(&user->mutex_1);
+			return true;
+		} else {
+			std::string remoteStr = ServerFetcher::fetchServerAddr(RESOLVER_URL, user->feDomain + "," + user->relayDomain);
+			json_object* pobj_remote;
+			if (user->parseServerAddr(remoteStr.c_str(), pobj_remote)) {
+				user->addressInvalid = false;
+				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
+				if (file.is_open()) {
+					if (pobj_local == NULL) {
+						str = remoteStr.c_str();
+						str_size = remoteStr.size();
+					} else {
+						json_object* feAddrArray = json_object_new_array();
+						for (std::vector<std::string>::const_iterator iter = user->feAddresses.cbegin(); iter != user->feAddresses.cend(); iter++) {
+							std::string feAddr = *iter;
+							json_object_array_add(feAddrArray, json_object_new_string(feAddr.c_str()));
+						}
+						json_object* relayAddrArray = json_object_new_array();
+						for (std::vector<std::string>::const_iterator iter = user->relayAddresses.cbegin(); iter != user->relayAddresses.cend(); iter++) {
+							std::string relayAddr = *iter;
+							json_object_array_add(relayAddrArray, json_object_new_string(relayAddr.c_str()));
+						}
+
+						json_object_object_add(pobj_local, user->feDomain.c_str(), feAddrArray);
+						json_object_object_add(pobj_local, user->relayDomain.c_str(), relayAddrArray);
+
+						str = json_object_get_string(pobj_local);
+						str_size = strlen(str);
+					}
+					file.write(str, str_size);
+					file.close();
+				}
+				json_object_put(pobj_local);
+				json_object_put(pobj_remote);
+				pthread_mutex_unlock(&user->mutex_1);
+				return true;
+			} else {
+				json_object_put(pobj_local);
+				json_object_put(pobj_remote);
+				pthread_mutex_unlock(&user->mutex_1);
+				return false;
+			}
+		}
+	} else {
+		std::string remoteStr = ServerFetcher::fetchServerAddr(RESOLVER_URL, user->feDomain + "," + user->relayDomain);
+		json_object* pobj_remote;
+		if (user->parseServerAddr(remoteStr.c_str(), pobj_remote)) {
+			user->addressInvalid = false;
+			createCacheFileIfNotExist(user);
+			if (user->cacheExist) {
+				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
+				if (file.is_open()) {
+					str = remoteStr.c_str();
+					str_size = remoteStr.size();
+					file.write(str, str_size);
+					file.close();
+				}
+			}
+			json_object_put(pobj_remote);
+			pthread_mutex_unlock(&user->mutex_1);
+			return true;
+		} else {
+			json_object_put(pobj_remote);
+			pthread_mutex_unlock(&user->mutex_1);
+			return false;
+		}
+	}
+}
+
+bool User::parseToken(const char* str, json_object*& pobj) {
+	tokenFetchSucceed = false;
+
+	pobj = json_tokener_parse(str);
+
+	if (pobj == NULL) {
+		XMDLoggerWrapper::instance()->info("User::parseToken, json_tokener_parse failed, pobj is NULL");
+	}
+
+	json_object* retobj = NULL;
+	json_object_object_get_ex(pobj, "code", &retobj);
+	int retCode = json_object_get_int(retobj);
+	if (retCode == 200) {
+		json_object* dataobj = NULL;
+		json_object_object_get_ex(pobj, "data", &dataobj);
+		json_object* dataitem_obj = NULL;
+		const char* pstr = NULL;
+		json_object_object_get_ex(dataobj, "appAccount", &dataitem_obj);
+		pstr = json_object_get_string(dataitem_obj);
+		if (!pstr) {
+			return tokenFetchSucceed;
+		}
+		std::string appAccount = pstr;
+		if (this->appAccount == appAccount) {
+			json_object_object_get_ex(dataobj, "appId", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->appId = atol(pstr);
+			}
+			json_object_object_get_ex(dataobj, "appPackage", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->appPackage = pstr;
+			}
+			json_object_object_get_ex(dataobj, "miChid", &dataitem_obj);
+			this->chid = json_object_get_int(dataitem_obj);
+			json_object_object_get_ex(dataobj, "miUserId", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->uuid = atol(pstr);
+			}
+			json_object_object_get_ex(dataobj, "miUserSecurityKey", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->securityKey = pstr;
+			}
+			json_object_object_get_ex(dataobj, "token", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->token = pstr;
+			}
+			json_object_object_get_ex(dataobj, "regionBucket", &dataitem_obj);
+			this->regionBucket = json_object_get_int(dataitem_obj);
+			json_object_object_get_ex(dataobj, "feDomainName", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->feDomain = pstr;
+			}
+			json_object_object_get_ex(dataobj, "relayDomainName", &dataitem_obj);
+			pstr = json_object_get_string(dataitem_obj);
+			if (!pstr) {
+				return tokenFetchSucceed;
+			} else {
+				this->relayDomain = pstr;
+			}
+			tokenFetchSucceed = true;
+		}
+	}
+	if (tokenFetchSucceed) {
+		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is true, user is %s", appAccount.c_str());
+	} else {
+		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is false, user is %s", appAccount.c_str());
+	}
+	
+	return tokenFetchSucceed;
+}
+
+bool User::parseServerAddr(const char* str, json_object*& pobj) {
+	serverFetchSucceed = false;
+
+	pobj = json_tokener_parse(str);
+
+	if (pobj == NULL) {
+		XMDLoggerWrapper::instance()->info("User::parseServerAddr, json_tokener_parse failed, pobj is NULL");
+	}
+
+	json_object* dataobj = NULL;
+	json_object_object_get_ex(pobj, this->feDomain.c_str(), &dataobj);
+	if (dataobj && json_object_get_type(dataobj) == json_type_array) {
+		int arraySize = json_object_array_length(dataobj);
+		if (arraySize == 0) {
+			return serverFetchSucceed;
+		}
+		this->feAddresses.clear();
+		for (int i = 0; i < arraySize; i++) {
+			json_object* dataitem_obj = json_object_array_get_idx(dataobj, i);
+			const char* feAddress = json_object_get_string(dataitem_obj);
+			this->feAddresses.push_back(feAddress);
+		}
+	} else {
+		return serverFetchSucceed;
+	}
+
+	json_object_object_get_ex(pobj, this->relayDomain.c_str(), &dataobj);
+	if (dataobj && json_object_get_type(dataobj) == json_type_array) {
+		int arraySize = json_object_array_length(dataobj);
+		if (arraySize == 0) {
+			return serverFetchSucceed;
+		}
+		this->relayAddresses.clear();
+		for (int i = 0; i < arraySize; i++) {
+			json_object* dataitem_obj = json_object_array_get_idx(dataobj, i);
+			const char* relayAddress = json_object_get_string(dataitem_obj);
+			this->relayAddresses.push_back(relayAddress);
+		}
+	} else {
+		return serverFetchSucceed;
+	}
+
+	serverFetchSucceed = true;
+
+	if (serverFetchSucceed) {
+		XMDLoggerWrapper::instance()->info("User::parseServerAddr, serverFetchSucceed is true, user is %s", appAccount.c_str());
+	} else {
+		XMDLoggerWrapper::instance()->info("User::parseServerAddr, serverFetchSucceed is false, user is %s", appAccount.c_str());
+	}
+
+	return serverFetchSucceed;
 }
 
 std::string User::join(const std::map<std::string, std::string>& kvs) const {
@@ -416,7 +786,7 @@ std::string User::join(const std::map<std::string, std::string>& kvs) const {
 	return oss.str();
 }
 
-std::string User::sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore) {
+std::string User::sendMessage(const std::string & toAppAccount, const std::string & msg, const std::string & bizType, const bool isStore) {
 	if (this->onlineStatus == Offline || toAppAccount == "" || msg == "" || msg.size() > MIMC_MAX_PAYLOAD_SIZE) {
 		return "";
 	}
@@ -436,6 +806,7 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 	message->set_allocated_from(from);
 	message->set_allocated_to(to);
 	message->set_payload(std::string(msg));
+	message->set_biztype(bizType);
 	message->set_isstore(isStore);
 
 	int message_size = message->ByteSize();
@@ -458,7 +829,7 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 	delete[] messageBytes;
 	messageBytes = NULL;
 
-	MIMCMessage mimcMessage(packetId, payload->sequence(), this->appAccount, this->resource, toAppAccount, "", msg, payload->timestamp());
+	MIMCMessage mimcMessage(packetId, payload->sequence(), this->appAccount, this->resource, toAppAccount, "", msg, bizType, payload->timestamp());
 	(this->packetManager->packetsWaitToTimeout).insert(std::pair<std::string, MIMCMessage>(packetId, mimcMessage));
 
 	struct waitToSendContent mimc_obj;
@@ -470,15 +841,15 @@ std::string User::sendMessage(const std::string& toAppAccount, const std::string
 	return packetId;
 }
 
-long User::dialCall(const std::string& toAppAccount, const std::string& appContent, const std::string& toResource) {
-	pthread_mutex_lock(&mutex);
+long User::dialCall(const std::string & toAppAccount, const std::string & appContent, const std::string & toResource) {
+	pthread_mutex_lock(&mutex_0);
 	if (this->isDialCalling) {
 		XMDLoggerWrapper::instance()->warn("In dialCall, another thread is dialCall!");
-		pthread_mutex_unlock(&mutex);
+		pthread_mutex_unlock(&mutex_0);
 		return -1;
 	}
 	this->isDialCalling = true;
-	pthread_mutex_unlock(&mutex);
+	pthread_mutex_unlock(&mutex_0);
 
 	if (this->rtsCallEventHandler == NULL) {
 		XMDLoggerWrapper::instance()->error("In dialCall, rtsCallEventHandler is not registered!");
@@ -511,7 +882,7 @@ long User::dialCall(const std::string& toAppAccount, const std::string& appConte
 	}
 
 	//判断是否是同一个chat
-	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
+	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->cbegin(); iter != currentChats->cend(); iter++) {
 		const P2PChatSession& chatSession = iter->second;
 		const mimc::UserInfo& session_toUser = chatSession.getPeerUser();
 		if (toUser.appid() == session_toUser.appid() && toUser.appaccount() == session_toUser.appaccount() && toUser.resource() == session_toUser.resource()
@@ -561,7 +932,7 @@ long User::dialCall(const std::string& toAppAccount, const std::string& appConte
 	}
 }
 
-bool User::sendRtsData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
+bool User::sendRtsData(long chatId, const std::string & data, const RtsDataType dataType, const RtsChannelType channelType, const std::string& ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
 	if (data.size() > RTS_MAX_PAYLOAD_SIZE) {
 
 		return false;
@@ -590,10 +961,13 @@ bool User::sendRtsData(long chatId, const std::string& data, RtsDataType dataTyp
 
 		return false;
 	}
+
+	RtsContext* rtsContext = new RtsContext(chatId, ctx);
+
 	if (channelType == RELAY) {
 
 
-		return RtsSendData::sendRtsDataByRelay(this, chatId, data, pktType);
+		return RtsSendData::sendRtsDataByRelay(this, chatId, data, pktType, (void *)rtsContext, canBeDropped, priority, resendCount);
 	}
 	return true;
 }
@@ -612,59 +986,21 @@ void User::closeCall(long chatId, std::string byeReason) {
 }
 
 bool User::login() {
-	this->permitLogin = false;
-	if (this->tokenFetcher == NULL || this->statusHandler == NULL || this->messageHandler == NULL) {
-		XMDLoggerWrapper::instance()->info("login failed, user must register all essential callback functions first!");
-	} else {
-		std::string mimcToken = this->tokenFetcher->fetchToken();
-
-		json_object *pobj = json_tokener_parse(mimcToken.c_str());
-		json_object *dataobj = NULL;
-		json_object *new_obj = NULL;
-		json_object_object_get_ex(pobj, "data", &dataobj);
-		json_object *retobj = NULL;
-		json_object_object_get_ex(pobj, "code", &retobj);
-		int retCode = json_object_get_int(retobj);
-		if (retCode == 200) {
-			const char *pstr = NULL;
-			json_object_object_get_ex(dataobj, "appAccount", &new_obj);
-			pstr = json_object_get_string(new_obj);
-			std::string appAccount = pstr;
-			if (this->appAccount == appAccount) {
-				json_object_object_get_ex(dataobj, "appId", &new_obj);
-				pstr = json_object_get_string(new_obj);
-				this->appId = atol(pstr);
-				json_object_object_get_ex(dataobj, "appPackage", &new_obj);
-				pstr = json_object_get_string(new_obj);
-				this->appPackage = pstr;
-				json_object_object_get_ex(dataobj, "miChid", &new_obj);
-				this->chid = json_object_get_int(new_obj);
-				json_object_object_get_ex(dataobj, "miUserId", &new_obj);
-				pstr = json_object_get_string(new_obj);
-				this->uuid = atol(pstr);
-				json_object_object_get_ex(dataobj, "miUserSecurityKey", &new_obj);
-				pstr = json_object_get_string(new_obj);
-				this->securityKey = pstr;
-				json_object_object_get_ex(dataobj, "token", &new_obj);
-				pstr = json_object_get_string(new_obj);
-				this->token = pstr;
-
-				this->permitLogin = true;
-			}
-		}
-
-		json_object_put(pobj);
+	if (this->onlineStatus == Online) {
+		return true;
 	}
-
-	return this->permitLogin;
+	if (this->tokenFetcher == NULL || this->statusHandler == NULL || this->messageHandler == NULL) {
+		XMDLoggerWrapper::instance()->warn("login failed, user must register all essential callback functions first!");
+		return false;
+	}
+	this->permitLogin = true;
+	return true;
 }
 
 bool User::logout() {
-	if (this->permitLogin == false) {
-		return false;
+	if (this->onlineStatus == Offline) {
+		return true;
 	}
-
-	this->permitLogin = false;
 
 	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 		long chatId = iter->first;
@@ -685,11 +1021,13 @@ bool User::logout() {
 	currentChats->clear();
 	RtsSendData::closeRelayConnWhenNoChat(this);
 
+	this->permitLogin = false;
+
 	return true;
 }
 
 void User::resetRelayLinkState() {
-	XMDLoggerWrapper::instance()->info("In resetRelayLinkState, relayConnId is %ld", this->relayConnId);
+	XMDLoggerWrapper::instance()->info("In resetRelayLinkState, relayConnId to be reset is %ld", this->relayConnId);
 	this->relayConnId = 0;
 	this->relayControlStreamId = 0;
 	this->relayAudioStreamId = 0;
@@ -756,11 +1094,15 @@ unsigned long User::getP2PInternetConnId(long chatId) const {
 	return chatSession.getP2PInternetConnId();
 }
 
-void User::registerTokenFetcher(MIMCTokenFetcher* tokenFetcher) {
+void User::registerTokenFetcher(MIMCTokenFetcher * tokenFetcher) {
 	this->tokenFetcher = tokenFetcher;
 }
 
-void User::registerOnlineStatusHandler(OnlineStatusHandler* handler) {
+MIMCTokenFetcher* User::getTokenFetcher() const {
+	return this->tokenFetcher;
+}
+
+void User::registerOnlineStatusHandler(OnlineStatusHandler * handler) {
 	this->statusHandler = handler;
 }
 
@@ -768,7 +1110,7 @@ OnlineStatusHandler* User::getStatusHandler() const {
 	return this->statusHandler;
 }
 
-void User::registerMessageHandler(MessageHandler* handler) {
+void User::registerMessageHandler(MessageHandler * handler) {
 	this->messageHandler = handler;
 }
 
@@ -776,7 +1118,7 @@ MessageHandler* User::getMessageHandler() const {
 	return this->messageHandler;
 }
 
-void User::registerRTSCallEventHandler(RTSCallEventHandler* handler) {
+void User::registerRTSCallEventHandler(RTSCallEventHandler * handler) {
 	this->rtsCallEventHandler = handler;
 }
 
@@ -788,7 +1130,6 @@ void User::checkToRunXmdTranseiver() {
 	if (this->isFirstDialCall) {
 		this->isFirstDialCall = false;
 		this->xmdTranseiver = new XMDTransceiver(1);
-		this->xmdTranseiver->setXMDLogLevel(XMD_INFO);
 		this->rtsConnectionHandler = new RtsConnectionHandler(this);
 		this->rtsStreamHandler = new RtsStreamHandler(this);
 		this->xmdTranseiver->registerConnHandler(this->rtsConnectionHandler);

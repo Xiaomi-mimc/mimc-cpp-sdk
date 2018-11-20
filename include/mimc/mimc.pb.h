@@ -1337,6 +1337,18 @@ class MIMCP2PMessage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
+  // optional bytes bizType = 5;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 5;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const void* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCP2PMessage)
  private:
   inline void set_has_from();
@@ -1347,14 +1359,17 @@ class MIMCP2PMessage : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_isstore();
   inline void clear_has_isstore();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
 
   ::mimc::MIMCUser* from_;
   ::mimc::MIMCUser* to_;
   ::std::string* payload_;
+  ::std::string* biztype_;
   bool isstore_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1459,6 +1474,18 @@ class MIMCP2TMessage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
+  // optional bytes bizType = 5;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 5;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const void* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCP2TMessage)
  private:
   inline void set_has_from();
@@ -1469,14 +1496,17 @@ class MIMCP2TMessage : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_isstore();
   inline void clear_has_isstore();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
 
   ::mimc::MIMCUser* from_;
   ::mimc::MIMCGroup* to_;
   ::std::string* payload_;
+  ::std::string* biztype_;
   bool isstore_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -5841,6 +5871,76 @@ inline void MIMCP2PMessage::set_isstore(bool value) {
   isstore_ = value;
 }
 
+// optional bytes bizType = 5;
+inline bool MIMCP2PMessage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void MIMCP2PMessage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void MIMCP2PMessage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void MIMCP2PMessage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& MIMCP2PMessage::biztype() const {
+  return *biztype_;
+}
+inline void MIMCP2PMessage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void MIMCP2PMessage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void MIMCP2PMessage::set_biztype(const void* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MIMCP2PMessage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* MIMCP2PMessage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MIMCP2PMessage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
 // -------------------------------------------------------------------
 
 // MIMCP2TMessage
@@ -6019,6 +6119,76 @@ inline bool MIMCP2TMessage::isstore() const {
 inline void MIMCP2TMessage::set_isstore(bool value) {
   set_has_isstore();
   isstore_ = value;
+}
+
+// optional bytes bizType = 5;
+inline bool MIMCP2TMessage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void MIMCP2TMessage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void MIMCP2TMessage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void MIMCP2TMessage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& MIMCP2TMessage::biztype() const {
+  return *biztype_;
+}
+inline void MIMCP2TMessage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void MIMCP2TMessage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void MIMCP2TMessage::set_biztype(const void* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* MIMCP2TMessage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* MIMCP2TMessage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void MIMCP2TMessage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------

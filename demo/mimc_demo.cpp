@@ -56,7 +56,7 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
+    LaunchedResponse onLaunched(long chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
         XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
@@ -66,14 +66,14 @@ public:
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
+    void onAnswered(long chatId, bool accepted, const std::string errmsg) {
         XMDLoggerWrapper::instance()->info("In onAnswered, chatId is %ld, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
         if (accepted) {
             chatIds.push_back(chatId);
         }
     }
 
-    void onClosed(long chatId, const std::string& errmsg) {
+    void onClosed(long chatId, const std::string errmsg) {
         XMDLoggerWrapper::instance()->info("In onClosed, chatId is %ld, errmsg is %s", chatId, errmsg.c_str());
         std::list<long>::iterator iter;
         for (iter = chatIds.begin(); iter != chatIds.end();) {
@@ -86,8 +86,16 @@ public:
         }
     }
 
-    void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
+    void handleData(long chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
         XMDLoggerWrapper::instance()->info("In handleData, chatId is %ld, data is %s, dataType is %d", chatId, data.c_str(), dataType);
+    }
+
+    void handleSendDataSucc(long chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    }
+
+    void handleSendDataFail(long chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
     }
 
     std::list<long>& getChatIds() {return this->chatIds;}

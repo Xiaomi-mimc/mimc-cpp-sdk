@@ -2,6 +2,7 @@
 #define MIMC_CPP_SDK_USER_H
 
 #include <mimc/tokenfetcher.h>
+#include <mimc/serverfetcher.h>
 #include <mimc/onlinestatus_handler.h>
 #include <mimc/message_handler.h>
 #include <mimc/rts_callevent_handler.h>
@@ -13,6 +14,7 @@
 #include <mimc/rts_send_data.h>
 #include <mimc/rts_send_signal.h>
 #include <mimc/p2p_chatsession.h>
+#include <json-c/json.h>
 #include <pthread.h>
 #include <time.h>
 #include <map>
@@ -32,11 +34,10 @@ class RtsStreamHandler;
 
 class User {
 public:
-	User(std::string appAccount, std::string resource = "");
+	User(std::string appAccount, std::string resource = "", std::string cachePath = "");
 	~User();
 
 	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}
-	void setPermitLogin(bool permitLogin) {this->permitLogin = permitLogin;}
 	void setLastLoginTimestamp(long ts) {this->lastLoginTimestamp = ts;}
 	void setLastCreateConnTimestamp(long ts) {this->lastCreateConnTimestamp = ts;}
 	void setOnlineStatus(OnlineStatus status) {this->onlineStatus = status;}
@@ -48,9 +49,14 @@ public:
 	void setBindRelayResponse(const mimc::BindRelayResponse& bindRelayResponse) {this->bindRelayResponse = bindRelayResponse;}
 	void setLatestLegalRelayLinkStateTs(long ts) {this->latestLegalRelayLinkStateTs = ts;}
 	void setMaxCallNum(unsigned int num) {this->maxCallNum = num;}
+	void setTokenExpired(bool tokenExpired) {this->tokenExpired = tokenExpired;}
+	void setAddressInvalid(bool addressInvalid) {this->addressInvalid = addressInvalid;}
 
-	void resetRelayLinkState();
-	void handleXMDConnClosed(unsigned long connId, ConnCloseType type);
+	void setAudioStreamStrategy(mimc::STREAM_STRATEGY value) {this->audioStreamConfig->set_stream_strategy(value);}
+	void setAudioAckStreamWaitTimeMs(unsigned int value) {this->audioStreamConfig->set_ack_stream_wait_time_ms(value);}
+	void setAudioStreamIsEncrypt(bool value) {this->audioStreamConfig->set_stream_is_encrypt(value);}
+	void setVideoStreamStrategy(mimc::STREAM_STRATEGY value) {this->videoStreamConfig->set_stream_strategy(value);}
+	void setVideoStreamIsEncrypt(bool value) {this->videoStreamConfig->set_stream_is_encrypt(value);}
 
 	int getChid() const {return this->chid;}
 	long getUuid() const {return this->uuid;}
@@ -60,6 +66,12 @@ public:
 	std::string getAppAccount() const {return this->appAccount;}
 	long getAppId() const {return this->appId;}
 	std::string getAppPackage() const {return this->appPackage;}
+	int getRegionBucket() const {return this->regionBucket;}
+	std::string getFeDomain() const {return this->feDomain;}
+	std::string getRelayDomain() const {return this->relayDomain;}
+	std::vector<std::string>& getFeAddresses() {return this->feAddresses;}
+	std::vector<std::string>& getRelayAddresses() {return this->relayAddresses;}
+	pthread_mutex_t& getAddressMutex() {return this->mutex_1;}
 	int getTestPacketLoss() const {return this->testPacketLoss;}
 	OnlineStatus getOnlineStatus() const {return this->onlineStatus;}
 	std::string getClientAttrs() const {return join(clientAttrs);}
@@ -80,10 +92,13 @@ public:
 	unsigned long getP2PIntranetConnId(long chatId) const;
 	unsigned long getP2PInternetConnId(long chatId) const;
 
-	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const bool isStore = true);
+	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const std::string& bizType = "", const bool isStore = true);
 	long dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
-	bool sendRtsData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType = RELAY);
+	bool sendRtsData(long chatId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
 	void closeCall(long chatId, std::string byeReason = "");
+
+	void resetRelayLinkState();
+	void handleXMDConnClosed(unsigned long connId, ConnCloseType type);
 
 	bool login();
 	bool logout();
@@ -93,14 +108,35 @@ public:
 	void registerMessageHandler(MessageHandler* handler);
 	void registerRTSCallEventHandler(RTSCallEventHandler* handler);
 
+	MIMCTokenFetcher* getTokenFetcher() const;
 	OnlineStatusHandler* getStatusHandler() const;
 	MessageHandler* getMessageHandler() const;
 	RTSCallEventHandler* getRTSCallEventHandler() const;
 
 	void checkToRunXmdTranseiver();
 
-	static void *onLaunched(void *arg);
+	static void* onLaunched(void *arg);
+
+	static bool fetchServerAddr(User* user);
 private:
+	bool permitLogin;
+	std::string cachePath;
+	std::string cacheFile;
+	bool cacheExist;
+	bool tokenExpired;
+	bool addressInvalid;
+	bool tokenFetchSucceed;
+	bool serverFetchSucceed;
+	bool parseToken(const char* str, json_object*& pobj);
+	bool parseServerAddr(const char* str, json_object*& pobj);
+	static void createCacheFileIfNotExist(User* user);
+	static bool fetchToken(User* user);
+	const std::string& getCachePath() const {return this->cachePath;}
+	const std::string& getCacheFile() const {return this->cacheFile;} 
+
+	std::vector<std::string> feAddresses;
+	std::vector<std::string> relayAddresses;
+
 	int chid;
 	long uuid;
 	std::string resource;
@@ -109,6 +145,9 @@ private:
 	long appId;
 	std::string appAccount;
 	std::string appPackage;
+	int regionBucket;
+	std::string feDomain;
+	std::string relayDomain;
 
 	long lastLoginTimestamp;
 	long lastCreateConnTimestamp;
@@ -117,7 +156,6 @@ private:
 	long latestLegalRelayLinkStateTs;
 
 	int testPacketLoss;
-	bool permitLogin;
 	OnlineStatus onlineStatus;
 	RelayLinkState relayLinkState;
 	unsigned long relayConnId;
@@ -136,9 +174,9 @@ private:
 
 	Connection* conn;
 	PacketManager* packetManager;
-	static void *sendPacket(void *arg);
-	static void *receivePacket(void *arg);
-	static void *checkTimeout(void *arg);
+	static void* sendPacket(void *arg);
+	static void* receivePacket(void *arg);
+	static void* checkTimeout(void *arg);
 
 	MIMCTokenFetcher* tokenFetcher;
 	OnlineStatusHandler* statusHandler;
@@ -157,7 +195,8 @@ private:
 	mimc::BindRelayResponse bindRelayResponse;
 
 	pthread_t sendThread, receiveThread, checkThread;
-	pthread_mutex_t mutex;
+	pthread_mutex_t mutex_0;
+	pthread_mutex_t mutex_1;
 
 	void relayConnScanAndCallBack();
 	void rtsScanAndCallBack();

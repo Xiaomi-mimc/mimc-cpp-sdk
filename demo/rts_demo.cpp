@@ -124,14 +124,14 @@ private:
 
 class AVRTSCallEventHandler : public RTSCallEventHandler {
 public:
-	virtual LaunchedResponse onLaunched(long chatId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
+	virtual LaunchedResponse onLaunched(long chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
 		LaunchedResponse response = LaunchedResponse(true, LAUNCH_OK);
 		chatIds.push_back(chatId);
 
 		return response;
 	}
 
-	virtual void onAnswered(long chatId, bool accepted, const std::string& errmsg) {
+	virtual void onAnswered(long chatId, bool accepted, const std::string errmsg) {
 		if (accepted) {
 			chatIds.push_back(chatId);
 		} else {
@@ -139,7 +139,7 @@ public:
 		}
 	}
 
-	virtual void onClosed(long chatId, const std::string& errmsg) {
+	virtual void onClosed(long chatId, const std::string errmsg) {
 		XMDLoggerWrapper::instance()->info("onClosed: chatId is %ld, error message is %s", chatId, errmsg.c_str());
 		for (list<long>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
 			if (*iter == chatId) {
@@ -149,7 +149,7 @@ public:
 		}
 	}
 
-	virtual void handleData(long chatId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
+	virtual void handleData(long chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
 		user->sendRtsData(chatId, data, dataType, channelType);
 		if (chatDataMap.count(chatId) == 0) {
 			list<string> dataList;
@@ -160,6 +160,14 @@ public:
 			audioDataList.push_back(data);
 		}
 	}
+
+	virtual void handleSendDataSucc(long chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("handleSendDataSucc: chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    }
+
+    virtual void handleSendDataFail(long chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("handleSendDataFail: chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    }
 
 	string getChatData(long chatId) {
 		string chatData;
@@ -234,6 +242,8 @@ public:
 		file.close();
 
 		string rtsData(buffer, size);
+		delete buffer;
+		buffer = NULL;
 
 		string resource1 = Utils::generateRandomString(8);
 		User* user1 = new User(appAccount1, resource1);

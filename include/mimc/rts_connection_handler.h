@@ -5,6 +5,7 @@
 #include <mimc/rts_connection_info.h>
 #include <mimc/user.h>
 #include <mimc/error.h>
+#include <algorithm>
 
 class RtsConnectionHandler : public ConnectionHandler {
 public:
@@ -50,9 +51,18 @@ public:
 		RtsConnectionInfo* rtsConnectionInfo = (RtsConnectionInfo*)ctx;
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->error("Relay connection create failed");
-			this->user->getXmdTransceiver()->closeConnection(connId);
 			this->user->getCurrentChats()->clear();
 			this->user->resetRelayLinkState();
+			pthread_mutex_lock(&user->getAddressMutex());
+			std::vector<std::string>::iterator it;
+			it = find(this->user->getRelayAddresses().begin(), this->user->getRelayAddresses().end(), rtsConnectionInfo->getAddress());
+			if (it != this->user->getRelayAddresses().end()) {
+				this->user->getRelayAddresses().erase(it);
+			}
+			if (this->user->getRelayAddresses().empty()) {
+				this->user->setAddressInvalid(true);
+			}
+			pthread_mutex_unlock(&user->getAddressMutex());
 		}
 		delete rtsConnectionInfo;
 	}

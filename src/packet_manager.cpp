@@ -219,7 +219,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 		std::string challenge = resp.challenge();
 		connection->setChallengeAndBodyKey(challenge);
 		connection->setState(HANDSHAKE_CONNECTED);
-		XMDLoggerWrapper::instance()->info("connresp receive succeed, connection build succeed");
+		XMDLoggerWrapper::instance()->info("connresp receive succeed, connection build succeed, user is %s", user->getAppAccount().c_str());
 	}
 	else if (cmd == BODY_CLIENTHEADER_CMD_BIND) {
 		ims::XMMsgBindResp resp;
@@ -250,14 +250,15 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 		if (onlineStatus == Offline) {
 			
 		} else {
-			user->setPermitLogin(true);
+
 		}
 		user->setOnlineStatus(onlineStatus);
 		if (user->getStatusHandler() != NULL) {
 			user->getStatusHandler()->statusChange(onlineStatus, resp.error_type(), resp.error_reason(), resp.error_desc());
 		}
 		if (resp.error_type() == "token-expired") {
-			user->login();
+			XMDLoggerWrapper::instance()->warn("bindresp receive succeed, error_type is token-expired, user is %s", user->getAppAccount().c_str());
+			user->setTokenExpired(true);
 		}
 	}
 	else if (cmd == BODY_CLIENTHEADER_CMD_SECMSG) {
@@ -346,7 +347,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							
 							continue;
 						}
-						p2pMimcMessages.push_back(MIMCMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.to().appaccount(), p2pMessage.to().resource(), p2pMessage.payload(), mimcMessagePacket.timestamp()));
+						p2pMimcMessages.push_back(MIMCMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.to().appaccount(), p2pMessage.to().resource(), p2pMessage.payload(), p2pMessage.biztype(), mimcMessagePacket.timestamp()));
 					}
 				}
 				if (p2pMimcMessages.size() > 0) {
@@ -378,7 +379,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						if (!inviteRequest.has_streamtype() || inviteRequest.members_size() == 0) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: INVALID_PARAM");
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "INVALID_PARAM");
-							return -1;
+							return 0;
 						}
 
 						mimc::UserInfo from;
@@ -394,13 +395,13 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						if (!uuid_in_members) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: MEMBERS_NOT_CONTAIN_SENDER");
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "MEMBERS_NOT_CONTAIN_SENDER");
-							return -1;
+							return 0;
 						}
 
 						if (user->getCurrentChats()->size() == user->getMaxCallNum()) {
 							XMDLoggerWrapper::instance()->warn("In INVITE_REQUEST, currentChats size has reached maxCallNum %d!", user->getMaxCallNum());
 							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_REFUSE, "USER_BUSY");
-							return -1;
+							return 0;
 						}
 						if (user->getRelayLinkState() == NOT_CREATED) {
 							
@@ -410,7 +411,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							if (connId == 0) {
 								XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RELAY CAN NOT BE CONNECTED");
 								RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_OFFLINE, "RELAY CAN NOT BE CONNECTED");
-								return -1;
+								return 0;
 							}
 							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
@@ -439,7 +440,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						{
 						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
-							return -1;
+							return 0;
 						}
 						mimc::CreateResponse createResponse;
 						if (!createResponse.ParseFromString(rtsMessage.payload())) {
@@ -451,14 +452,14 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							user->getCurrentChats()->erase(chatId);
 							RtsSendData::closeRelayConnWhenNoChat(user);
 							user->getRTSCallEventHandler()->onAnswered(chatId, false, "param is abnormal");
-							return -1;
+							return 0;
 						}
 						if (rtsMessage.chattype() == mimc::SINGLE_CHAT && createResponse.members_size() != 2) {
 							
 							user->getCurrentChats()->erase(chatId);
 							RtsSendData::closeRelayConnWhenNoChat(user);
 							user->getRTSCallEventHandler()->onAnswered(chatId, false, "SINGLE_CHAT MEMBER SIZE IS NOT 2");
-							return -1;
+							return 0;
 						}
 
 						
@@ -492,7 +493,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						{
 						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
-							return -1;
+							return 0;
 						}
 						mimc::ByeRequest byeRequest;
 						if (!byeRequest.ParseFromString(rtsMessage.payload())) {
@@ -526,7 +527,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						if (!byeResponse.has_result()) {
 							
-							return -1;
+							return 0;
 						}
 
 						user->getCurrentChats()->erase(chatId);
@@ -537,7 +538,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					case mimc::UPDATE_REQUEST:
 						{
 						if (user->getCurrentChats()->count(chatId) == 0) {
-							return -1;
+							return 0;
 						}
 						mimc::UpdateRequest updateRequest;
 						if (!updateRequest.ParseFromString(rtsMessage.payload())) {
@@ -548,13 +549,13 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						if (!updateRequest.has_user()) {
 							
 							RtsSendSignal::sendUpdateResponse(user, chatId, mimc::PARAMETER_ERROR);
-							return -1;
+							return 0;
 						}
 						const mimc::UserInfo& toUser = updateRequest.user();
 						if (!toUser.has_internetip() || !toUser.has_internetport() || !toUser.has_intranetip() || !toUser.has_intranetport()) {
 							
 							RtsSendSignal::sendUpdateResponse(user, chatId, mimc::PARAMETER_ERROR);
-							return -1;
+							return 0;
 						}
 						P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 						chatSession.setPeerUser(toUser);
@@ -565,7 +566,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						{
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							
-							return -1;
+							return 0;
 						}
 						mimc::UpdateResponse updateResponse;
 						if (!updateResponse.ParseFromString(rtsMessage.payload())) {
@@ -574,7 +575,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						if (!updateResponse.has_result()) {
 							
-							return -1;
+							return 0;
 						}
 						P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 						chatSession.setChatState(RUNNING);

@@ -31,7 +31,7 @@ void XMDLoggerWrapper::externalLog(ExternalLog* externalLog) {
 }
 
 void XMDLoggerWrapper::setXMDLogLevel(XMDLogLevel level) {
-   _logLevel = level;
+    _logLevel = level;
 }
 
 
@@ -42,18 +42,26 @@ void XMDLoggerWrapper::debug(const char* format, ...) {
     if (_logLevel < XMD_DEBUG) {
         return;
     }
-    const int LOG_MAX_LEN = 1024;
-    char buf[LOG_MAX_LEN];
+    int LOG_MAX_LEN = 1024;
     va_list args;
     va_start(args, format);
-    vsnprintf(buf, LOG_MAX_LEN, format, args);
-    va_end(args);
-
-    if (_externalLog != NULL) {
-        _externalLog->debug(buf);
-        return;
+    bool isSucceed = false;
+    while (!isSucceed) {
+        char buf[LOG_MAX_LEN];
+        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
+            isSucceed = true;
+            if (_externalLog != NULL) {
+                 _externalLog->debug(buf);
+            } else {
+                std::cout << buf << std::endl;
+            }
+        } else {
+            LOG_MAX_LEN = LOG_MAX_LEN * 2;
+            va_start(args, format);
+        }
     }
-    std::cout<<buf<<std::endl;
+
+    va_end(args);
 }
 
 void XMDLoggerWrapper::info(const char* format, ...) {
@@ -64,18 +72,26 @@ void XMDLoggerWrapper::info(const char* format, ...) {
         return;
     }
 
-    const int LOG_MAX_LEN = 1024;
-    char buf[LOG_MAX_LEN];
+    int LOG_MAX_LEN = 1024;
     va_list args;
     va_start(args, format);
-    vsnprintf(buf, LOG_MAX_LEN, format, args);
-    va_end(args);
-
-    if (_externalLog != NULL) {
-        _externalLog->info(buf);
-        return;
+    bool isSucceed = false;
+    while (!isSucceed) {
+        char buf[LOG_MAX_LEN];
+        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
+            isSucceed = true;
+            if (_externalLog != NULL) {
+                 _externalLog->info(buf);
+            } else {
+                std::cout << buf << std::endl;
+            }
+        } else {
+            LOG_MAX_LEN = LOG_MAX_LEN * 2;
+            va_start(args, format);
+        }
     }
-    std::cout<<buf<<std::endl;
+
+    va_end(args);
 }
 
 void XMDLoggerWrapper::warn(const char* format, ...) {
@@ -86,18 +102,26 @@ void XMDLoggerWrapper::warn(const char* format, ...) {
         return;
     }
 
-    const int LOG_MAX_LEN = 1024;
-    char buf[LOG_MAX_LEN];
+    int LOG_MAX_LEN = 1024;
     va_list args;
     va_start(args, format);
-    vsnprintf(buf, LOG_MAX_LEN, format, args);
-    va_end(args);
-
-    if (_externalLog != NULL) {
-        _externalLog->warn(buf);
-        return;
+    bool isSucceed = false;
+    while (!isSucceed) {
+        char buf[LOG_MAX_LEN];
+        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
+            isSucceed = true;
+            if (_externalLog != NULL) {
+                 _externalLog->warn(buf);
+            } else {
+                std::cout << buf << std::endl;
+            }
+        } else {
+            LOG_MAX_LEN = LOG_MAX_LEN * 2;
+            va_start(args, format);
+        }
     }
-    std::cout<<buf<<std::endl;
+
+    va_end(args);
 }
 
 void XMDLoggerWrapper::error(const char* format, ...) {
@@ -108,17 +132,25 @@ void XMDLoggerWrapper::error(const char* format, ...) {
         return;
     }
 
-    const int LOG_MAX_LEN = 1024;
-    char buf[LOG_MAX_LEN];
+    int LOG_MAX_LEN = 1024;
     va_list args;
     va_start(args, format);
-    vsnprintf(buf, LOG_MAX_LEN, format, args);
-    va_end(args);
-
-    if (_externalLog != NULL) {
-        _externalLog->error(buf);
-        return;
+    bool isSucceed = false;
+    while (!isSucceed) {
+        char buf[LOG_MAX_LEN];
+        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
+            isSucceed = true;
+            if (_externalLog != NULL) {
+                 _externalLog->error(buf);
+            } else {
+                std::cout << buf << std::endl;
+            }
+        } else {
+            LOG_MAX_LEN = LOG_MAX_LEN * 2;
+            va_start(args, format);
+        }
     }
-    std::cout<<buf<<std::endl;
+
+    va_end(args);
 }
 

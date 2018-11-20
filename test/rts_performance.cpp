@@ -161,6 +161,7 @@ protected:
 	void logIn(User* user, RtsPerformanceHandler* callEventHandler) {
 		long loginTs = time(NULL);
 		user->login();
+		XMDLoggerWrapper::instance()->info("user %s called login", user->getAppAccount().c_str());
 		while (time(NULL) - loginTs < LOGIN_TIMEOUT && user->getOnlineStatus() == Offline) {
 			usleep(50000);
 		}

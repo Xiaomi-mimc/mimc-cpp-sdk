@@ -16,7 +16,7 @@ cc_library(
         includes = ["include"],
         hdrs = glob(["include/curl/*.h"]),
         srcs = [
-        "lib/.libs/libcurl.a"
+            "lib/.libs/libcurl.a"
         ],
         deps = [],
 )

@@ -23,6 +23,7 @@ cc_library(
         "//msg-libs/xmdtransceiver",
         "//third-party/protobuf-2_5_0",
         "//third-party/json-c",
+        "//third-party/curl-7-59-0"
     ]
 )
 
@@ -87,6 +88,7 @@ cc_test(
          "-lssl",
          "-Wl,--gc-sections",
     ],
+    linkstatic=True,
     includes = ["."],
     srcs = glob([
         "test/mimc_test.cpp",
@@ -146,6 +148,34 @@ cc_test(
     includes = ["."],
     srcs = glob([
        "test/rts_performance.cpp",
+       "test/**/*.h",
+    ]),
+    deps = [
+        "//third-party/gtest-170",
+        ":mimc_cpp_sdk",
+        "//third-party/curl-7-59-0"
+    ]
+)
+
+cc_test(
+    name = "rts_efficiency_test",    
+    copts = [
+        "-Os",
+        "-fno-exceptions",
+        "-fno-rtti",
+        "-ffunction-sections",
+        "-fdata-sections",
+#        "-DSTAGING",
+    ],
+    linkopts = [
+        "-lz",
+        "-lssl",
+        "-Wl,--gc-sections",
+    ],
+    linkstatic=True,
+    includes = ["."],
+    srcs = glob([
+       "test/rts_efficiency.cpp",
        "test/**/*.h",
     ]),
     deps = [

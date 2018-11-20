@@ -1,6 +1,8 @@
 #ifndef MIMC_CPP_SDK_RTS_CONNECTION_INFO_H
 #define MIMC_CPP_SDK_RTS_CONNECTION_INFO_H
 
+#include <string>
+
 enum RtsConnType {
 	RELAY_CONN,
 	INTRANET_CONN,
@@ -9,9 +11,13 @@ enum RtsConnType {
 
 class RtsConnectionInfo {
 public:
-	RtsConnectionInfo(RtsConnType connType, long chatId = -1)
-		: rtsConnType(connType), chatId(chatId) {
+	RtsConnectionInfo(std::string address, RtsConnType connType, long chatId = -1)
+		: address(address), rtsConnType(connType), chatId(chatId) {
 		
+	}
+
+	std::string getAddress() {
+		return this->address;
 	}
 
 	RtsConnType getConnType() {
@@ -22,6 +28,7 @@ public:
 		return this->chatId;
 	}
 private:
+	std::string address;
 	RtsConnType rtsConnType;
 	long chatId;
 };
