@@ -57,6 +57,8 @@ User::User(std::string appAccount, std::string resource, std::string cachePath) 
 
 	this->audioStreamConfig = RtsStreamConfig(ACK_TYPE, ACK_STREAM_WAIT_TIME_MS, false);
 	this->videoStreamConfig = RtsStreamConfig(FEC_TYPE, ACK_STREAM_WAIT_TIME_MS, false);
+	this->xmdSendBufferSize = 0;
+	this->xmdRecvBufferSize = 0;
 
 	this->currentChats = new std::map<long, P2PChatSession>();
 	this->onlaunchChats = new std::map<long, pthread_t>();
@@ -1124,6 +1126,12 @@ void User::checkToRunXmdTranseiver() {
 		this->rtsStreamHandler = new RtsStreamHandler(this);
 		this->xmdTranseiver->registerConnHandler(this->rtsConnectionHandler);
 		this->xmdTranseiver->registerStreamHandler(this->rtsStreamHandler);
+		if (this->xmdSendBufferSize > 0) {
+			this->xmdTranseiver->setSendBufferSize(this->xmdSendBufferSize);
+		}
+		if (this->xmdRecvBufferSize > 0) {
+			this->xmdTranseiver->setRecvBufferSize(this->xmdRecvBufferSize);
+		}
 		this->xmdTranseiver->run();
 		usleep(100000);
 	}

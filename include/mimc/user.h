@@ -55,8 +55,8 @@ public:
 
 	void setAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {this->audioStreamConfig = audioStreamConfig;}
 	void setVideoStreamConfig(const RtsStreamConfig& videoStreamConfig) {this->videoStreamConfig = videoStreamConfig;}
-	void setSendBufferSize(int size) {if(this->xmdTranseiver) {this->xmdTranseiver->setSendBufferSize(size);}}
-	void setRecvBufferSize(int size) {if(this->xmdTranseiver) {this->xmdTranseiver->setRecvBufferSize(size);}}
+	void setSendBufferSize(int size) {if (size > 0) {if(this->xmdTranseiver) {this->xmdTranseiver->setSendBufferSize(size);} else {this->xmdSendBufferSize = size;}}}
+	void setRecvBufferSize(int size) {if (size > 0) {if(this->xmdTranseiver) {this->xmdTranseiver->setRecvBufferSize(size);} else {this->xmdRecvBufferSize = size;}}}
 	int getSendBufferSize() {return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferSize() : 0;}
 	int getRecvBufferSize() {return this->xmdTranseiver ? this->xmdTranseiver->getRecvBufferSize() : 0;}
 	float getSendBufferUsageRate() {return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferUsageRate() : 0;}
@@ -187,15 +187,16 @@ private:
 	MIMCTokenFetcher* tokenFetcher;
 	OnlineStatusHandler* statusHandler;
 	MessageHandler* messageHandler;
+	RTSCallEventHandler* rtsCallEventHandler;
 
 	RtsConnectionHandler* rtsConnectionHandler;
 	RtsStreamHandler* rtsStreamHandler;
 
-	RTSCallEventHandler* rtsCallEventHandler;
-
 	XMDTransceiver* xmdTranseiver;
 	RtsStreamConfig audioStreamConfig;
 	RtsStreamConfig videoStreamConfig;
+	int xmdSendBufferSize;
+	int xmdRecvBufferSize;
 	std::map<long, P2PChatSession>* currentChats;
 	std::map<long, pthread_t>* onlaunchChats;
 	mimc::BindRelayResponse bindRelayResponse;
