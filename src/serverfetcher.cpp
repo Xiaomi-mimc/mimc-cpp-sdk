@@ -24,7 +24,7 @@ std::string ServerFetcher::fetchServerAddr(const char* const &url, std::string l
 
 	std::string url_get = url;
 	url_get += "?";
-	for(std::map<std::string, std::string>::const_iterator iter = paramMap.cbegin(); iter != paramMap.cend(); ++iter) {
+	for(std::map<std::string, std::string>::const_iterator iter = paramMap.begin(); iter != paramMap.end(); ++iter) {
 		url_get += iter->first + "=" + iter->second + "&";
 	}
 

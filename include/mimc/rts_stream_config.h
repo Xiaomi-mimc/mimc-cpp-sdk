@@ -5,9 +5,6 @@
 
 class RtsStreamConfig {
 public:
-	RtsStreamConfig() {
-
-	}
 	RtsStreamConfig(RtsStreamType type, unsigned int ackStreamWaitTimeMs, bool isEncrypt) 
 	: _type(type), _ackStreamWaitTimeMs(ackStreamWaitTimeMs), _isEncrypt(isEncrypt) {
 

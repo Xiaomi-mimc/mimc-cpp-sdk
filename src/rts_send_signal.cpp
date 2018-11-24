@@ -188,7 +188,7 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, long chatId, mimc::RTSR
 	updateResponse.SerializeToArray(updateResponseBytes, update_response_size);
 	std::string updateResponseBytesStr(updateResponseBytes, update_response_size);
 
-	P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 
 	std::string packetId = sendRtsMessage(user, chatId, mimc::UPDATE_RESPONSE, chatSession.getChatType(), updateResponseBytesStr);
 	

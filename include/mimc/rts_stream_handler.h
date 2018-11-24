@@ -35,26 +35,33 @@ public:
 			if (!bindRelayResponse.ParseFromString(userPacket.payload())) {
 				
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
+				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 				this->user->getCurrentChats()->clear();
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				this->user->resetRelayLinkState();
 				return;
 			}
 			if (!bindRelayResponse.has_result() || !bindRelayResponse.has_internet_ip() || !bindRelayResponse.has_relay_ip() || !bindRelayResponse.has_internet_port() || !bindRelayResponse.has_relay_port()) {
 				
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
+				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 				this->user->getCurrentChats()->clear();
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				this->user->resetRelayLinkState();
 				return;
 			}
 			if (!bindRelayResponse.result()) {
 				
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
+				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 				this->user->getCurrentChats()->clear();
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				this->user->resetRelayLinkState();
 				return;
 			}
 			this->user->setBindRelayResponse(bindRelayResponse);
 			this->user->setRelayLinkState(SUCC_CREATED);
+			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			std::map<long, P2PChatSession>* currentChats = this->user->getCurrentChats();
 			for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 				const long& chatId = iter->first;
@@ -79,6 +86,7 @@ public:
 
 				}
 			}
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else if (userPacket.pkt_type() == mimc::PING_RELAY_RESPONSE) {
 			mimc::PingRelayResponse pingRelayResponse;
 			if (!pingRelayResponse.ParseFromString(userPacket.payload())) {
@@ -94,18 +102,21 @@ public:
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
 				this->user->resetRelayLinkState();
 				RtsSendData::createRelayConn(this->user);
+				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 				std::map<long, P2PChatSession>* currentChats = this->user->getCurrentChats();
 				for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 					P2PChatSession& chatSession = iter->second;
 					chatSession.setChatState(WAIT_SEND_UPDATE_REQUEST);
 					chatSession.setLatestLegalChatStateTs(time(NULL));
 				}
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 			}
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_AUDIO) {
 			long chatId = userPacket.chat_id();
 			
+			pthread_rwlock_rdlock(&this->user->getChatsRwlock());
 			if (this->user->getCurrentChats()->count(chatId) == 0) {
-				
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				return;
 			}
 			XMDLoggerWrapper::instance()->info("In USER_DATA_AUDIO");
@@ -117,13 +128,15 @@ public:
 			} else if (conn_id == this->user->getP2PInternetConnId(chatId)) {
 				this->user->getRTSCallEventHandler()->handleData(chatId, data, AUDIO, P2P_INTERNET);
 			} else {
-				return;
+				
 			}
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_VIDEO) {
 			long chatId = userPacket.chat_id();
 			
+			pthread_rwlock_rdlock(&this->user->getChatsRwlock());
 			if (this->user->getCurrentChats()->count(chatId) == 0) {
-				
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				return;
 			}
 			XMDLoggerWrapper::instance()->info("In USER_DATA_VIDEO");
@@ -135,8 +148,9 @@ public:
 			} else if (conn_id == this->user->getP2PInternetConnId(chatId)) {
 				this->user->getRTSCallEventHandler()->handleData(chatId, data, VIDEO, P2P_INTERNET);
 			} else {
-				return;
+				
 			}
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		}
 	}
 

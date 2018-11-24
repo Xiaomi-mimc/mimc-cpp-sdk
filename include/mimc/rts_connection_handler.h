@@ -27,19 +27,25 @@ public:
 			if (!RtsSendData::sendBindRelayRequest(this->user)) {
 				
 				this->user->getXmdTransceiver()->closeConnection(connId);
+				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 				this->user->getCurrentChats()->clear();
+				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 				this->user->resetRelayLinkState();
 			}
 		} else if (rtsConnectionInfo->getConnType() == INTRANET_CONN) {
 			
 			long chatId = rtsConnectionInfo->getChatId();
+			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
 			p2pChatSession.setP2PIntranetConnId(connId);
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else if (rtsConnectionInfo->getConnType() == INTERNET_CONN) {
 			
 			long chatId = rtsConnectionInfo->getChatId();
+			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
 			p2pChatSession.setP2PInternetConnId(connId);
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else {
 			
 		}
@@ -51,7 +57,10 @@ public:
 		RtsConnectionInfo* rtsConnectionInfo = (RtsConnectionInfo*)ctx;
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->error("Relay connection create failed");
+
+			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			this->user->getCurrentChats()->clear();
+			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 			this->user->resetRelayLinkState();
 			pthread_mutex_lock(&user->getAddressMutex());
 			std::vector<std::string>::iterator it;

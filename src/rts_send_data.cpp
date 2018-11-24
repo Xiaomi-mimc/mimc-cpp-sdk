@@ -114,11 +114,13 @@ bool RtsSendData::sendBindRelayRequest(User* user) {
 }
 
 bool RtsSendData::sendPingRelayRequest(User* user) {
+	pthread_rwlock_rdlock(&user->getChatsRwlock());
 	if (user->getCurrentChats()->empty() || user->getRelayLinkState() != SUCC_CREATED) {
-		
+		pthread_rwlock_unlock(&user->getChatsRwlock());
 		return false;
 	}
 
+	pthread_rwlock_unlock(&user->getChatsRwlock());
 	mimc::PingRelayRequest pingRelayRequest;
 	pingRelayRequest.set_uuid(user->getUuid());
 	pingRelayRequest.set_resource(user->getResource());

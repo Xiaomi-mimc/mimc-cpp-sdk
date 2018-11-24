@@ -53,8 +53,8 @@ public:
 	void setTokenExpired(bool tokenExpired) {this->tokenExpired = tokenExpired;}
 	void setAddressInvalid(bool addressInvalid) {this->addressInvalid = addressInvalid;}
 
-	void setAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {this->audioStreamConfig = audioStreamConfig;}
-	void setVideoStreamConfig(const RtsStreamConfig& videoStreamConfig) {this->videoStreamConfig = videoStreamConfig;}
+	void initAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {this->audioStreamConfig = audioStreamConfig;}
+	void initVideoStreamConfig(const RtsStreamConfig& videoStreamConfig) {this->videoStreamConfig = videoStreamConfig;}
 	void setSendBufferSize(int size) {if (size > 0) {if(this->xmdTranseiver) {this->xmdTranseiver->setSendBufferSize(size);} else {this->xmdSendBufferSize = size;}}}
 	void setRecvBufferSize(int size) {if (size > 0) {if(this->xmdTranseiver) {this->xmdTranseiver->setRecvBufferSize(size);} else {this->xmdRecvBufferSize = size;}}}
 	int getSendBufferSize() {return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferSize() : 0;}
@@ -77,6 +77,7 @@ public:
 	std::string getRelayDomain() const {return this->relayDomain;}
 	std::vector<std::string>& getFeAddresses() {return this->feAddresses;}
 	std::vector<std::string>& getRelayAddresses() {return this->relayAddresses;}
+	pthread_rwlock_t& getChatsRwlock() {return this->mutex_0;}
 	pthread_mutex_t& getAddressMutex() {return this->mutex_1;}
 	int getTestPacketLoss() const {return this->testPacketLoss;}
 	OnlineStatus getOnlineStatus() const {return this->onlineStatus;}
@@ -95,8 +96,8 @@ public:
 	unsigned int getMaxCallNum() const {return this->maxCallNum;}
 	const RtsStreamConfig& getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 
-	unsigned long getP2PIntranetConnId(long chatId) const;
-	unsigned long getP2PInternetConnId(long chatId) const;
+	unsigned long getP2PIntranetConnId(long chatId);
+	unsigned long getP2PInternetConnId(long chatId);
 
 	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const std::string& bizType = "", const bool isStore = true);
 	long dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
@@ -170,9 +171,6 @@ private:
 	unsigned short relayAudioStreamId;
 	unsigned int maxCallNum;
 
-	bool isDialCalling;
-	bool isFirstDialCall;
-
 	std::map<std::string, std::string> clientAttrs;
 	std::map<std::string, std::string> cloudAttrs;
 
@@ -202,7 +200,7 @@ private:
 	mimc::BindRelayResponse bindRelayResponse;
 
 	pthread_t sendThread, receiveThread, checkThread;
-	pthread_mutex_t mutex_0;
+	pthread_rwlock_t mutex_0;
 	pthread_mutex_t mutex_1;
 
 	void relayConnScanAndCallBack();
