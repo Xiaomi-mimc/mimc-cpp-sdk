@@ -208,11 +208,6 @@ protected:
     }
 
     //@test
-    void testSendDataBeforeClose() {
-        sendDataBeforeClose(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
-    }
-
-    //@test
     void testOneBrokenNetWorkRecoverBeforeConnTimeout() {
         testOneBrokenNetWorkRecoverBeforeConnTimeout(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
     }
@@ -433,51 +428,6 @@ protected:
         ASSERT_FALSE(from->sendRtsData(chatId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
-    }
-
-    void sendDataBeforeClose(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
-        logIn(from, callEventHandlerFrom);
-        logIn(to, callEventHandlerTo);
-
-        string sendData = Utils::generateRandomString(50);
-
-        long chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
-        ASSERT_TRUE(from->sendRtsData(chatId, sendData, AUDIO));
-        usleep(30000);
-        from->closeCall(chatId);
-
-        RtsMessageData* recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_FALSE(recvData == NULL);
-        ASSERT_EQ(chatId, recvData->getChatId());
-        ASSERT_EQ(AUDIO, recvData->getDataType());
-        ASSERT_EQ(RELAY, recvData->getChannelType());
-        ASSERT_EQ(sendData, recvData->getRecvData());
-
-        RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_FALSE(byeRequest == NULL);
-        ASSERT_EQ(chatId, byeRequest->getChatId());
-        ASSERT_EQ("", byeRequest->getErrmsg());
-
-        RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_FALSE(byeResponse == NULL);
-        ASSERT_EQ(chatId, byeResponse->getChatId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
-
-        chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
-        ASSERT_TRUE(from->sendRtsData(chatId, sendData, VIDEO));
-        to->closeCall(chatId);
-        recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_TRUE(recvData == NULL);
-
-        byeRequest = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_FALSE(byeRequest == NULL);
-        ASSERT_EQ(chatId, byeRequest->getChatId());
-        ASSERT_EQ("", byeRequest->getErrmsg());
-
-        byeResponse = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
-        ASSERT_FALSE(byeResponse == NULL);
-        ASSERT_EQ(chatId, byeResponse->getChatId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
     }
 
     void testOneBrokenNetWorkRecoverBeforeConnTimeout(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
@@ -1076,10 +1026,6 @@ TEST_F(RtsTest, testSendDataToEachOther) {
 
 TEST_F(RtsTest, testSendDataAfterClose) {
     testSendDataAfterClose();
-}
-
-TEST_F(RtsTest, testSendDataBeforeClose) {
-    testSendDataBeforeClose();
 }
 
 TEST_F(RtsTest, testOneBrokenNetWorkRecoverBeforeConnTimeout) {

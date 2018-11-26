@@ -10,6 +10,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
+
 User::User(std::string appAccount, std::string resource, std::string cachePath) 
 	:audioStreamConfig(ACK_TYPE, ACK_STREAM_WAIT_TIME_MS, false), videoStreamConfig(FEC_TYPE, ACK_STREAM_WAIT_TIME_MS, false) {
 	XMDLoggerWrapper::instance()->setXMDLogLevel(XMD_INFO);
