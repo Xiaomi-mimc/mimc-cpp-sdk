@@ -80,6 +80,39 @@ public:
 };
 
 
+void* testrand(void* argc) {
+    int n = 3;
+        for (int i = 0; i < n; i++) {
+            std::cout<<"rand64="<<rand64()<<std::endl;
+            //usleep(1);
+        }
+
+        std::cout<<"1"<<std::endl;
+
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        usleep(1);
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        //std::cout<<t1<<","<<t2<<","<<t3<<std::endl;
+
+        return NULL;
+
+}
+
+void* createthread(void* argc) {
+    pthread_t tid2;
+    pthread_create(&tid2, NULL, testrand, NULL);
+    return NULL;
+}
 
 
 
@@ -143,11 +176,6 @@ TEST(test_xmdtransceiver, test_send_delay) {
 
 */
 
-
-
-
-
-
 TEST(test_xmdtransceiver, test_send_ackstreamData) {
     XMDTransceiver* transceiver = new XMDTransceiver(1, 45699);
     transceiver->registerRecvDatagramHandler(new DataGramHandler());
@@ -186,13 +214,13 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 
 
     std::string testip;
-    int testport;
+    uint16_t testport;
     transceiver2->getPeerInfo(connId, testip, testport);
     XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
     usleep(200000);
-    uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 10, 100, false);
+    uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 100, false);
     std::cout<<"stream id="<<streamId<<std::endl;
 
 
@@ -203,7 +231,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     transceiver->closeStream(connId, streamId);
     usleep(200000);
     transceiver->closeConnection(connId);
-    usleep(100000);
+    usleep(200000);
     transceiver->setSendBufferSize(12345);
     std::cout<<"test="<< connId <<",size="<<transceiver->getSendBufferSize() << std::endl;
 
@@ -223,12 +251,27 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 }
 
 
-
-
-
-
-
 /*
+
+TEST(test_xmdtransceiver, test_rand46) {
+
+    pthread_t tid;
+    pthread_create(&tid, NULL, createthread, NULL);
+    pthread_t tid2;
+    pthread_create(&tid2, NULL, testrand, NULL);
+    pthread_t tid3;
+    pthread_create(&tid3, NULL, testrand, NULL);
+    pthread_t tid4;
+    pthread_create(&tid4, NULL, testrand, NULL);
+    pthread_t tid5;
+    pthread_create(&tid5, NULL, testrand, NULL);
+
+    usleep(200000);
+}
+
+
+
+
 
 
 TEST(test_xmdtransceiver, test_send_fecstreamData) {

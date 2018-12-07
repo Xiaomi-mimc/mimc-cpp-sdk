@@ -84,19 +84,8 @@ int PingThread::checkTimeout(uint64_t conn_id, ConnInfo connInfo) {
         commonData_->deleteConn(conn_id);
         dispatcher_->handleCloseConn(conn_id, CLOSE_TIMEOUT);
         XMDLoggerWrapper::instance()->debug("connection(%ld) timeout", conn_id);
-    } else {
-        std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.begin();
-        for (; it != connInfo.streamMap.end(); it++) {
-            std::stringstream ss_stream;
-            ss_stream << conn_id << it->first;
-            std::string streamKey = ss_stream.str();
-            uint64_t streamLastPacketTime = commonData_->getLastPacketTime(streamKey);
-            if ((streamLastPacketTime != 0) && ((int)(currentTime - streamLastPacketTime) >= it->second.timeout * 1000)) {
-                commonData_->deleteStream(conn_id, it->first);
-                XMDLoggerWrapper::instance()->debug("connection(%ld) stream(%d) timeout", conn_id, it->first);
-            }
-        }
-    }
+    } 
+    
     return 0;
 }
 

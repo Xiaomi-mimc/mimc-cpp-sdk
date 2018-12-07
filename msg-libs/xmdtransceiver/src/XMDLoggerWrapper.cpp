@@ -42,22 +42,28 @@ void XMDLoggerWrapper::debug(const char* format, ...) {
     if (_logLevel < XMD_DEBUG) {
         return;
     }
-    int LOG_MAX_LEN = 1024;
+    const int LOG_MAX_LEN = 5120;
+    int logLen = 1024;
     va_list args;
     va_start(args, format);
-    bool isSucceed = false;
-    while (!isSucceed) {
-        char buf[LOG_MAX_LEN];
-        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
-            isSucceed = true;
+    bool isFinished = false;
+    while (!isFinished) {
+        char buf[logLen];
+        int n = vsnprintf(buf, logLen, format, args);
+        if (n < logLen) {
+            isFinished = true;
             if (_externalLog != NULL) {
                  _externalLog->debug(buf);
             } else {
                 std::cout << buf << std::endl;
             }
         } else {
-            LOG_MAX_LEN = LOG_MAX_LEN * 2;
-            va_start(args, format);
+            if (n < LOG_MAX_LEN) {
+                logLen = n+1;
+                va_start(args, format);
+            } else {
+               isFinished = true; 
+            }
         }
     }
 
@@ -72,22 +78,28 @@ void XMDLoggerWrapper::info(const char* format, ...) {
         return;
     }
 
-    int LOG_MAX_LEN = 1024;
+    const int LOG_MAX_LEN = 5120;
+    int logLen = 1024;
     va_list args;
     va_start(args, format);
-    bool isSucceed = false;
-    while (!isSucceed) {
-        char buf[LOG_MAX_LEN];
-        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
-            isSucceed = true;
+    bool isFinished = false;
+    while (!isFinished) {
+        char buf[logLen];
+        int n = vsnprintf(buf, logLen, format, args);
+        if (n < logLen) {
+            isFinished = true;
             if (_externalLog != NULL) {
                  _externalLog->info(buf);
             } else {
                 std::cout << buf << std::endl;
             }
         } else {
-            LOG_MAX_LEN = LOG_MAX_LEN * 2;
-            va_start(args, format);
+            if (n < LOG_MAX_LEN) {
+                logLen = n+1;
+                va_start(args, format);
+            } else {
+               isFinished = true; 
+            }
         }
     }
 
@@ -102,22 +114,28 @@ void XMDLoggerWrapper::warn(const char* format, ...) {
         return;
     }
 
-    int LOG_MAX_LEN = 1024;
+    const int LOG_MAX_LEN = 5120;
+    int logLen = 1024;
     va_list args;
     va_start(args, format);
-    bool isSucceed = false;
-    while (!isSucceed) {
-        char buf[LOG_MAX_LEN];
-        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
-            isSucceed = true;
+    bool isFinished = false;
+    while (!isFinished) {
+        char buf[logLen];
+        int n = vsnprintf(buf, logLen, format, args);
+        if (n < logLen) {
+            isFinished = true;
             if (_externalLog != NULL) {
                  _externalLog->warn(buf);
             } else {
                 std::cout << buf << std::endl;
             }
         } else {
-            LOG_MAX_LEN = LOG_MAX_LEN * 2;
-            va_start(args, format);
+            if (n < LOG_MAX_LEN) {
+                logLen = n+1;
+                va_start(args, format);
+            } else {
+               isFinished = true; 
+            }
         }
     }
 
@@ -132,22 +150,28 @@ void XMDLoggerWrapper::error(const char* format, ...) {
         return;
     }
 
-    int LOG_MAX_LEN = 1024;
+    const int LOG_MAX_LEN = 5120;
+    int logLen = 1024;
     va_list args;
     va_start(args, format);
-    bool isSucceed = false;
-    while (!isSucceed) {
-        char buf[LOG_MAX_LEN];
-        if (vsnprintf(buf, LOG_MAX_LEN, format, args) < LOG_MAX_LEN) {
-            isSucceed = true;
+    bool isFinished = false;
+    while (!isFinished) {
+        char buf[logLen];
+        int n = vsnprintf(buf, logLen, format, args);
+        if (n < logLen) {
+            isFinished = true;
             if (_externalLog != NULL) {
                  _externalLog->error(buf);
             } else {
                 std::cout << buf << std::endl;
             }
         } else {
-            LOG_MAX_LEN = LOG_MAX_LEN * 2;
-            va_start(args, format);
+            if (n < LOG_MAX_LEN) {
+                logLen = n+1;
+                va_start(args, format);
+            } else {
+               isFinished = true; 
+            }
         }
     }
 

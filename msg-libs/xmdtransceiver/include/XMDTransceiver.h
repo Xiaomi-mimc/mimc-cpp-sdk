@@ -89,12 +89,12 @@ public:
         }
     }
     
-    int sendDatagram(char* ip, int port, char* data, int len, uint64_t delay_ms);
+    int sendDatagram(char* ip, uint16_t port, char* data, int len, uint64_t delay_ms);
 
-    uint64_t createConnection(char* ip, int port, char* data, int len, uint16_t timeout, void* ctx);
+    uint64_t createConnection(char* ip, uint16_t port, char* data, int len, uint16_t timeout, void* ctx);
     int closeConnection(uint64_t connId);
 
-    uint16_t createStream(uint64_t connId, StreamType streamType, uint16_t timeout, uint16_t waitTime, bool isEncrypt);
+    uint16_t createStream(uint64_t connId, StreamType streamType, uint16_t waitTime, bool isEncrypt);
     int closeStream(uint64_t connId, uint16_t streamId);
 
     void registerRecvDatagramHandler(DatagramRecvHandler* handler) { 
@@ -114,11 +114,12 @@ public:
     
     int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx = NULL);
 
-    int updatePeerInfo(uint64_t connId, char* ip, int port);
+    int updatePeerInfo(uint64_t connId, char* ip, uint16_t port);
 
-    int getPeerInfo(uint64_t connId, std::string &ip, int& port);
+    int getPeerInfo(uint64_t connId, std::string &ip, uint16_t& port);
 
-    int getLocalInfo(std::string &ip, int& port);
+    int getLocalInfo(std::string &ip, uint16_t& port);
+    int getLocalInfo(uint32_t &ip, uint16_t& port);
     
     void run();
     void join();

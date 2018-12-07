@@ -25,6 +25,17 @@ uint64_t rand64() {
     return (r1 | (r2 << 32));
 }
 
+uint64_t rand64(uint32_t ip, uint16_t port) {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srandom(tv.tv_sec);
+    uint64_t r1 = random();
+    srandom((tv.tv_usec ^ ip ^ port));
+    uint64_t r2 = random();
+
+    return (r1 | (r2 << 32));
+}
+
 
 uint32_t rand32() {
     unsigned int seed = 0x00000000FFFFFFFF & current_ms();

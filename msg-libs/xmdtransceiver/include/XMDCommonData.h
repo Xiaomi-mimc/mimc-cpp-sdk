@@ -60,7 +60,6 @@ enum ConnectionState {
 };
 
 struct StreamInfo {
-    int timeout;
     int callbackWaitTimeout;
     bool isEncrypt;
     StreamType sType;

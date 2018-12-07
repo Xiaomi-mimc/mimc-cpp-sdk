@@ -6,7 +6,7 @@
 #include <openssl/aes.h>
 #include <sstream>
 
-int XMDTransceiver::sendDatagram(char* ip, int port, char* data, int len, uint64_t delay_ms) {
+int XMDTransceiver::sendDatagram(char* ip, uint16_t port, char* data, int len, uint64_t delay_ms) {
     if (len > MAX_PACKET_LEN) {
         XMDLoggerWrapper::instance()->warn("packet too large,len=%d.", len);
         return -1;
@@ -37,12 +37,16 @@ int XMDTransceiver::sendDatagram(char* ip, int port, char* data, int len, uint64
     return 0;
 }
 
-uint64_t XMDTransceiver::createConnection(char* ip, int port, char* data, int len, uint16_t timeout, void* ctx) {
+uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, int len, uint16_t timeout, void* ctx) {
     if (NULL == ip || (NULL == data && len != 0)) {
         XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return 0;
     }
-    uint64_t conn_id = rand64();
+    
+    uint32_t local_ip = 0;
+    uint16_t local_port = 0;
+    getLocalInfo(local_ip, local_port);
+    uint64_t conn_id = rand64(local_ip, local_port);
 
     RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
     
@@ -122,7 +126,7 @@ int XMDTransceiver::closeConnection(uint64_t connId) {
     return 0;
 }
 
-uint16_t XMDTransceiver::createStream(uint64_t connId, StreamType streamType, uint16_t timeout, uint16_t waitTime, bool isEncrypt) {  
+uint16_t XMDTransceiver::createStream(uint64_t connId, StreamType streamType, uint16_t waitTime, bool isEncrypt) {  
     ConnInfo connInfo;
     if(!commonData_->getConnInfo(connId, connInfo)){
         return 0;
@@ -130,7 +134,6 @@ uint16_t XMDTransceiver::createStream(uint64_t connId, StreamType streamType, ui
     
     uint16_t streamId = commonData_->getConnStreamId(connId);
     StreamInfo streamInfo;
-    streamInfo.timeout = timeout;
     streamInfo.sType = streamType;
     streamInfo.isEncrypt = isEncrypt;
     streamInfo.callbackWaitTimeout = waitTime;
@@ -215,7 +218,7 @@ int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, i
 }
 
 
-int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, int port) {
+int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, uint16_t port) {
     if (NULL == ip) {
         XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return -1;
@@ -224,7 +227,7 @@ int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, int port) {
     return commonData_->updateConnIpInfo(connId, (in_addr_t)inet_addr(ip), port);
 }
 
-int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int& port) {
+int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, uint16_t& port) {
     ConnInfo connInfo;
     if(!commonData_->getConnInfo(connId, connInfo)){
         XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
@@ -251,7 +254,7 @@ int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int& port) {
     return 0;
 }
 
-int XMDTransceiver::getLocalInfo(std::string &ip, int& port) {
+int XMDTransceiver::getLocalInfo(std::string &ip, uint16_t& port) {
     struct sockaddr_in  loc_addr;  
     socklen_t len = sizeof(loc_addr);  
     memset(&loc_addr, 0, len); 
@@ -284,6 +287,29 @@ int XMDTransceiver::getLocalInfo(std::string &ip, int& port) {
 
     return 0;
 }
+
+int XMDTransceiver::getLocalInfo(uint32_t &ip, uint16_t& port) {
+    struct sockaddr_in  loc_addr;  
+    socklen_t len = sizeof(loc_addr);  
+    memset(&loc_addr, 0, len); 
+    if (-1 == getsockname(recvThread_->listenfd(), (struct sockaddr *)&loc_addr, &len)) {
+        XMDLoggerWrapper::instance()->error("get ip failed.");
+        return -1;
+    }
+
+    port = ntohs(loc_addr.sin_port);
+
+    uint32_t ipv4;
+    int err = get_eth0_ipv4(&ipv4);
+    if (err) {
+      ipv4 = 0;
+    }
+
+    ip = ipv4;
+
+    return 0;
+}
+
 
 void XMDTransceiver::setSendBufferSize(int size) {
     commonData_->setResendQueueSize(size);

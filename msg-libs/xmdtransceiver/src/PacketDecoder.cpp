@@ -260,7 +260,6 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
     if (it == connInfo.streamMap.end()) {
         dispatcher_->handleNewStream(streamData->GetConnId(), streamData->GetStreamId());
         StreamInfo streamInfo;
-        streamInfo.timeout = streamData->GetTimeout();
         streamInfo.sType =  FEC_STREAM;
         streamInfo.callbackWaitTimeout = 0;
         streamInfo.isEncrypt = isEncrypt;
@@ -269,13 +268,10 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
 
     commonData_->updatePacketLossInfoMap(streamData->GetConnId(), streamData->GetPacketId());
     
-    std::stringstream ss_conn, ss_conn_stream;
+    std::stringstream ss_conn;
     ss_conn << streamData->GetConnId();
     std::string connKey = ss_conn.str();
-    ss_conn_stream << streamData->GetConnId() << streamData->GetStreamId();
-    std::string streamKey = ss_conn_stream.str();
     commonData_->updateLastPacketTime(connKey, timestamp);
-    commonData_->updateLastPacketTime(streamKey, timestamp);
 
     //thread调度方式待定
     int threadId = (streamData->GetConnId() + streamData->GetStreamId()) % commonData_->getDecodeThreadSize();
@@ -422,7 +418,6 @@ void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port
     if (it == connInfo.streamMap.end()) {
         dispatcher_->handleNewStream(streamData->GetConnId(), streamData->GetStreamId());
         StreamInfo streamInfo;
-        streamInfo.timeout = streamData->GetTimeout();
         streamInfo.sType = ACK_STREAM;
         streamInfo.callbackWaitTimeout = streamData->GetWaitTime();
         streamInfo.isEncrypt = isEncrypt;
@@ -431,13 +426,10 @@ void PacketDecoder::handleAckStreamData(ConnInfo connInfo, uint32_t ip, int port
 
     commonData_->updatePacketLossInfoMap(streamData->GetConnId(), streamData->GetPacketId());
 
-    std::stringstream ss_conn, ss_conn_stream;
+    std::stringstream ss_conn;
     ss_conn << streamData->GetConnId();
     std::string connKey = ss_conn.str();
-    ss_conn_stream << streamData->GetConnId() << streamData->GetStreamId();
-    std::string streamKey = ss_conn_stream.str();
     commonData_->updateLastPacketTime(connKey, timestamp);
-    commonData_->updateLastPacketTime(streamKey, timestamp);
 
 
     int threadId = (streamData->GetConnId() + streamData->GetStreamId()) % commonData_->getDecodeThreadSize();

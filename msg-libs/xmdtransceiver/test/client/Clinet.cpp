@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
                                    
     usleep(500000);
 
-    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 10, 400, false);
+    uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 400, false);
 
     transceiver->setTestPacketLoss(packetLossRate);
     transceiver->setXMDLogLevel(XMD_INFO);
@@ -64,6 +64,9 @@ int main(int argc, char *argv[]) {
     transceiver->stop();
     transceiver->join();
     delete transceiver;
+    
+
+    usleep(200000);
 }
 
 

@@ -71,7 +71,7 @@ const int PING_TIMEINTERVAL = 15;
 const int XMD_TRAN_TIMEOUT = 5;
 const int RELAY_CONN_TIMEOUT = 5;
 const int RTS_CHECK_TIMEOUT = 5;
-const int RTS_CALL_TIMEOUT = 35;
+const int RTS_CALL_TIMEOUT = 33;
 const int ACK_STREAM_WAIT_TIME_MS = 200;
 const int STREAM_TIMEOUT = 21600;
 

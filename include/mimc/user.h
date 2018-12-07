@@ -38,7 +38,7 @@ public:
 	User(std::string appAccount, std::string resource = "", std::string cachePath = "");
 	~User();
 
-	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}
+	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;if(this->xmdTranseiver) {this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}}
 	void setLastLoginTimestamp(long ts) {this->lastLoginTimestamp = ts;}
 	void setLastCreateConnTimestamp(long ts) {this->lastCreateConnTimestamp = ts;}
 	void setOnlineStatus(OnlineStatus status) {this->onlineStatus = status;}
@@ -202,6 +202,7 @@ private:
 	pthread_t sendThread, receiveThread, checkThread;
 	pthread_rwlock_t mutex_0;
 	pthread_mutex_t mutex_1;
+	static void cleanup(void *arg);
 
 	void relayConnScanAndCallBack();
 	void rtsScanAndCallBack();

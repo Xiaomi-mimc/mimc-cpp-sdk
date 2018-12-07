@@ -18,7 +18,7 @@ public:
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->info("Relay connection create succeed");
 			//创建控制流
-			unsigned short streamId = this->user->getXmdTransceiver()->createStream(connId, ACK_STREAM, STREAM_TIMEOUT, ACK_STREAM_WAIT_TIME_MS, false);
+			unsigned short streamId = this->user->getXmdTransceiver()->createStream(connId, ACK_STREAM, ACK_STREAM_WAIT_TIME_MS, false);
 
 			XMDLoggerWrapper::instance()->info("control streamId is %d", streamId);
 

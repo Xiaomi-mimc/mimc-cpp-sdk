@@ -10,7 +10,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, long chatId) {
 	}
 
 	std::string localIp;
-	int localPort;
+	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
 		
 		return false;
@@ -57,7 +57,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, long chatId) {
 
 bool RtsSendSignal::sendInviteResponse(const User* user, long chatId, mimc::ChatType chatType, mimc::RTSResult result, std::string errmsg) {
 	std::string localIp;
-	int localPort;
+	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
 		
 		return false;
@@ -99,6 +99,9 @@ bool RtsSendSignal::sendInviteResponse(const User* user, long chatId, mimc::Chat
 
 bool RtsSendSignal::sendByeRequest(const User* user, long chatId, std::string byeReason) {
 	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+	if (chatSession.getChatState() != RUNNING && chatSession.getChatState() != WAIT_SEND_UPDATE_REQUEST && chatSession.getChatState() != WAIT_UPDATE_RESPONSE) {
+		return false;
+	}
 	mimc::ByeRequest byeRequest;
 	if (byeReason != "") {
 		byeRequest.set_reason(byeReason);
@@ -142,7 +145,7 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, long chatId) {
 	}
 
 	std::string localIp;
-	int localPort;
+	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
 		
 		return false;

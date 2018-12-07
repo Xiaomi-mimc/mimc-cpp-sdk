@@ -81,6 +81,7 @@ cc_test(
         "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections", 
+        "-I.",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -89,7 +90,6 @@ cc_test(
          "-Wl,--gc-sections",
     ],
     linkstatic=True,
-    includes = ["."],
     srcs = glob([
         "test/mimc_test.cpp",
         "test/**/*.h",
@@ -109,6 +109,7 @@ cc_test(
         "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
+        "-I.",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -117,7 +118,6 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     linkstatic=True,
-    includes = ["."],
     srcs = glob([
        "test/rts_test.cpp",
        "test/**/*.h",
@@ -137,6 +137,7 @@ cc_test(
         "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
+        "-I.",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -145,7 +146,6 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     linkstatic=True,
-    includes = ["."],
     srcs = glob([
        "test/rts_performance.cpp",
        "test/**/*.h",
@@ -165,6 +165,7 @@ cc_test(
         "-fno-rtti",
         "-ffunction-sections",
         "-fdata-sections",
+        "-I.",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -173,7 +174,6 @@ cc_test(
         "-Wl,--gc-sections",
     ],
     linkstatic=True,
-    includes = ["."],
     srcs = glob([
        "test/rts_efficiency.cpp",
        "test/**/*.h",

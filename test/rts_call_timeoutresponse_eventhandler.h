@@ -11,7 +11,7 @@ public:
     LaunchedResponse onLaunched(long chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
         XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %ld, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         inviteRequests.push(RtsMessageData(chatId, fromAccount, appContent, fromResource));
-        sleep(RTS_CALL_TIMEOUT);
+        sleep(RTS_CALL_TIMEOUT + 1);
         if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }

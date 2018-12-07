@@ -22,7 +22,6 @@ struct groupData {
     uint64_t connId;
     uint32_t streamId;
     uint32_t groupId;
-    int timeout;
     bool isEncrypt;
     std::string sessionKey;
     uint8_t flags;
@@ -33,14 +32,13 @@ struct groupData {
         partitionSize = 0;
     }
 
-    void construct(uint32_t i, int p, int size, uint64_t cId, uint32_t sId, uint32_t gId, int t, bool e, std::string key, uint8_t flag) {
+    void construct(uint32_t i, int p, int size, uint64_t cId, uint32_t sId, uint32_t gId, bool e, std::string key, uint8_t flag) {
         ip = i;
         port = p;
         partitionSize = size;
         connId = cId;
         streamId = sId;
         groupId = gId;
-        timeout = t;
         isEncrypt = e;
         sessionKey = key;
         flags = flag;

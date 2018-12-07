@@ -68,7 +68,7 @@ void PacketBuilder::buildFecStreamPacket(StreamQueueData* queueData, ConnInfo co
     flags += (queueData->canBeDropped << 7);
 
     groupData_.construct(connInfo.ip, connInfo.port, partition_size_, queueData->connId, 
-                         queueData->streamId, groupId, sInfo.timeout, sInfo.isEncrypt, connInfo.sessionKey, flags);
+                         queueData->streamId, groupId, sInfo.isEncrypt, connInfo.sessionKey, flags);
 
     int sendCount = 0;
     sendTime_ = current_ms() + 1;
@@ -95,7 +95,6 @@ void PacketBuilder::buildFecStreamPacket(StreamQueueData* queueData, ConnInfo co
         streamData.PSize = partition_size_;
         streamData.PId = partition_id;
         streamData.sliceId = slice_id;
-        streamData.timeout = sInfo.timeout;
         streamData.packetId = commonData_->getPakcetId(queueData->connId);
         streamData.FECOPN = fecopn; 
         streamData.FECPN = fecpn;
@@ -181,7 +180,6 @@ void PacketBuilder::buildRedundancyPacket() {
             fecStreamData.groupId = groupData_.groupId;
             fecStreamData.PSize = groupData_.partitionSize;
             fecStreamData.PId = i;
-            fecStreamData.timeout = groupData_.timeout;
             fecStreamData.packetId = commonData_->getPakcetId(groupData_.connId);
             fecStreamData.sliceId = sliceId++;
             fecStreamData.FECOPN = groupData_.partitionVec[i].fec_opn;
@@ -266,7 +264,6 @@ void PacketBuilder::buildAckStreamPacket(StreamQueueData* queueData, ConnInfo co
         streamData.connId = queueData->connId;
         streamData.streamId = queueData->streamId;
         streamData.packetId = commonData_->getPakcetId(queueData->connId);
-        streamData.timeout = sInfo.timeout;
         streamData.waitTimeMs = sInfo.callbackWaitTimeout;
         streamData.groupId = groupId;
         streamData.groupSize = groupSize;
