@@ -227,7 +227,7 @@ int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, uint16_t port) {
     return commonData_->updateConnIpInfo(connId, (in_addr_t)inet_addr(ip), port);
 }
 
-int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, uint16_t& port) {
+int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int32_t& port) {
     ConnInfo connInfo;
     if(!commonData_->getConnInfo(connId, connInfo)){
         XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);

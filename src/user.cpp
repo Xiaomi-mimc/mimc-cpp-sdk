@@ -316,7 +316,7 @@ void User::relayConnScanAndCallBack() {
 	pthread_rwlock_wrlock(&mutex_0);
 	for (std::map<long, P2PChatSession>::const_iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 		long chatId = iter->first;
-		XMDLoggerWrapper::instance()->error("In relayConnScanAndCallBack >= RELAY_CONN_TIMEOUT, chatId=%d", chatId);
+		XMDLoggerWrapper::instance()->error("In relayConnScanAndCallBack >= RELAY_CONN_TIMEOUT, chatId=%ld", chatId);
 		const P2PChatSession& chatSession = iter->second;
 		if (chatSession.getChatState() == WAIT_SEND_UPDATE_REQUEST) {
 			RtsSendSignal::sendByeRequest(this, chatId, UPDATE_TIMEOUT);
@@ -803,6 +803,11 @@ std::string User::join(const std::map<std::string, std::string>& kvs) const {
 }
 
 std::string User::sendMessage(const std::string & toAppAccount, const std::string & msg, const std::string & bizType, const bool isStore) {
+	if (this->messageHandler == NULL) {
+		XMDLoggerWrapper::instance()->error("In sendMessage, messageHandler is not registered!");
+		return "";
+	}
+
 	if (this->onlineStatus == Offline || toAppAccount == "" || msg == "" || msg.size() > MIMC_MAX_PAYLOAD_SIZE) {
 		return "";
 	}
@@ -1006,8 +1011,12 @@ bool User::login() {
 	if (onlineStatus == Online) {
 		return true;
 	}
-	if (tokenFetcher == NULL || statusHandler == NULL || messageHandler == NULL) {
-		XMDLoggerWrapper::instance()->warn("login failed, user must register all essential callback functions first!");
+	if (tokenFetcher == NULL || statusHandler == NULL) {
+		XMDLoggerWrapper::instance()->warn("login failed, user must register tokenFetcher and statusHandler first!");
+		return false;
+	}
+	if (messageHandler == NULL && rtsCallEventHandler == NULL) {
+		XMDLoggerWrapper::instance()->warn("login failed, user must register messageHandler or rtsCallEventHandler first!");
 		return false;
 	}
 	permitLogin = true;

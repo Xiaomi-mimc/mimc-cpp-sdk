@@ -214,7 +214,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 
 
     std::string testip;
-    uint16_t testport;
+    int32_t testport;
     transceiver2->getPeerInfo(connId, testip, testport);
     XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;

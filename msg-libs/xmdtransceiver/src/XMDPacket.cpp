@@ -152,6 +152,7 @@ int XMDPacketManager::buildFECStreamData(XMDFECStreamData stData, unsigned char*
     streamData->SetConnId(stData.connId);
     streamData->SetPacketId(stData.packetId);
     streamData->SetStreamId(stData.streamId);
+    streamData->SetTimeout(0x7FFF);
     streamData->SetGroupId(stData.groupId);
     streamData->PSize = stData.PSize; 
     streamData->PId = stData.PId;
@@ -196,6 +197,7 @@ int XMDPacketManager::buildAckStreamData(XMDACKStreamData stData, unsigned char*
     streamData->SetConnId(stData.connId);
     streamData->SetPacketId(stData.packetId);
     streamData->SetStreamId(stData.streamId);
+    streamData->SetTimeout(0x7FFF);
     streamData->SetWaitTime(stData.waitTimeMs);
     streamData->SetGroupId(stData.groupId);
     streamData->SetGroupSize(stData.groupSize);

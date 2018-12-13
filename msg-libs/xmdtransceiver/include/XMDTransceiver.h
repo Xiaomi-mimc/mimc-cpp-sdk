@@ -116,7 +116,7 @@ public:
 
     int updatePeerInfo(uint64_t connId, char* ip, uint16_t port);
 
-    int getPeerInfo(uint64_t connId, std::string &ip, uint16_t& port);
+    int getPeerInfo(uint64_t connId, std::string &ip, int32_t& port);
 
     int getLocalInfo(std::string &ip, uint16_t& port);
     int getLocalInfo(uint32_t &ip, uint16_t& port);

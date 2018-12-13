@@ -298,6 +298,9 @@ struct __attribute__((__packed__)) XMDFECStreamData {
     inline void SetStreamId(uint16_t id) {
         streamId = htons(id);
     }
+    inline void SetTimeout(uint16_t t) {
+        timeout = htons(t);
+    }
     inline void SetGroupId(uint32_t id) {
         groupId = htonl(id);
     }
@@ -334,6 +337,9 @@ struct __attribute__((__packed__)) XMDFECStreamData {
     }
     inline uint32_t GetGroupId() {
         return ntohl(groupId);
+    }
+    inline uint16_t GetTimeout() {
+        return ntohs(timeout);
     }
     inline uint16_t GetSliceId() {
         return ntohs(sliceId);
@@ -574,6 +580,9 @@ struct __attribute__((__packed__)) XMDACKStreamData {
     inline void SetStreamId(uint16_t id) {
         streamId = htons(id);
     }
+    inline void SetTimeout(uint16_t t) {
+        timeout = htons(t);
+    }
     inline void SetWaitTime(uint16_t t) {
         waitTimeMs = htons(t);
     }
@@ -606,6 +615,9 @@ struct __attribute__((__packed__)) XMDACKStreamData {
     }
     inline uint16_t GetStreamId() {
         return ntohs(streamId);
+    }
+    inline uint16_t GetTimeout() {
+        return ntohs(timeout);
     }
     inline uint16_t GetWaitTime() {
         return ntohs(waitTimeMs);

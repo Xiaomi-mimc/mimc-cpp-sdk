@@ -266,6 +266,8 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
         commonData_->insertStream(streamData->GetConnId(), streamData->GetStreamId(), streamInfo);
     } 
 
+    XMDLoggerWrapper::instance()->info("stream timeout=%d", streamData->GetTimeout());
+
     commonData_->updatePacketLossInfoMap(streamData->GetConnId(), streamData->GetPacketId());
     
     std::stringstream ss_conn;

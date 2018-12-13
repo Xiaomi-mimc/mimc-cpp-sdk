@@ -102,7 +102,7 @@ void* XMDSendThread::process() {
 
 void XMDSendThread::send(uint32_t ip, int port, char* data , int len) {
     if (rand32() % 100 < testPacketLoss_) {
-        XMDLoggerWrapper::instance()->debug("test drop this packet");
+        XMDLoggerWrapper::instance()->info("test drop this packet");
         return;
     }
     

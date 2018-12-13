@@ -73,6 +73,27 @@ cc_binary(
     ]
 )
 
+cc_binary(
+    name = "c_rts_cpp_demo",
+    copts = [
+         "-Os",
+         "-ffunction-sections",
+         "-fdata-sections",
+#        "-DSTAGING",
+    ],
+    linkopts = [
+         "-lz",
+         "-lssl",
+         "-Wl,--gc-sections",
+    ],
+    linkstatic=True,
+    srcs = ["demo/c_rts_demo.c"],
+    deps = [
+        ":mimc_cpp_sdk",
+        "//third-party/curl-7-59-0"
+    ]
+)
+
 cc_test(
     name = "mimc_cpp_test",
     copts = [

@@ -81,6 +81,7 @@ void XMDRecvThread::Recvfrom(int fd) {
         }
 
         if (rand32() % 100 < testPacketLoss_) {
+            XMDLoggerWrapper::instance()->info("test drop received packet.");
             continue;
         }
 
