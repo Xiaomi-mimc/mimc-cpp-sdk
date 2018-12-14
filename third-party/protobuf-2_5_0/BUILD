@@ -2,8 +2,8 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "protobuf-2_5_0",
-    includes = ["src", "./"],
-	hdrs = glob(["src/google/protobuf/**/*.h"]),
+    includes = ["src", "."],
+	hdrs = glob(["src/google/protobuf/**/*.h", "config.h"]),
 	copts = [
 		"-Os",
 		"-fno-exceptions",
