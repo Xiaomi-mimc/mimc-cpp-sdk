@@ -98,7 +98,7 @@ private:
 	rtscall_event_handler_t _rtscall_event_handler;
 };
 
-void mimc_rtc_init(user_t* user, const char* appaccount, const char* resource, const char* cachepath) {
+void mimc_rtc_init(user_t* user, long appid, const char* appaccount, const char* resource, const char* cachepath) {
 	std::string appaccountStr(appaccount);
 	std::string resourceStr;
 	if (resource == NULL) {
@@ -112,7 +112,7 @@ void mimc_rtc_init(user_t* user, const char* appaccount, const char* resource, c
 	} else {
 		cachepathStr = cachepath;
 	}
-	user->value = new User(appaccountStr, resourceStr, cachepathStr);
+	user->value = new User(appid, appaccountStr, resourceStr, cachepathStr);
 }
 
 void mimc_rtc_fini(user_t* user) {

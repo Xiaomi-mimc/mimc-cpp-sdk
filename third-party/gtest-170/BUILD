@@ -16,7 +16,6 @@ cc_library(
 		"-pthread", 
 		"-Wl,--gc-sections",
 	],
-#	linkstatic = 1,
 	includes = ["include", "."],
 	hdrs = glob(["include/gtest/*.h", "include/gtest/internal/*.h", "src/*.h"]),
 	srcs = glob(["src/*.cc"]),

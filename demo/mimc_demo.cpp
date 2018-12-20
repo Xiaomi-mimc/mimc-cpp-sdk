@@ -181,8 +181,8 @@ private:
 class MimcDemo {
 public:
     static void testP2PSendOneMessage() {
-        User* from = new User(appAccount1);
-        User* to = new User(appAccount2);
+        User* from = new User(atol(appId.c_str()), appAccount1);
+        User* to = new User(atol(appId.c_str()), appAccount2);
         TestMessageHandler* fromMessageHandler = new TestMessageHandler();
         TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
@@ -228,8 +228,8 @@ public:
     }
 
     static void testP2PSendMessages() {
-        User* from = new User(appAccount1);
-        User* to = new User(appAccount2);
+        User* from = new User(atol(appId.c_str()), appAccount1);
+        User* to = new User(atol(appId.c_str()), appAccount2);
         TestMessageHandler* fromMessageHandler = new TestMessageHandler();
         TestMessageHandler* toMessageHandler = new TestMessageHandler();
 

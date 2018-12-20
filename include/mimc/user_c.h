@@ -66,7 +66,7 @@ typedef struct {
 	void (*handle_send_data_fail)(long chatid, int groupid, const char* ctx, const int ctx_len);
 } rtscall_event_handler_t;
 
-void mimc_rtc_init(user_t* user, const char* appaccount, const char* resource, const char* cachepath);
+void mimc_rtc_init(user_t* user, long appid, const char* appaccount, const char* resource, const char* cachepath);
 void mimc_rtc_fini(user_t* user);
 bool mimc_rtc_login(user_t* user);
 bool mimc_rtc_logout(user_t* user);

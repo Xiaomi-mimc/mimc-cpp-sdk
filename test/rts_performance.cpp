@@ -25,11 +25,11 @@ const int WAIT_TIME_FOR_MESSAGE = 1;
 class RtsPerformance: public testing::Test {
 protected:
 	void SetUp() {
-		rtsUser1 = new User(appAccount1);
+		rtsUser1 = new User(atol(appId.c_str()), appAccount1);
 		msgHandler1 = new TestMessageHandler();
 		callEventHandler1 = new RtsPerformanceHandler();
 
-		rtsUser2 = new User(appAccount2);
+		rtsUser2 = new User(atol(appId.c_str()), appAccount2);
 		msgHandler2 = new TestMessageHandler();
 		callEventHandler2 = new RtsPerformanceHandler();
 

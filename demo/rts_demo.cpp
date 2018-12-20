@@ -199,7 +199,7 @@ public:
 	static void receiveDataToFile() {
 		string resource1 = Utils::generateRandomString(8);
 
-		User* user1 = new User(appAccount1, resource1);
+		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
@@ -246,7 +246,7 @@ public:
 		buffer = NULL;
 
 		string resource1 = Utils::generateRandomString(8);
-		User* user1 = new User(appAccount1, resource1);
+		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
@@ -278,7 +278,7 @@ public:
 
 	static void call() {
 		string resource1 = Utils::generateRandomString(8);
-		User* user1 = new User(appAccount1, resource1);
+		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());

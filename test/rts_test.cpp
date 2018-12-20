@@ -34,11 +34,11 @@ class RtsTest: public testing::Test
 {
 protected:
     void SetUp() {
-        rtsUser1_r1 = new User(appAccount1, "rts_staging_resource1");
-        rtsUser1_r2 = new User(appAccount1, "rts_staging_resource2");
-        rtsUser2_r1 = new User(appAccount2, "rts_staging_resource1");
-        rtsUser2_r2 = new User(appAccount2, "rts_staging_resource2");
-        rtsUser3 = new User(appAccount3, "rts_staging_resource1");
+        rtsUser1_r1 = new User(atol(appId.c_str()), appAccount1, "rts_staging_resource1");
+        rtsUser1_r2 = new User(atol(appId.c_str()), appAccount1, "rts_staging_resource2");
+        rtsUser2_r1 = new User(atol(appId.c_str()), appAccount2, "rts_staging_resource1");
+        rtsUser2_r2 = new User(atol(appId.c_str()), appAccount2, "rts_staging_resource2");
+        rtsUser3 = new User(atol(appId.c_str()), appAccount3, "rts_staging_resource1");
 
         msgHandler1_r1 = new TestMessageHandler();
         msgHandler1_r2 = new TestMessageHandler();

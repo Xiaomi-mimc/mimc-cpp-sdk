@@ -3,9 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-const char* username1 = "mimc_rtc_user1";
-const char* username2 = "mimc_rtc_user2";
-
 #ifndef STAGING
 const char* app_id = "2882303761517669588";
 const char* app_key = "5111766983588";
@@ -15,6 +12,9 @@ const char* app_id = "2882303761517479657";
 const char* app_key = "5221747911657";
 const char* app_secret = "PtfBeZyC+H8SIM/UXhZx1w==";
 #endif
+
+const char* username1 = "mimc_rtc_user1";
+const char* username2 = "mimc_rtc_user2";
 
 static const int appcontent_1_len = 3;
 static const char appcontent_1[3] = {0xF0,0xF0,0xF0};
@@ -243,7 +243,7 @@ static rtscall_event_handler_t rtscall_event_handler_2 = {
 int main() {
     user_t user1_obj;
 	user_t* user1 = &user1_obj;
-	mimc_rtc_init(user1, username1, "camera01", NULL);
+	mimc_rtc_init(user1, atol(app_id), username1, "camera01", NULL);
     mimc_rtc_register_token_fetcher(user1, &token_fetcher_1);
     mimc_rtc_register_online_status_handler(user1, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user1, &rtscall_event_handler_1);
@@ -251,7 +251,7 @@ int main() {
 
     user_t user2_obj;
     user_t* user2 = &user2_obj;
-    mimc_rtc_init(user2, username2, "camera02", NULL);
+    mimc_rtc_init(user2, atol(app_id), username2, "camera02", NULL);
     mimc_rtc_register_token_fetcher(user2, &token_fetcher_2);
     mimc_rtc_register_online_status_handler(user2, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user2, &rtscall_event_handler_2);

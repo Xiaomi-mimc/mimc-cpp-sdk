@@ -27,9 +27,9 @@ const int TIME_OUT = 5000;
 class RtsEfficiency : public testing::Test {
 protected:
 	void construct() {
-		rtsUser1 = new User(appAccount1);
-		rtsUser2 = new User(appAccount2);
-		rtsUser3 = new User(appAccount3);
+		rtsUser1 = new User(atol(appId.c_str()), appAccount1);
+		rtsUser2 = new User(atol(appId.c_str()), appAccount2);
+		rtsUser3 = new User(atol(appId.c_str()), appAccount3);
 
 		msgHandler1 = new TestMessageHandler();
 		msgHandler2 = new TestMessageHandler();

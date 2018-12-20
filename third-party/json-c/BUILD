@@ -23,7 +23,6 @@ cc_library(
     linkopts = [
         "-Wl,--gc-sections",
     ],
-#    linkstatic = 1,
     srcs = glob([
         "json-c/*.c",
     ]),

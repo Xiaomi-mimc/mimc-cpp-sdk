@@ -35,7 +35,7 @@ class RtsStreamHandler;
 
 class User {
 public:
-	User(std::string appAccount, std::string resource = "", std::string cachePath = "");
+	User(long appId, std::string appAccount, std::string resource = "", std::string cachePath = "");
 	~User();
 
 	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;if(this->xmdTranseiver) {this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}}

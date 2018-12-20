@@ -11,9 +11,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-User::User(std::string appAccount, std::string resource, std::string cachePath) 
+User::User(long appId, std::string appAccount, std::string resource, std::string cachePath) 
 	:audioStreamConfig(ACK_TYPE, ACK_STREAM_WAIT_TIME_MS, false), videoStreamConfig(FEC_TYPE, ACK_STREAM_WAIT_TIME_MS, false) {
 	XMDLoggerWrapper::instance()->setXMDLogLevel(XMD_INFO);
+	this->appId = appId;
 	this->appAccount = appAccount;
 	this->testPacketLoss = 0;
 	this->permitLogin = false;
@@ -31,12 +32,12 @@ User::User(std::string appAccount, std::string resource, std::string cachePath)
 		char buffer[MAXPATHLEN];
 		Utils::getCwd(buffer, MAXPATHLEN);
 		cachePath = buffer;
-		XMDLoggerWrapper::instance()->info("cachePath is %s", cachePath.c_str());
 	}
 	if (cachePath.back() == '/') {
 		cachePath.pop_back();
 	}
-	this->cachePath = cachePath + '/' + appAccount + '/' + resource;
+	this->cachePath = cachePath + '/' + Utils::int2str(appId) + '/' + appAccount + '/' + resource;
+	XMDLoggerWrapper::instance()->info("cachePath is %s", this->cachePath.c_str());
 	this->cacheFile = this->cachePath + '/' + "mimc.info";
 	createCacheFileIfNotExist(this);
 	if (resource == "cpp_default") {
@@ -648,85 +649,99 @@ bool User::parseToken(const char* str, json_object*& pobj) {
 	pobj = json_tokener_parse(str);
 
 	if (pobj == NULL) {
-		XMDLoggerWrapper::instance()->info("User::parseToken, json_tokener_parse failed, pobj is NULL");
+		XMDLoggerWrapper::instance()->info("User::parseToken, json_tokener_parse failed, pobj is NULL, user is %s", appAccount.c_str());
+		return tokenFetchSucceed;
 	}
 
 	json_object* retobj = NULL;
 	json_object_object_get_ex(pobj, "code", &retobj);
 	int retCode = json_object_get_int(retobj);
-	if (retCode == 200) {
-		json_object* dataobj = NULL;
-		json_object_object_get_ex(pobj, "data", &dataobj);
-		json_object* dataitem_obj = NULL;
-		const char* pstr = NULL;
-		json_object_object_get_ex(dataobj, "appAccount", &dataitem_obj);
-		pstr = json_object_get_string(dataitem_obj);
-		if (!pstr) {
-			return tokenFetchSucceed;
-		}
-		std::string appAccount = pstr;
-		if (this->appAccount == appAccount) {
-			json_object_object_get_ex(dataobj, "appId", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->appId = atol(pstr);
-			}
-			json_object_object_get_ex(dataobj, "appPackage", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->appPackage = pstr;
-			}
-			json_object_object_get_ex(dataobj, "miChid", &dataitem_obj);
-			this->chid = json_object_get_int(dataitem_obj);
-			json_object_object_get_ex(dataobj, "miUserId", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->uuid = atol(pstr);
-			}
-			json_object_object_get_ex(dataobj, "miUserSecurityKey", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->securityKey = pstr;
-			}
-			json_object_object_get_ex(dataobj, "token", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->token = pstr;
-			}
-			json_object_object_get_ex(dataobj, "regionBucket", &dataitem_obj);
-			this->regionBucket = json_object_get_int(dataitem_obj);
-			json_object_object_get_ex(dataobj, "feDomainName", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->feDomain = pstr;
-			}
-			json_object_object_get_ex(dataobj, "relayDomainName", &dataitem_obj);
-			pstr = json_object_get_string(dataitem_obj);
-			if (!pstr) {
-				return tokenFetchSucceed;
-			} else {
-				this->relayDomain = pstr;
-			}
-			tokenFetchSucceed = true;
-		}
+	if (retCode != 200) {
+		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is false, retCode is %d, user is %s", retCode, appAccount.c_str());
+		return tokenFetchSucceed;
 	}
-	if (tokenFetchSucceed) {
-		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is true, user is %s", appAccount.c_str());
+
+	json_object* dataobj = NULL;
+	json_object_object_get_ex(pobj, "data", &dataobj);
+	json_object* dataitem_obj = NULL;
+	const char* pstr = NULL;
+	json_object_object_get_ex(dataobj, "appId", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	}
+	long appId = atol(pstr);
+	if (appId != this->appId) {
+		return tokenFetchSucceed;
+	}
+	
+	json_object_object_get_ex(dataobj, "appAccount", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	}
+	std::string appAccount = pstr;
+	if (appAccount != this->appAccount) {
+		return tokenFetchSucceed;
+	}
+		
+	json_object_object_get_ex(dataobj, "appPackage", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
 	} else {
-		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is false, user is %s", appAccount.c_str());
+		this->appPackage = pstr;
 	}
+	
+	json_object_object_get_ex(dataobj, "miChid", &dataitem_obj);
+	this->chid = json_object_get_int(dataitem_obj);
+	
+	json_object_object_get_ex(dataobj, "miUserId", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	} else {
+		this->uuid = atol(pstr);
+	}
+	
+	json_object_object_get_ex(dataobj, "miUserSecurityKey", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	} else {
+		this->securityKey = pstr;
+	}
+	
+	json_object_object_get_ex(dataobj, "token", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	} else {
+		this->token = pstr;
+	}
+	
+	json_object_object_get_ex(dataobj, "regionBucket", &dataitem_obj);
+	this->regionBucket = json_object_get_int(dataitem_obj);
+	
+	json_object_object_get_ex(dataobj, "feDomainName", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	} else {
+		this->feDomain = pstr;
+	}
+	
+	json_object_object_get_ex(dataobj, "relayDomainName", &dataitem_obj);
+	pstr = json_object_get_string(dataitem_obj);
+	if (!pstr) {
+		return tokenFetchSucceed;
+	} else {
+		this->relayDomain = pstr;
+	}
+	
+	tokenFetchSucceed = true;
+
+	XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is true, user is %s", appAccount.c_str());
 	
 	return tokenFetchSucceed;
 }

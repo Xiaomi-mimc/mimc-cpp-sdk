@@ -27,7 +27,6 @@ cc_library(
 		"-pthread",
 		"-Wl,--gc-sections",
 	],
-#	linkstatic = 1,
 	srcs = glob([
 		"src/*.cpp",
 		"src/*.c",
