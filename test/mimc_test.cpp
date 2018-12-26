@@ -53,8 +53,8 @@ protected:
         usleep(500000);
         ASSERT_EQ(Online, to->getOnlineStatus());
 
-        string msg1 = "你猜我是谁哈哈哈";
-        string packetId = from->sendMessage(to->getAppAccount(), msg1);
+        string payload1 = "你猜我是谁哈哈哈";
+        string packetId = from->sendMessage(to->getAppAccount(), payload1);
         usleep(200000);
         string* recvPacketIdPtr = fromMessageHandler->pollServerAck();
         ASSERT_TRUE(recvPacketIdPtr != NULL);
@@ -65,8 +65,8 @@ protected:
         ASSERT_TRUE(message != NULL);
         ASSERT_TRUE(message->getSequence() > 0);
         ASSERT_EQ(from->getAppAccount(), message->getFromAccount());
-        
-        ASSERT_EQ(msg1, message->getPayload());
+        ASSERT_EQ(payload1, message->getPayload());
+
         ASSERT_TRUE(toMessageHandler->pollMessage() == NULL);
 
         sleep(20);

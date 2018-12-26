@@ -1,11 +1,11 @@
-#ifndef MIMC_CPP_SDK_P2PCHATSESSION_H
-#define MIMC_CPP_SDK_P2PCHATSESSION_H
+#ifndef MIMC_CPP_SDK_P2PCALLSESSION_H
+#define MIMC_CPP_SDK_P2PCALLSESSION_H
 
 #include <mimc/rts_signal.pb.h>
 #include <string>
 #include <stdint.h>
 
-enum ChatState {
+enum CallState {
 	WAIT_SEND_CREATE_REQUEST,
 	WAIT_CALL_ONLAUNCHED,
 	WAIT_INVITEE_RESPONSE,
@@ -15,10 +15,10 @@ enum ChatState {
 	WAIT_UPDATE_RESPONSE
 };
 
-class P2PChatSession {
+class P2PCallSession {
 public:
-	P2PChatSession(uint64_t chatId, mimc::UserInfo peerUser, mimc::ChatType chatType, ChatState chatState, time_t chatStateTs, bool is_creator, std::string appContent) 
-		: chatId(chatId), peerUser(peerUser), chatType(chatType), chatState(chatState), latestLegalChatStateTs(chatStateTs), is_creator(is_creator), appContent(appContent)
+	P2PCallSession(uint64_t callId, mimc::UserInfo peerUser, mimc::CallType callType, CallState callState, time_t callStateTs, bool is_creator, std::string appContent) 
+		: callId(callId), peerUser(peerUser), callType(callType), callState(callState), latestLegalCallStateTs(callStateTs), is_creator(is_creator), appContent(appContent)
 	{
 		clearP2PConn();
 	}
@@ -26,16 +26,16 @@ public:
 	mimc::UserInfo getPeerUser() const{ return this->peerUser; }
 	void setPeerUser(const mimc::UserInfo& peerUser) { this->peerUser = peerUser; }
 
-	mimc::ChatType getChatType() const{ return this->chatType; }
-	void setChatType(const mimc::ChatType& chatType) { this->chatType = chatType; }
+	mimc::CallType getCallType() const{ return this->callType; }
+	void setCallType(const mimc::CallType& callType) { this->callType = callType; }
 
-	ChatState getChatState() const{ return this->chatState; }
-	void setChatState(const ChatState& chatState) { this->chatState = chatState; }
+	CallState getCallState() const{ return this->callState; }
+	void setCallState(const CallState& callState) { this->callState = callState; }
 
 	std::string getAppContent() const{ return this->appContent; }
 
-	time_t getLatestLegalChatStateTs() const{ return this->latestLegalChatStateTs; }
-	void setLatestLegalChatStateTs(const time_t& latestLegalChatStateTs) { this->latestLegalChatStateTs = latestLegalChatStateTs; }
+	time_t getLatestLegalCallStateTs() const{ return this->latestLegalCallStateTs; }
+	void setLatestLegalCallStateTs(const time_t& latestLegalCallStateTs) { this->latestLegalCallStateTs = latestLegalCallStateTs; }
 
 	uint64_t getP2PIntranetConnId() const{ return this->P2PIntranetConnId; }
 	void setP2PIntranetConnId(const uint64_t& P2PIntranetConnId) { this->P2PIntranetConnId = P2PIntranetConnId; }
@@ -82,11 +82,11 @@ public:
 		resetP2PInternetConn();
 	}
 private:
-	uint64_t chatId;
+	uint64_t callId;
 	mimc::UserInfo peerUser;
-	mimc::ChatType chatType;
-	ChatState chatState;
-	time_t latestLegalChatStateTs;
+	mimc::CallType callType;
+	CallState callState;
+	time_t latestLegalCallStateTs;
 
 	uint64_t P2PIntranetConnId;
 	uint16_t P2PIntranetVideoStreamId;

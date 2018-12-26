@@ -13,34 +13,34 @@ using namespace std;
 
 class RtsPerformanceHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(uint64_t chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
-        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
-        inviteRequests.push(RtsMessageData(chatId, fromAccount, appContent, fromResource));
+    LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+        XMDLoggerWrapper::instance()->info("In onLaunched, callId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", callId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
+        inviteRequests.push(RtsMessageData(callId, fromAccount, appContent, fromResource));
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(uint64_t chatId, bool accepted, const string errmsg) {
-        XMDLoggerWrapper::instance()->info("In onAnswered, chatId is %llu, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
-        createResponses.push(RtsMessageData(chatId, errmsg, accepted));
+    void onAnswered(uint64_t callId, bool accepted, const string errMsg) {
+        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, errMsg is %s", callId, accepted, errMsg.c_str());
+        createResponses.push(RtsMessageData(callId, errMsg, accepted));
     }
 
-    void onClosed(uint64_t chatId, const string errmsg) {
-        XMDLoggerWrapper::instance()->info("In onClosed, chatId is %llu, errmsg is %s", chatId, errmsg.c_str());
-        byes.push(RtsMessageData(chatId, errmsg));
+    void onClosed(uint64_t callId, const string errMsg) {
+        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, errMsg is %s", callId, errMsg.c_str());
+        byes.push(RtsMessageData(callId, errMsg));
     }
 
-    void handleData(uint64_t chatId, const string data, RtsDataType dataType, RtsChannelType channelType) {
-        XMDLoggerWrapper::instance()->info("In handleData, chatId is %llu, dataLen is %d, data is %s, dataType is %d", chatId, data.length(), data.c_str(), dataType);
+    void handleData(uint64_t callId, const string data, RtsDataType dataType, RtsChannelType channelType) {
+        XMDLoggerWrapper::instance()->info("In handleData, callId is %llu, dataLen is %d, data is %s, dataType is %d", callId, data.length(), data.c_str(), dataType);
         int dataId = char2int((unsigned char*)data.c_str(), 0);
         recvDatas.insert(pair<int, RtsPerformanceData>(dataId, RtsPerformanceData(data, Utils::currentTimeMillis())));
     }
 
-    void handleSendDataSucc(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-    void handleSendDataFail(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
     RtsMessageData* pollInviteRequest(long timeout_s) {

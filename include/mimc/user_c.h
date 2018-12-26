@@ -47,7 +47,7 @@ typedef struct {
 
 typedef struct {
 	bool accepted;
-	const char* errmsg;
+	const char* err_msg;
 } launched_response_t;
 
 typedef struct {
@@ -59,12 +59,12 @@ typedef struct {
 } online_status_handler_t;
 
 typedef struct {
-	launched_response_t (*on_launched)(uint64_t chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource);
-	void (*on_answered)(uint64_t chatid, bool accepted, const char* errmsg); 
-	void (*on_closed)(uint64_t chatid, const char* errmsg);
-	void (*handle_data)(uint64_t chatid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type);
-	void (*handle_send_data_succ)(uint64_t chatid, int groupid, const char* ctx, const int ctx_len);
-	void (*handle_send_data_fail)(uint64_t chatid, int groupid, const char* ctx, const int ctx_len);
+	launched_response_t (*on_launched)(uint64_t callid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource);
+	void (*on_answered)(uint64_t callid, bool accepted, const char* err_msg); 
+	void (*on_closed)(uint64_t callid, const char* err_msg);
+	void (*handle_data)(uint64_t callid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type);
+	void (*handle_send_data_succ)(uint64_t callid, int groupid, const char* ctx, const int ctx_len);
+	void (*handle_send_data_fail)(uint64_t callid, int groupid, const char* ctx, const int ctx_len);
 } rtscall_event_handler_t;
 
 void mimc_rtc_init(user_t* user, int64_t appid, const char* appaccount, const char* resource, const char* cachepath);
@@ -83,8 +83,8 @@ float mimc_rtc_get_recvbuffer_usagerate(user_t* user);
 void mimc_rtc_clear_sendbuffer(user_t* user);
 void mimc_rtc_clear_recvbuffer(user_t* user);
 uint64_t mimc_rtc_dial_call(user_t* user, const char* to_appaccount, const char* appcontent, const int appcontent_len, const char* to_resource);
-void mimc_rtc_close_call(user_t* user, uint64_t chatid, const char* bye_reason);
-bool mimc_rtc_send_data(user_t* user, uint64_t chatid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count);
+void mimc_rtc_close_call(user_t* user, uint64_t callid, const char* bye_reason);
+bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count);
 
 void mimc_rtc_register_token_fetcher(user_t* user, const token_fetcher_t* token_fetcher);
 void mimc_rtc_register_online_status_handler(user_t* user, const online_status_handler_t* online_status_handler);

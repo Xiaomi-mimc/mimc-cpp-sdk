@@ -6,7 +6,7 @@
 class MIMCMessage {
 public:
 	MIMCMessage(){}
-	MIMCMessage(const std::string& packetId, long sequence, const std::string& fromAccount, const std::string& fromResource, const std::string& toAccount, const std::string& toResource, const std::string& payload, const std::string& bizType, time_t timestamp) {
+	MIMCMessage(const std::string& packetId, int64_t sequence, const std::string& fromAccount, const std::string& fromResource, const std::string& toAccount, const std::string& toResource, const std::string& payload, const std::string& bizType, time_t timestamp) {
 		this->packetId = packetId;
 		this->sequence = sequence;
 		this->fromAccount = fromAccount;
@@ -18,7 +18,7 @@ public:
 		this->timestamp = timestamp;
 	}
 	std::string getPacketId() const { return this->packetId; }
-	long getSequence() const { return this->sequence; }
+	int64_t getSequence() const { return this->sequence; }
 	std::string getFromAccount() const { return this->fromAccount; }
 	std::string getFromResource() const { return this->fromResource; }
 	std::string getToAccount() const { return this->toAccount; }
@@ -31,7 +31,7 @@ public:
 	}
 private:
 	std::string packetId;
-	long sequence;
+	int64_t sequence;
 	std::string fromAccount;
 	std::string fromResource;
 	std::string toAccount;

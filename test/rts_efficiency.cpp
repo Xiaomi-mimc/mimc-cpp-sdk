@@ -172,8 +172,8 @@ protected:
 		callEventHandler2->clear();
 		callEventHandler3->clear();
 		t4 = Utils::currentTimeMillis();
-		uint64_t chatId = user1->dialCall(user2->getAppAccount());
-		ASSERT_NE(chatId, 0);
+		uint64_t callId = user1->dialCall(user2->getAppAccount());
+		ASSERT_NE(callId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler1->getMsgSize(2) > 0) {
 				break;
@@ -183,11 +183,11 @@ protected:
 		t5 = Utils::currentTimeMillis();
 		RtsMessageData* createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrmsg());
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrMsg());
 
 		string sendData = Utils::generateRandomString(dataSize);
 		t6 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user1->sendRtsData(chatId, sendData, AUDIO));
+		ASSERT_TRUE(user1->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler2->getMsgSize(4) > 0) {
 				break;
@@ -197,14 +197,14 @@ protected:
 		t7 = Utils::currentTimeMillis();
 		ASSERT_NE(callEventHandler2->getMsgSize(4), 0);
 
-		closeCall(chatId, user1, callEventHandler1, callEventHandler2);
+		closeCall(callId, user1, callEventHandler1, callEventHandler2);
 
 		callEventHandler1->clear();
 		callEventHandler2->clear();
 		callEventHandler3->clear();
 		t8 = Utils::currentTimeMillis();
-		chatId = user1->dialCall(user3->getAppAccount());
-		ASSERT_NE(chatId, 0);
+		callId = user1->dialCall(user3->getAppAccount());
+		ASSERT_NE(callId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler1->getMsgSize(2) > 0) {
 				break;
@@ -214,11 +214,11 @@ protected:
 		t9 = Utils::currentTimeMillis();
 		createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrmsg());
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrMsg());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t10 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user1->sendRtsData(chatId, sendData, AUDIO));
+		ASSERT_TRUE(user1->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler3->getMsgSize(4) > 0) {
 				break;
@@ -228,14 +228,14 @@ protected:
 		t11 = Utils::currentTimeMillis();
 		ASSERT_NE(callEventHandler3->getMsgSize(4), 0);
 
-		closeCall(chatId, user1, callEventHandler1, callEventHandler3);
+		closeCall(callId, user1, callEventHandler1, callEventHandler3);
 
 		callEventHandler1->clear();
 		callEventHandler2->clear();
 		callEventHandler3->clear();
 		t12 = Utils::currentTimeMillis();
-		chatId = user2->dialCall(user3->getAppAccount());
-		ASSERT_NE(chatId, 0);
+		callId = user2->dialCall(user3->getAppAccount());
+		ASSERT_NE(callId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler2->getMsgSize(2) > 0) {
 				break;
@@ -245,11 +245,11 @@ protected:
 		t13 = Utils::currentTimeMillis();
 		createResponse = callEventHandler2->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse->getErrmsg());
+		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse->getErrMsg());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t14 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user2->sendRtsData(chatId, sendData, AUDIO));
+		ASSERT_TRUE(user2->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler3->getMsgSize(4) > 0) {
 				break;
@@ -259,24 +259,24 @@ protected:
 		t15 = Utils::currentTimeMillis();
 		ASSERT_NE(callEventHandler3->getMsgSize(4), 0);
 
-		closeCall(chatId, user2, callEventHandler2, callEventHandler3);
+		closeCall(callId, user2, callEventHandler2, callEventHandler3);
 		XMDLoggerWrapper::instance()->info("t1-t0 is %ld , t2-t0 is %ld, t3-t0 is %ld, t5-t4 is %ld, t9-t8 is %ld, t13-t12 is %ld, t7-t6 is %ld, t11-t10 is %ld, t15-t14 is %ld", t1-t0, t2-t0, t3-t0, t5-t4, t9-t8, t13-t12, t7-t6, t11-t10, t15-t14);
 		timeRecords.insert(pair<int, RtsPerformanceData>(idx, RtsPerformanceData((int)(t1-t0), (int)(t2-t0), (int)(t3-t0), (int)(t5-t4), (int)(t9-t8), (int)(t13-t12), (int)(t7-t6), (int)(t11-t10), (int)(t15-t14))));
 	}
 
-	void closeCall(uint64_t chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
-		from->closeCall(chatId);
+	void closeCall(uint64_t callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
+		from->closeCall(callId);
 		sleep(1);
 
 		RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeRequest == NULL);
-		ASSERT_EQ(chatId, byeRequest->getChatId());
-		ASSERT_EQ("", byeRequest->getErrmsg());
+		ASSERT_EQ(callId, byeRequest->getCallId());
+		ASSERT_EQ("", byeRequest->getErrMsg());
 
 		RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeResponse == NULL);
-		ASSERT_EQ(chatId, byeResponse->getChatId());
-		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
+		ASSERT_EQ(callId, byeResponse->getCallId());
+		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
 	}
 protected:
 	User* rtsUser1;

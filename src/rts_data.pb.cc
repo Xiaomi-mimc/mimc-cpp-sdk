@@ -161,7 +161,7 @@ const int UserPacket::kVersionFieldNumber;
 const int UserPacket::kPktTypeFieldNumber;
 const int UserPacket::kUuidFieldNumber;
 const int UserPacket::kResourceFieldNumber;
-const int UserPacket::kChatIdFieldNumber;
+const int UserPacket::kCallIdFieldNumber;
 const int UserPacket::kPayloadFieldNumber;
 const int UserPacket::kRegionBucketFieldNumber;
 #endif  // !_MSC_VER
@@ -186,7 +186,7 @@ void UserPacket::SharedCtor() {
   pkt_type_ = 1;
   uuid_ = GOOGLE_ULONGLONG(0);
   resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  chat_id_ = GOOGLE_ULONGLONG(0);
+  call_id_ = GOOGLE_ULONGLONG(0);
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   region_bucket_ = GOOGLE_LONGLONG(0);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -241,7 +241,7 @@ void UserPacket::Clear() {
         resource_->clear();
       }
     }
-    chat_id_ = GOOGLE_ULONGLONG(0);
+    call_id_ = GOOGLE_ULONGLONG(0);
     if (has_payload()) {
       if (payload_ != &::google::protobuf::internal::kEmptyString) {
         payload_->clear();
@@ -318,19 +318,19 @@ bool UserPacket::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(40)) goto parse_chat_id;
+        if (input->ExpectTag(40)) goto parse_call_id;
         break;
       }
 
-      // optional uint64 chat_id = 5;
+      // optional uint64 call_id = 5;
       case 5: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_chat_id:
+         parse_call_id:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chat_id_)));
-          set_has_chat_id();
+                 input, &call_id_)));
+          set_has_call_id();
         } else {
           goto handle_uninterpreted;
         }
@@ -407,9 +407,9 @@ void UserPacket::SerializeWithCachedSizes(
       4, this->resource(), output);
   }
 
-  // optional uint64 chat_id = 5;
-  if (has_chat_id()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(5, this->chat_id(), output);
+  // optional uint64 call_id = 5;
+  if (has_call_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(5, this->call_id(), output);
   }
 
   // optional bytes payload = 6;
@@ -456,11 +456,11 @@ int UserPacket::ByteSize() const {
           this->resource());
     }
 
-    // optional uint64 chat_id = 5;
-    if (has_chat_id()) {
+    // optional uint64 call_id = 5;
+    if (has_call_id()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chat_id());
+          this->call_id());
     }
 
     // optional bytes payload = 6;
@@ -504,8 +504,8 @@ void UserPacket::MergeFrom(const UserPacket& from) {
     if (from.has_resource()) {
       set_resource(from.resource());
     }
-    if (from.has_chat_id()) {
-      set_chat_id(from.chat_id());
+    if (from.has_call_id()) {
+      set_call_id(from.call_id());
     }
     if (from.has_payload()) {
       set_payload(from.payload());
@@ -534,7 +534,7 @@ void UserPacket::Swap(UserPacket* other) {
     std::swap(pkt_type_, other->pkt_type_);
     std::swap(uuid_, other->uuid_);
     std::swap(resource_, other->resource_);
-    std::swap(chat_id_, other->chat_id_);
+    std::swap(call_id_, other->call_id_);
     std::swap(payload_, other->payload_);
     std::swap(region_bucket_, other->region_bucket_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
@@ -2834,7 +2834,7 @@ void RelayKickResponse::Swap(RelayKickResponse* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int RouterPacket::kChatIdFieldNumber;
+const int RouterPacket::kCallIdFieldNumber;
 const int RouterPacket::kFromUuidFieldNumber;
 const int RouterPacket::kFromResourceFieldNumber;
 const int RouterPacket::kToUuidFieldNumber;
@@ -2861,7 +2861,7 @@ RouterPacket::RouterPacket(const RouterPacket& from)
 
 void RouterPacket::SharedCtor() {
   _cached_size_ = 0;
-  chat_id_ = GOOGLE_ULONGLONG(0);
+  call_id_ = GOOGLE_ULONGLONG(0);
   from_uuid_ = GOOGLE_ULONGLONG(0);
   from_resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   to_uuid_ = GOOGLE_ULONGLONG(0);
@@ -2917,7 +2917,7 @@ RouterPacket* RouterPacket::New() const {
 
 void RouterPacket::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    chat_id_ = GOOGLE_ULONGLONG(0);
+    call_id_ = GOOGLE_ULONGLONG(0);
     from_uuid_ = GOOGLE_ULONGLONG(0);
     if (has_from_resource()) {
       if (from_resource_ != &::google::protobuf::internal::kEmptyString) {
@@ -2950,14 +2950,14 @@ bool RouterPacket::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required uint64 chat_id = 1;
+      // required uint64 call_id = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chat_id_)));
-          set_has_chat_id();
+                 input, &call_id_)));
+          set_has_call_id();
         } else {
           goto handle_uninterpreted;
         }
@@ -3107,9 +3107,9 @@ bool RouterPacket::MergePartialFromCodedStream(
 
 void RouterPacket::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required uint64 chat_id = 1;
-  if (has_chat_id()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->chat_id(), output);
+  // required uint64 call_id = 1;
+  if (has_call_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->call_id(), output);
   }
 
   // optional uint64 from_uuid = 2;
@@ -3162,11 +3162,11 @@ int RouterPacket::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required uint64 chat_id = 1;
-    if (has_chat_id()) {
+    // required uint64 call_id = 1;
+    if (has_call_id()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chat_id());
+          this->call_id());
     }
 
     // optional uint64 from_uuid = 2;
@@ -3241,8 +3241,8 @@ void RouterPacket::CheckTypeAndMergeFrom(
 void RouterPacket::MergeFrom(const RouterPacket& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_chat_id()) {
-      set_chat_id(from.chat_id());
+    if (from.has_call_id()) {
+      set_call_id(from.call_id());
     }
     if (from.has_from_uuid()) {
       set_from_uuid(from.from_uuid());
@@ -3287,7 +3287,7 @@ bool RouterPacket::IsInitialized() const {
 
 void RouterPacket::Swap(RouterPacket* other) {
   if (other != this) {
-    std::swap(chat_id_, other->chat_id_);
+    std::swap(call_id_, other->call_id_);
     std::swap(from_uuid_, other->from_uuid_);
     std::swap(from_resource_, other->from_resource_);
     std::swap(to_uuid_, other->to_uuid_);
@@ -3311,7 +3311,7 @@ void RouterPacket::Swap(RouterPacket* other) {
 #ifndef _MSC_VER
 const int BurrowPacket::kUuidFieldNumber;
 const int BurrowPacket::kResourceFieldNumber;
-const int BurrowPacket::kChatIdFieldNumber;
+const int BurrowPacket::kCallIdFieldNumber;
 const int BurrowPacket::kBurrowIdFieldNumber;
 const int BurrowPacket::kBurrowTypeFieldNumber;
 #endif  // !_MSC_VER
@@ -3334,7 +3334,7 @@ void BurrowPacket::SharedCtor() {
   _cached_size_ = 0;
   uuid_ = GOOGLE_ULONGLONG(0);
   resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  chat_id_ = GOOGLE_ULONGLONG(0);
+  call_id_ = GOOGLE_ULONGLONG(0);
   burrow_id_ = GOOGLE_ULONGLONG(0);
   burrow_type_ = 1;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -3384,7 +3384,7 @@ void BurrowPacket::Clear() {
         resource_->clear();
       }
     }
-    chat_id_ = GOOGLE_ULONGLONG(0);
+    call_id_ = GOOGLE_ULONGLONG(0);
     burrow_id_ = GOOGLE_ULONGLONG(0);
     burrow_type_ = 1;
   }
@@ -3422,19 +3422,19 @@ bool BurrowPacket::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(24)) goto parse_chat_id;
+        if (input->ExpectTag(24)) goto parse_call_id;
         break;
       }
 
-      // required uint64 chat_id = 3;
+      // required uint64 call_id = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_chat_id:
+         parse_call_id:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chat_id_)));
-          set_has_chat_id();
+                 input, &call_id_)));
+          set_has_call_id();
         } else {
           goto handle_uninterpreted;
         }
@@ -3505,9 +3505,9 @@ void BurrowPacket::SerializeWithCachedSizes(
       2, this->resource(), output);
   }
 
-  // required uint64 chat_id = 3;
-  if (has_chat_id()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->chat_id(), output);
+  // required uint64 call_id = 3;
+  if (has_call_id()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->call_id(), output);
   }
 
   // required uint64 burrow_id = 4;
@@ -3541,11 +3541,11 @@ int BurrowPacket::ByteSize() const {
           this->resource());
     }
 
-    // required uint64 chat_id = 3;
-    if (has_chat_id()) {
+    // required uint64 call_id = 3;
+    if (has_call_id()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chat_id());
+          this->call_id());
     }
 
     // required uint64 burrow_id = 4;
@@ -3582,8 +3582,8 @@ void BurrowPacket::MergeFrom(const BurrowPacket& from) {
     if (from.has_resource()) {
       set_resource(from.resource());
     }
-    if (from.has_chat_id()) {
-      set_chat_id(from.chat_id());
+    if (from.has_call_id()) {
+      set_call_id(from.call_id());
     }
     if (from.has_burrow_id()) {
       set_burrow_id(from.burrow_id());
@@ -3610,7 +3610,7 @@ void BurrowPacket::Swap(BurrowPacket* other) {
   if (other != this) {
     std::swap(uuid_, other->uuid_);
     std::swap(resource_, other->resource_);
-    std::swap(chat_id_, other->chat_id_);
+    std::swap(call_id_, other->call_id_);
     std::swap(burrow_id_, other->burrow_id_);
     std::swap(burrow_type_, other->burrow_type_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);

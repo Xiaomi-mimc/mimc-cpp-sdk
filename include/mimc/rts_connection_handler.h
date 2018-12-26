@@ -27,25 +27,25 @@ public:
 			if (!RtsSendData::sendBindRelayRequest(this->user)) {
 				
 				this->user->getXmdTransceiver()->closeConnection(connId);
-				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-				this->user->getCurrentChats()->clear();
-				pthread_rwlock_unlock(&this->user->getChatsRwlock());
+				pthread_rwlock_wrlock(&this->user->getCallsRwlock());
+				this->user->getCurrentCalls()->clear();
+				pthread_rwlock_unlock(&this->user->getCallsRwlock());
 				this->user->resetRelayLinkState();
 			}
 		} else if (rtsConnectionInfo->getConnType() == INTRANET_CONN) {
 			
-			uint64_t chatId = rtsConnectionInfo->getChatId();
-			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
-			p2pChatSession.setP2PIntranetConnId(connId);
-			pthread_rwlock_unlock(&this->user->getChatsRwlock());
+			uint64_t callId = rtsConnectionInfo->getCallId();
+			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
+			P2PCallSession& p2pCallSession = this->user->getCurrentCalls()->at(callId);
+			p2pCallSession.setP2PIntranetConnId(connId);
+			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 		} else if (rtsConnectionInfo->getConnType() == INTERNET_CONN) {
 			
-			uint64_t chatId = rtsConnectionInfo->getChatId();
-			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
-			p2pChatSession.setP2PInternetConnId(connId);
-			pthread_rwlock_unlock(&this->user->getChatsRwlock());
+			uint64_t callId = rtsConnectionInfo->getCallId();
+			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
+			P2PCallSession& p2pCallSession = this->user->getCurrentCalls()->at(callId);
+			p2pCallSession.setP2PInternetConnId(connId);
+			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 		} else {
 			
 		}
@@ -58,9 +58,9 @@ public:
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->error("Relay connection create failed");
 
-			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-			this->user->getCurrentChats()->clear();
-			pthread_rwlock_unlock(&this->user->getChatsRwlock());
+			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
+			this->user->getCurrentCalls()->clear();
+			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 			this->user->resetRelayLinkState();
 			pthread_mutex_lock(&user->getAddressMutex());
 			std::vector<std::string>::iterator it;

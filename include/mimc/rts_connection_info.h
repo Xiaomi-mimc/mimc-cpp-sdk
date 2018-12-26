@@ -12,8 +12,8 @@ enum RtsConnType {
 
 class RtsConnectionInfo {
 public:
-	RtsConnectionInfo(std::string address, RtsConnType connType, uint64_t chatId = 0)
-		: address(address), rtsConnType(connType), chatId(chatId) {
+	RtsConnectionInfo(std::string address, RtsConnType connType, uint64_t callId = 0)
+		: address(address), rtsConnType(connType), callId(callId) {
 		
 	}
 
@@ -25,13 +25,13 @@ public:
 		return this->rtsConnType;
 	}
 
-	uint64_t getChatId() {
-		return this->chatId;
+	uint64_t getCallId() {
+		return this->callId;
 	}
 private:
 	std::string address;
 	RtsConnType rtsConnType;
-	uint64_t chatId;
+	uint64_t callId;
 };
 
 #endif

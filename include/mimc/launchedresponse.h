@@ -7,14 +7,14 @@ class LaunchedResponse {
 	public:
 		LaunchedResponse(bool accepted, std::string msg) {
 			this->accepted = accepted;
-			this->errmsg = msg;
+			this->errMsg = msg;
 		}
 		~LaunchedResponse(){}
 		bool isAccepted() { return this->accepted; }
-		std::string getErrmsg() { return this->errmsg; }
+		std::string getErrMsg() { return this->errMsg; }
 	private:
 		bool accepted;
-		std::string errmsg;
+		std::string errMsg;
 };
 
 #endif

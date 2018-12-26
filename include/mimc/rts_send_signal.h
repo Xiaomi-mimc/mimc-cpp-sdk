@@ -10,14 +10,14 @@ class User;
 
 class RtsSendSignal {
 public:
-	static bool sendCreateRequest(const User* user, uint64_t chatId);
-	static bool sendInviteResponse(const User* user, uint64_t chatId, mimc::ChatType chatType, mimc::RTSResult result, std::string errmsg);
-	static bool sendByeRequest(const User* user, uint64_t chatId, std::string byeReason);
-	static bool sendByeResponse(const User* user, uint64_t chatId, mimc::RTSResult result);
-	static bool sendUpdateRequest(const User* user, uint64_t chatId);
-	static bool sendUpdateResponse(const User* user, uint64_t chatId, mimc::RTSResult result);
-	static bool pingChatManager(const User* user, uint64_t chatId);
-	static std::string sendRtsMessage(const User* user, uint64_t chatId, mimc::RTSMessageType messageType, mimc::ChatType chatType, std::string payload);
+	static bool sendCreateRequest(const User* user, uint64_t callId);
+	static bool sendInviteResponse(const User* user, uint64_t callId, mimc::CallType callType, mimc::RTSResult result, std::string errMsg);
+	static bool sendByeRequest(const User* user, uint64_t callId, std::string byeReason);
+	static bool sendByeResponse(const User* user, uint64_t callId, mimc::RTSResult result);
+	static bool sendUpdateRequest(const User* user, uint64_t callId);
+	static bool sendUpdateResponse(const User* user, uint64_t callId, mimc::RTSResult result);
+	static bool pingCallManager(const User* user, uint64_t callId);
+	static std::string sendRtsMessage(const User* user, uint64_t callId, mimc::RTSMessageType messageType, mimc::CallType callType, std::string payload);
 private:
 
 };

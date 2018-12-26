@@ -104,7 +104,7 @@ public:
 		}
 	}
 
-	void handleServerAck(std::string packetId, long sequence, time_t timestamp, std::string errorMsg) {
+	void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string errorMsg) {
 
 	}
 
@@ -124,63 +124,63 @@ private:
 
 class AVRTSCallEventHandler : public RTSCallEventHandler {
 public:
-	virtual LaunchedResponse onLaunched(uint64_t chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+	virtual LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
 		LaunchedResponse response = LaunchedResponse(true, LAUNCH_OK);
-		chatIds.push_back(chatId);
+		callIds.push_back(callId);
 
 		return response;
 	}
 
-	virtual void onAnswered(uint64_t chatId, bool accepted, const std::string errmsg) {
+	virtual void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
 		if (accepted) {
-			chatIds.push_back(chatId);
+			callIds.push_back(callId);
 		} else {
-			XMDLoggerWrapper::instance()->error("onAnswered: peer rejected, error message is %s", errmsg.c_str());
+			XMDLoggerWrapper::instance()->error("onAnswered: peer rejected, error message is %s", errMsg.c_str());
 		}
 	}
 
-	virtual void onClosed(uint64_t chatId, const std::string errmsg) {
-		XMDLoggerWrapper::instance()->info("onClosed: chatId is %llu, error message is %s", chatId, errmsg.c_str());
-		for (list<uint64_t>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
-			if (*iter == chatId) {
-				chatIds.erase(iter);
+	virtual void onClosed(uint64_t callId, const std::string errMsg) {
+		XMDLoggerWrapper::instance()->info("onClosed: callId is %llu, error message is %s", callId, errMsg.c_str());
+		for (list<uint64_t>::iterator iter = callIds.begin(); iter != callIds.end(); iter++) {
+			if (*iter == callId) {
+				callIds.erase(iter);
 				break;
 			}
 		}
 	}
 
-	virtual void handleData(uint64_t chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
-		user->sendRtsData(chatId, data, dataType, channelType);
-		if (chatDataMap.count(chatId) == 0) {
+	virtual void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+		user->sendRtsData(callId, data, dataType, channelType);
+		if (callDataMap.count(callId) == 0) {
 			list<string> dataList;
 			dataList.push_back(data);
-			chatDataMap.insert(pair<uint64_t, list<string>>(chatId, dataList));
+			callDataMap.insert(pair<uint64_t, list<string>>(callId, dataList));
 		} else {
-			list<string>& audioDataList = chatDataMap.at(chatId);
+			list<string>& audioDataList = callDataMap.at(callId);
 			audioDataList.push_back(data);
 		}
 	}
 
-	virtual void handleSendDataSucc(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("handleSendDataSucc: chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+	virtual void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("handleSendDataSucc: callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-    virtual void handleSendDataFail(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("handleSendDataFail: chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    virtual void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("handleSendDataFail: callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-	string getChatData(uint64_t chatId) {
-		string chatData;
-		list<string>& audioDataList = chatDataMap.at(chatId);
+	string getChatData(uint64_t callId) {
+		string callData;
+		list<string>& audioDataList = callDataMap.at(callId);
 		for (list<string>::iterator iter = audioDataList.begin(); iter != audioDataList.end(); iter++) {
 			const string& audioData = *iter;
-			chatData.append(audioData);
+			callData.append(audioData);
 		}
-		return chatData;
+		return callData;
 	}
 
 	list<uint64_t>& getChatIds() {
-		return chatIds;
+		return callIds;
 	}
 
 	AVRTSCallEventHandler(User* user) {
@@ -189,9 +189,9 @@ public:
 
 private:
 	User* user;
-	list<uint64_t> chatIds;
+	list<uint64_t> callIds;
 	const string LAUNCH_OK = "OK";
-	map<uint64_t, list<string>> chatDataMap;
+	map<uint64_t, list<string>> callDataMap;
 };
 
 class RtsDemo {
@@ -211,11 +211,11 @@ public:
 
 		sleep(10);
 
-		list<uint64_t>& chatIds = rtsCallEventHandler->getChatIds();
+		list<uint64_t>& callIds = rtsCallEventHandler->getChatIds();
 
-		for (list<uint64_t>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
-			uint64_t chatId = *iter;
-			const string& data = rtsCallEventHandler->getChatData(chatId);
+		for (list<uint64_t>::iterator iter = callIds.begin(); iter != callIds.end(); iter++) {
+			uint64_t callId = *iter;
+			const string& data = rtsCallEventHandler->getChatData(callId);
 			const char* filename = "test.pcm";
 			ofstream file(filename, ios::out | ios::binary | ios::ate);
 			if (file.is_open()) {
@@ -261,13 +261,13 @@ public:
 		user1->dialCall("5566", "AUDIO", "JAVA-FEEtSinu");
 
 		sleep(2);
-		std::list<uint64_t>& chatIds = rtsCallEventHandler->getChatIds();
-		if (!chatIds.empty()) {
+		std::list<uint64_t>& callIds = rtsCallEventHandler->getChatIds();
+		if (!callIds.empty()) {
 			std::list<uint64_t>::iterator iter;
-			for (iter = chatIds.begin(); iter != chatIds.end(); iter++) {
-				uint64_t chatId = *iter;
-				XMDLoggerWrapper::instance()->info("from chatId is %llu", chatId);
-				user1->sendRtsData(chatId, rtsData, AUDIO);
+			for (iter = callIds.begin(); iter != callIds.end(); iter++) {
+				uint64_t callId = *iter;
+				XMDLoggerWrapper::instance()->info("from callId is %llu", callId);
+				user1->sendRtsData(callId, rtsData, AUDIO);
 			}
 		}
 		sleep(5);

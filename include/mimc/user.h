@@ -14,7 +14,7 @@
 #include <mimc/rts_send_data.h>
 #include <mimc/rts_send_signal.h>
 #include <mimc/rts_stream_config.h>
-#include <mimc/p2p_chatsession.h>
+#include <mimc/p2p_callsession.h>
 #include <json-c/json.h>
 #include <pthread.h>
 #include <time.h>
@@ -25,7 +25,7 @@
 
 struct onLaunchedParam {
 	User* user;
-	uint64_t chatId;
+	uint64_t callId;
 };
 
 class Connection;
@@ -77,7 +77,7 @@ public:
 	std::string getRelayDomain() const {return this->relayDomain;}
 	std::vector<std::string>& getFeAddresses() {return this->feAddresses;}
 	std::vector<std::string>& getRelayAddresses() {return this->relayAddresses;}
-	pthread_rwlock_t& getChatsRwlock() {return this->mutex_0;}
+	pthread_rwlock_t& getCallsRwlock() {return this->mutex_0;}
 	pthread_mutex_t& getAddressMutex() {return this->mutex_1;}
 	int getTestPacketLoss() const {return this->testPacketLoss;}
 	OnlineStatus getOnlineStatus() const {return this->onlineStatus;}
@@ -89,20 +89,20 @@ public:
 	uint16_t getRelayControlStreamId() const {return this->relayControlStreamId;}
 	uint16_t getRelayVideoStreamId() const{ return this->relayVideoStreamId; }
 	uint16_t getRelayAudioStreamId() const{ return this->relayAudioStreamId; }
-	std::map<uint64_t, P2PChatSession>* getCurrentChats() const {return this->currentChats;}
-	std::map<uint64_t, pthread_t>* getOnlaunchChats() const {return this->onlaunchChats;}
+	std::map<uint64_t, P2PCallSession>* getCurrentCalls() const {return this->currentCalls;}
+	std::map<uint64_t, pthread_t>* getOnlaunchCalls() const {return this->onlaunchCalls;}
 	XMDTransceiver* getXmdTransceiver() const {return this->xmdTranseiver;}
 	const mimc::BindRelayResponse& getBindRelayResponse() const {return this->bindRelayResponse;}
 	unsigned int getMaxCallNum() const {return this->maxCallNum;}
 	const RtsStreamConfig& getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 
-	uint64_t getP2PIntranetConnId(uint64_t chatId);
-	uint64_t getP2PInternetConnId(uint64_t chatId);
+	uint64_t getP2PIntranetConnId(uint64_t callId);
+	uint64_t getP2PInternetConnId(uint64_t callId);
 
 	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const std::string& bizType = "", const bool isStore = true);
 	uint64_t dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
-	bool sendRtsData(uint64_t chatId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
-	void closeCall(uint64_t chatId, std::string byeReason = "");
+	bool sendRtsData(uint64_t callId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
+	void closeCall(uint64_t callId, std::string byeReason = "");
 
 	void resetRelayLinkState();
 	void handleXMDConnClosed(uint64_t connId, ConnCloseType type);
@@ -195,8 +195,8 @@ private:
 	RtsStreamConfig videoStreamConfig;
 	int xmdSendBufferSize;
 	int xmdRecvBufferSize;
-	std::map<uint64_t, P2PChatSession>* currentChats;
-	std::map<uint64_t, pthread_t>* onlaunchChats;
+	std::map<uint64_t, P2PCallSession>* currentCalls;
+	std::map<uint64_t, pthread_t>* onlaunchCalls;
 	mimc::BindRelayResponse bindRelayResponse;
 
 	pthread_t sendThread, receiveThread, checkThread;
@@ -207,7 +207,7 @@ private:
 	void relayConnScanAndCallBack();
 	void rtsScanAndCallBack();
 
-	void checkAndCloseChats();
+	void checkAndCloseCalls();
 };
 
 #endif //MIMC_CPP_SDK_USER_H

@@ -152,7 +152,7 @@ launched_response_t on_launched_1(uint64_t chatid, const char* from_account, con
     printf("In on_launched_1, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.errmsg = "illegal appcontent";
+    launched_response.err_msg = "illegal appcontent";
     if (appcontent_len != appcontent_1_len) {
         return launched_response;
     }
@@ -165,7 +165,7 @@ launched_response_t on_launched_1(uint64_t chatid, const char* from_account, con
     }
 
     launched_response.accepted = true;
-    launched_response.errmsg = "ok";
+    launched_response.err_msg = "ok";
     return launched_response;
 }
 
@@ -173,7 +173,7 @@ launched_response_t on_launched_2(uint64_t chatid, const char* from_account, con
     printf("In on_launched_2, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.errmsg = "illegal appcontent";
+    launched_response.err_msg = "illegal appcontent";
     if (appcontent_len != appcontent_2_len) {
         return launched_response;
     }
@@ -186,16 +186,16 @@ launched_response_t on_launched_2(uint64_t chatid, const char* from_account, con
     }
 
     launched_response.accepted = true;
-    launched_response.errmsg = "ok";
+    launched_response.err_msg = "ok";
     return launched_response;
 }
 
-void on_answered(uint64_t chatid, bool accepted, const char* errmsg) {
-    printf("In on_answered, chatid is %llu, accepted is %d, errmsg is %s\n", chatid, accepted, errmsg);
+void on_answered(uint64_t chatid, bool accepted, const char* err_msg) {
+    printf("In on_answered, chatid is %llu, accepted is %d, err_msg is %s\n", chatid, accepted, err_msg);
 }
 
-void on_closed(uint64_t chatid, const char* errmsg) {
-    printf("In on_closed, chatid is %llu, errmsg is %s\n", chatid, errmsg);
+void on_closed(uint64_t chatid, const char* err_msg) {
+    printf("In on_closed, chatid is %llu, err_msg is %s\n", chatid, err_msg);
 }
 
 void handle_data(uint64_t chatid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type) {

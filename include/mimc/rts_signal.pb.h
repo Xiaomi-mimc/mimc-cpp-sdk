@@ -33,7 +33,7 @@ void protobuf_AssignDesc_rts_5fsignal_2eproto();
 void protobuf_ShutdownFile_rts_5fsignal_2eproto();
 
 class UserInfo;
-class ChatInfo;
+class CallInfo;
 class XmqRTSExchange;
 class RTSMessage;
 class CreateRequest;
@@ -46,7 +46,7 @@ class PingRequest;
 class PingResponse;
 class ByeRequest;
 class ByeResponse;
-class UpdateChatInfo;
+class UpdateCallInfo;
 
 enum RTSMessageType {
   CREATE_REQUEST = 1,
@@ -66,14 +66,14 @@ const RTSMessageType RTSMessageType_MIN = CREATE_REQUEST;
 const RTSMessageType RTSMessageType_MAX = APP_USER_MESSAGE;
 const int RTSMessageType_ARRAYSIZE = RTSMessageType_MAX + 1;
 
-enum ChatType {
-  SINGLE_CHAT = 1,
-  GROUP_CHAT = 2
+enum CallType {
+  SINGLE_CALL = 1,
+  GROUP_CALL = 2
 };
-bool ChatType_IsValid(int value);
-const ChatType ChatType_MIN = SINGLE_CHAT;
-const ChatType ChatType_MAX = GROUP_CHAT;
-const int ChatType_ARRAYSIZE = ChatType_MAX + 1;
+bool CallType_IsValid(int value);
+const CallType CallType_MIN = SINGLE_CALL;
+const CallType CallType_MAX = GROUP_CALL;
+const int CallType_ARRAYSIZE = CallType_MAX + 1;
 
 enum StreamDataType {
   A_STREAM = 1,
@@ -89,8 +89,8 @@ enum RTSResult {
   SUCC = 0,
   PEER_REFUSE = 1,
   PEER_OFFLINE = 2,
-  CHATID_EXIST = 3,
-  CHATID_NOT_EXIST = 4,
+  CALLID_EXIST = 3,
+  CALLID_NOT_EXIST = 4,
   SDP_FAIL = 5,
   INTERNAL_ERROR1 = 6,
   PARAMETER_ERROR = 7,
@@ -102,15 +102,15 @@ const RTSResult RTSResult_MIN = SUCC;
 const RTSResult RTSResult_MAX = ERROR_USER_DEFINED;
 const int RTSResult_ARRAYSIZE = RTSResult_MAX + 1;
 
-enum ChatStatus {
+enum CallStatus {
   CREATING = 1,
   IN_PROCESS = 2,
   FINISH = 3
 };
-bool ChatStatus_IsValid(int value);
-const ChatStatus ChatStatus_MIN = CREATING;
-const ChatStatus ChatStatus_MAX = FINISH;
-const int ChatStatus_ARRAYSIZE = ChatStatus_MAX + 1;
+bool CallStatus_IsValid(int value);
+const CallStatus CallStatus_MIN = CREATING;
+const CallStatus CallStatus_MAX = FINISH;
+const int CallStatus_ARRAYSIZE = CallStatus_MAX + 1;
 
 enum UpdateType {
   UPDATE = 1,
@@ -341,38 +341,38 @@ class UserInfo : public ::google::protobuf::MessageLite {
 };
 // -------------------------------------------------------------------
 
-class ChatInfo : public ::google::protobuf::MessageLite {
+class CallInfo : public ::google::protobuf::MessageLite {
  public:
-  ChatInfo();
-  virtual ~ChatInfo();
+  CallInfo();
+  virtual ~CallInfo();
 
-  ChatInfo(const ChatInfo& from);
+  CallInfo(const CallInfo& from);
 
-  inline ChatInfo& operator=(const ChatInfo& from) {
+  inline CallInfo& operator=(const CallInfo& from) {
     CopyFrom(from);
     return *this;
   }
 
-  static const ChatInfo& default_instance();
+  static const CallInfo& default_instance();
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   // Returns the internal default instance pointer. This function can
   // return NULL thus should not be used by the user. This is intended
   // for Protobuf internal code. Please use default_instance() declared
   // above instead.
-  static inline const ChatInfo* internal_default_instance() {
+  static inline const CallInfo* internal_default_instance() {
     return default_instance_;
   }
   #endif
 
-  void Swap(ChatInfo* other);
+  void Swap(CallInfo* other);
 
   // implements Message ----------------------------------------------
 
-  ChatInfo* New() const;
+  CallInfo* New() const;
   void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
-  void CopyFrom(const ChatInfo& from);
-  void MergeFrom(const ChatInfo& from);
+  void CopyFrom(const CallInfo& from);
+  void MergeFrom(const CallInfo& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -394,26 +394,26 @@ class ChatInfo : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional uint64 chatId = 1;
-  inline bool has_chatid() const;
-  inline void clear_chatid();
-  static const int kChatIdFieldNumber = 1;
-  inline ::google::protobuf::uint64 chatid() const;
-  inline void set_chatid(::google::protobuf::uint64 value);
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
 
-  // optional .mimc.ChatType chatType = 2;
+  // optional .mimc.CallType chatType = 2;
   inline bool has_chattype() const;
   inline void clear_chattype();
   static const int kChatTypeFieldNumber = 2;
-  inline ::mimc::ChatType chattype() const;
-  inline void set_chattype(::mimc::ChatType value);
+  inline ::mimc::CallType chattype() const;
+  inline void set_chattype(::mimc::CallType value);
 
-  // optional .mimc.ChatStatus chatStatus = 3;
+  // optional .mimc.CallStatus chatStatus = 3;
   inline bool has_chatstatus() const;
   inline void clear_chatstatus();
   static const int kChatStatusFieldNumber = 3;
-  inline ::mimc::ChatStatus chatstatus() const;
-  inline void set_chatstatus(::mimc::ChatStatus value);
+  inline ::mimc::CallStatus chatstatus() const;
+  inline void set_chatstatus(::mimc::CallStatus value);
 
   // optional int64 creatorId = 4;
   inline bool has_creatorid() const;
@@ -446,10 +446,10 @@ class ChatInfo : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
       mutable_members();
 
-  // @@protoc_insertion_point(class_scope:mimc.ChatInfo)
+  // @@protoc_insertion_point(class_scope:mimc.CallInfo)
  private:
-  inline void set_has_chatid();
-  inline void clear_has_chatid();
+  inline void set_has_callid();
+  inline void clear_has_callid();
   inline void set_has_chattype();
   inline void clear_has_chattype();
   inline void set_has_chatstatus();
@@ -459,7 +459,7 @@ class ChatInfo : public ::google::protobuf::MessageLite {
   inline void set_has_creatorresource();
   inline void clear_has_creatorresource();
 
-  ::google::protobuf::uint64 chatid_;
+  ::google::protobuf::uint64 callid_;
   int chattype_;
   int chatstatus_;
   ::google::protobuf::int64 creatorid_;
@@ -478,7 +478,7 @@ class ChatInfo : public ::google::protobuf::MessageLite {
   friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
 
   void InitAsDefaultInstance();
-  static ChatInfo* default_instance_;
+  static CallInfo* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -692,19 +692,19 @@ class RTSMessage : public ::google::protobuf::MessageLite {
   inline ::mimc::RTSMessageType type() const;
   inline void set_type(::mimc::RTSMessageType value);
 
-  // optional uint64 chatId = 2;
-  inline bool has_chatid() const;
-  inline void clear_chatid();
-  static const int kChatIdFieldNumber = 2;
-  inline ::google::protobuf::uint64 chatid() const;
-  inline void set_chatid(::google::protobuf::uint64 value);
+  // optional uint64 callId = 2;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 2;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
 
-  // optional .mimc.ChatType chatType = 3;
-  inline bool has_chattype() const;
-  inline void clear_chattype();
-  static const int kChatTypeFieldNumber = 3;
-  inline ::mimc::ChatType chattype() const;
-  inline void set_chattype(::mimc::ChatType value);
+  // optional .mimc.CallType callType = 3;
+  inline bool has_calltype() const;
+  inline void clear_calltype();
+  static const int kCallTypeFieldNumber = 3;
+  inline ::mimc::CallType calltype() const;
+  inline void set_calltype(::mimc::CallType value);
 
   // optional int64 uuid = 4;
   inline bool has_uuid() const;
@@ -748,10 +748,10 @@ class RTSMessage : public ::google::protobuf::MessageLite {
  private:
   inline void set_has_type();
   inline void clear_has_type();
-  inline void set_has_chatid();
-  inline void clear_has_chatid();
-  inline void set_has_chattype();
-  inline void clear_has_chattype();
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_calltype();
+  inline void clear_has_calltype();
   inline void set_has_uuid();
   inline void clear_has_uuid();
   inline void set_has_resource();
@@ -761,9 +761,9 @@ class RTSMessage : public ::google::protobuf::MessageLite {
   inline void set_has_region_bucket();
   inline void clear_has_region_bucket();
 
-  ::google::protobuf::uint64 chatid_;
+  ::google::protobuf::uint64 callid_;
   int type_;
-  int chattype_;
+  int calltype_;
   ::google::protobuf::int64 uuid_;
   ::std::string* resource_;
   ::std::string* payload_;
@@ -1788,38 +1788,38 @@ class ByeResponse : public ::google::protobuf::MessageLite {
 };
 // -------------------------------------------------------------------
 
-class UpdateChatInfo : public ::google::protobuf::MessageLite {
+class UpdateCallInfo : public ::google::protobuf::MessageLite {
  public:
-  UpdateChatInfo();
-  virtual ~UpdateChatInfo();
+  UpdateCallInfo();
+  virtual ~UpdateCallInfo();
 
-  UpdateChatInfo(const UpdateChatInfo& from);
+  UpdateCallInfo(const UpdateCallInfo& from);
 
-  inline UpdateChatInfo& operator=(const UpdateChatInfo& from) {
+  inline UpdateCallInfo& operator=(const UpdateCallInfo& from) {
     CopyFrom(from);
     return *this;
   }
 
-  static const UpdateChatInfo& default_instance();
+  static const UpdateCallInfo& default_instance();
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   // Returns the internal default instance pointer. This function can
   // return NULL thus should not be used by the user. This is intended
   // for Protobuf internal code. Please use default_instance() declared
   // above instead.
-  static inline const UpdateChatInfo* internal_default_instance() {
+  static inline const UpdateCallInfo* internal_default_instance() {
     return default_instance_;
   }
   #endif
 
-  void Swap(UpdateChatInfo* other);
+  void Swap(UpdateCallInfo* other);
 
   // implements Message ----------------------------------------------
 
-  UpdateChatInfo* New() const;
+  UpdateCallInfo* New() const;
   void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
-  void CopyFrom(const UpdateChatInfo& from);
-  void MergeFrom(const UpdateChatInfo& from);
+  void CopyFrom(const UpdateCallInfo& from);
+  void MergeFrom(const UpdateCallInfo& from);
   void Clear();
   bool IsInitialized() const;
 
@@ -1841,12 +1841,12 @@ class UpdateChatInfo : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional uint64 chatId = 1;
-  inline bool has_chatid() const;
-  inline void clear_chatid();
-  static const int kChatIdFieldNumber = 1;
-  inline ::google::protobuf::uint64 chatid() const;
-  inline void set_chatid(::google::protobuf::uint64 value);
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
 
   // optional .mimc.UpdateType type = 2;
   inline bool has_type() const;
@@ -1855,14 +1855,14 @@ class UpdateChatInfo : public ::google::protobuf::MessageLite {
   inline ::mimc::UpdateType type() const;
   inline void set_type(::mimc::UpdateType value);
 
-  // @@protoc_insertion_point(class_scope:mimc.UpdateChatInfo)
+  // @@protoc_insertion_point(class_scope:mimc.UpdateCallInfo)
  private:
-  inline void set_has_chatid();
-  inline void clear_has_chatid();
+  inline void set_has_callid();
+  inline void clear_has_callid();
   inline void set_has_type();
   inline void clear_has_type();
 
-  ::google::protobuf::uint64 chatid_;
+  ::google::protobuf::uint64 callid_;
   int type_;
 
   mutable int _cached_size_;
@@ -1877,7 +1877,7 @@ class UpdateChatInfo : public ::google::protobuf::MessageLite {
   friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
 
   void InitAsDefaultInstance();
-  static UpdateChatInfo* default_instance_;
+  static UpdateCallInfo* default_instance_;
 };
 // ===================================================================
 
@@ -2392,146 +2392,146 @@ inline void UserInfo::set_is_tcp(bool value) {
 
 // -------------------------------------------------------------------
 
-// ChatInfo
+// CallInfo
 
-// optional uint64 chatId = 1;
-inline bool ChatInfo::has_chatid() const {
+// optional uint64 callId = 1;
+inline bool CallInfo::has_callid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void ChatInfo::set_has_chatid() {
+inline void CallInfo::set_has_callid() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void ChatInfo::clear_has_chatid() {
+inline void CallInfo::clear_has_callid() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void ChatInfo::clear_chatid() {
-  chatid_ = GOOGLE_ULONGLONG(0);
-  clear_has_chatid();
+inline void CallInfo::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
 }
-inline ::google::protobuf::uint64 ChatInfo::chatid() const {
-  return chatid_;
+inline ::google::protobuf::uint64 CallInfo::callid() const {
+  return callid_;
 }
-inline void ChatInfo::set_chatid(::google::protobuf::uint64 value) {
-  set_has_chatid();
-  chatid_ = value;
+inline void CallInfo::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
 }
 
-// optional .mimc.ChatType chatType = 2;
-inline bool ChatInfo::has_chattype() const {
+// optional .mimc.CallType chatType = 2;
+inline bool CallInfo::has_chattype() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void ChatInfo::set_has_chattype() {
+inline void CallInfo::set_has_chattype() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void ChatInfo::clear_has_chattype() {
+inline void CallInfo::clear_has_chattype() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void ChatInfo::clear_chattype() {
+inline void CallInfo::clear_chattype() {
   chattype_ = 1;
   clear_has_chattype();
 }
-inline ::mimc::ChatType ChatInfo::chattype() const {
-  return static_cast< ::mimc::ChatType >(chattype_);
+inline ::mimc::CallType CallInfo::chattype() const {
+  return static_cast< ::mimc::CallType >(chattype_);
 }
-inline void ChatInfo::set_chattype(::mimc::ChatType value) {
-  assert(::mimc::ChatType_IsValid(value));
+inline void CallInfo::set_chattype(::mimc::CallType value) {
+  assert(::mimc::CallType_IsValid(value));
   set_has_chattype();
   chattype_ = value;
 }
 
-// optional .mimc.ChatStatus chatStatus = 3;
-inline bool ChatInfo::has_chatstatus() const {
+// optional .mimc.CallStatus chatStatus = 3;
+inline bool CallInfo::has_chatstatus() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void ChatInfo::set_has_chatstatus() {
+inline void CallInfo::set_has_chatstatus() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void ChatInfo::clear_has_chatstatus() {
+inline void CallInfo::clear_has_chatstatus() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void ChatInfo::clear_chatstatus() {
+inline void CallInfo::clear_chatstatus() {
   chatstatus_ = 1;
   clear_has_chatstatus();
 }
-inline ::mimc::ChatStatus ChatInfo::chatstatus() const {
-  return static_cast< ::mimc::ChatStatus >(chatstatus_);
+inline ::mimc::CallStatus CallInfo::chatstatus() const {
+  return static_cast< ::mimc::CallStatus >(chatstatus_);
 }
-inline void ChatInfo::set_chatstatus(::mimc::ChatStatus value) {
-  assert(::mimc::ChatStatus_IsValid(value));
+inline void CallInfo::set_chatstatus(::mimc::CallStatus value) {
+  assert(::mimc::CallStatus_IsValid(value));
   set_has_chatstatus();
   chatstatus_ = value;
 }
 
 // optional int64 creatorId = 4;
-inline bool ChatInfo::has_creatorid() const {
+inline bool CallInfo::has_creatorid() const {
   return (_has_bits_[0] & 0x00000008u) != 0;
 }
-inline void ChatInfo::set_has_creatorid() {
+inline void CallInfo::set_has_creatorid() {
   _has_bits_[0] |= 0x00000008u;
 }
-inline void ChatInfo::clear_has_creatorid() {
+inline void CallInfo::clear_has_creatorid() {
   _has_bits_[0] &= ~0x00000008u;
 }
-inline void ChatInfo::clear_creatorid() {
+inline void CallInfo::clear_creatorid() {
   creatorid_ = GOOGLE_LONGLONG(0);
   clear_has_creatorid();
 }
-inline ::google::protobuf::int64 ChatInfo::creatorid() const {
+inline ::google::protobuf::int64 CallInfo::creatorid() const {
   return creatorid_;
 }
-inline void ChatInfo::set_creatorid(::google::protobuf::int64 value) {
+inline void CallInfo::set_creatorid(::google::protobuf::int64 value) {
   set_has_creatorid();
   creatorid_ = value;
 }
 
 // optional string creatorResource = 5;
-inline bool ChatInfo::has_creatorresource() const {
+inline bool CallInfo::has_creatorresource() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
-inline void ChatInfo::set_has_creatorresource() {
+inline void CallInfo::set_has_creatorresource() {
   _has_bits_[0] |= 0x00000010u;
 }
-inline void ChatInfo::clear_has_creatorresource() {
+inline void CallInfo::clear_has_creatorresource() {
   _has_bits_[0] &= ~0x00000010u;
 }
-inline void ChatInfo::clear_creatorresource() {
+inline void CallInfo::clear_creatorresource() {
   if (creatorresource_ != &::google::protobuf::internal::kEmptyString) {
     creatorresource_->clear();
   }
   clear_has_creatorresource();
 }
-inline const ::std::string& ChatInfo::creatorresource() const {
+inline const ::std::string& CallInfo::creatorresource() const {
   return *creatorresource_;
 }
-inline void ChatInfo::set_creatorresource(const ::std::string& value) {
+inline void CallInfo::set_creatorresource(const ::std::string& value) {
   set_has_creatorresource();
   if (creatorresource_ == &::google::protobuf::internal::kEmptyString) {
     creatorresource_ = new ::std::string;
   }
   creatorresource_->assign(value);
 }
-inline void ChatInfo::set_creatorresource(const char* value) {
+inline void CallInfo::set_creatorresource(const char* value) {
   set_has_creatorresource();
   if (creatorresource_ == &::google::protobuf::internal::kEmptyString) {
     creatorresource_ = new ::std::string;
   }
   creatorresource_->assign(value);
 }
-inline void ChatInfo::set_creatorresource(const char* value, size_t size) {
+inline void CallInfo::set_creatorresource(const char* value, size_t size) {
   set_has_creatorresource();
   if (creatorresource_ == &::google::protobuf::internal::kEmptyString) {
     creatorresource_ = new ::std::string;
   }
   creatorresource_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* ChatInfo::mutable_creatorresource() {
+inline ::std::string* CallInfo::mutable_creatorresource() {
   set_has_creatorresource();
   if (creatorresource_ == &::google::protobuf::internal::kEmptyString) {
     creatorresource_ = new ::std::string;
   }
   return creatorresource_;
 }
-inline ::std::string* ChatInfo::release_creatorresource() {
+inline ::std::string* CallInfo::release_creatorresource() {
   clear_has_creatorresource();
   if (creatorresource_ == &::google::protobuf::internal::kEmptyString) {
     return NULL;
@@ -2541,7 +2541,7 @@ inline ::std::string* ChatInfo::release_creatorresource() {
     return temp;
   }
 }
-inline void ChatInfo::set_allocated_creatorresource(::std::string* creatorresource) {
+inline void CallInfo::set_allocated_creatorresource(::std::string* creatorresource) {
   if (creatorresource_ != &::google::protobuf::internal::kEmptyString) {
     delete creatorresource_;
   }
@@ -2555,27 +2555,27 @@ inline void ChatInfo::set_allocated_creatorresource(::std::string* creatorresour
 }
 
 // repeated .mimc.UserInfo members = 6;
-inline int ChatInfo::members_size() const {
+inline int CallInfo::members_size() const {
   return members_.size();
 }
-inline void ChatInfo::clear_members() {
+inline void CallInfo::clear_members() {
   members_.Clear();
 }
-inline const ::mimc::UserInfo& ChatInfo::members(int index) const {
+inline const ::mimc::UserInfo& CallInfo::members(int index) const {
   return members_.Get(index);
 }
-inline ::mimc::UserInfo* ChatInfo::mutable_members(int index) {
+inline ::mimc::UserInfo* CallInfo::mutable_members(int index) {
   return members_.Mutable(index);
 }
-inline ::mimc::UserInfo* ChatInfo::add_members() {
+inline ::mimc::UserInfo* CallInfo::add_members() {
   return members_.Add();
 }
 inline const ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >&
-ChatInfo::members() const {
+CallInfo::members() const {
   return members_;
 }
 inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
-ChatInfo::mutable_members() {
+CallInfo::mutable_members() {
   return &members_;
 }
 
@@ -2906,49 +2906,49 @@ inline void RTSMessage::set_type(::mimc::RTSMessageType value) {
   type_ = value;
 }
 
-// optional uint64 chatId = 2;
-inline bool RTSMessage::has_chatid() const {
+// optional uint64 callId = 2;
+inline bool RTSMessage::has_callid() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void RTSMessage::set_has_chatid() {
+inline void RTSMessage::set_has_callid() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void RTSMessage::clear_has_chatid() {
+inline void RTSMessage::clear_has_callid() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void RTSMessage::clear_chatid() {
-  chatid_ = GOOGLE_ULONGLONG(0);
-  clear_has_chatid();
+inline void RTSMessage::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
 }
-inline ::google::protobuf::uint64 RTSMessage::chatid() const {
-  return chatid_;
+inline ::google::protobuf::uint64 RTSMessage::callid() const {
+  return callid_;
 }
-inline void RTSMessage::set_chatid(::google::protobuf::uint64 value) {
-  set_has_chatid();
-  chatid_ = value;
+inline void RTSMessage::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
 }
 
-// optional .mimc.ChatType chatType = 3;
-inline bool RTSMessage::has_chattype() const {
+// optional .mimc.CallType callType = 3;
+inline bool RTSMessage::has_calltype() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void RTSMessage::set_has_chattype() {
+inline void RTSMessage::set_has_calltype() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void RTSMessage::clear_has_chattype() {
+inline void RTSMessage::clear_has_calltype() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void RTSMessage::clear_chattype() {
-  chattype_ = 1;
-  clear_has_chattype();
+inline void RTSMessage::clear_calltype() {
+  calltype_ = 1;
+  clear_has_calltype();
 }
-inline ::mimc::ChatType RTSMessage::chattype() const {
-  return static_cast< ::mimc::ChatType >(chattype_);
+inline ::mimc::CallType RTSMessage::calltype() const {
+  return static_cast< ::mimc::CallType >(calltype_);
 }
-inline void RTSMessage::set_chattype(::mimc::ChatType value) {
-  assert(::mimc::ChatType_IsValid(value));
-  set_has_chattype();
-  chattype_ = value;
+inline void RTSMessage::set_calltype(::mimc::CallType value) {
+  assert(::mimc::CallType_IsValid(value));
+  set_has_calltype();
+  calltype_ = value;
 }
 
 // optional int64 uuid = 4;
@@ -4174,48 +4174,48 @@ inline void ByeResponse::set_allocated_reason(::std::string* reason) {
 
 // -------------------------------------------------------------------
 
-// UpdateChatInfo
+// UpdateCallInfo
 
-// optional uint64 chatId = 1;
-inline bool UpdateChatInfo::has_chatid() const {
+// optional uint64 callId = 1;
+inline bool UpdateCallInfo::has_callid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void UpdateChatInfo::set_has_chatid() {
+inline void UpdateCallInfo::set_has_callid() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void UpdateChatInfo::clear_has_chatid() {
+inline void UpdateCallInfo::clear_has_callid() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void UpdateChatInfo::clear_chatid() {
-  chatid_ = GOOGLE_ULONGLONG(0);
-  clear_has_chatid();
+inline void UpdateCallInfo::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
 }
-inline ::google::protobuf::uint64 UpdateChatInfo::chatid() const {
-  return chatid_;
+inline ::google::protobuf::uint64 UpdateCallInfo::callid() const {
+  return callid_;
 }
-inline void UpdateChatInfo::set_chatid(::google::protobuf::uint64 value) {
-  set_has_chatid();
-  chatid_ = value;
+inline void UpdateCallInfo::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
 }
 
 // optional .mimc.UpdateType type = 2;
-inline bool UpdateChatInfo::has_type() const {
+inline bool UpdateCallInfo::has_type() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void UpdateChatInfo::set_has_type() {
+inline void UpdateCallInfo::set_has_type() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void UpdateChatInfo::clear_has_type() {
+inline void UpdateCallInfo::clear_has_type() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void UpdateChatInfo::clear_type() {
+inline void UpdateCallInfo::clear_type() {
   type_ = 1;
   clear_has_type();
 }
-inline ::mimc::UpdateType UpdateChatInfo::type() const {
+inline ::mimc::UpdateType UpdateCallInfo::type() const {
   return static_cast< ::mimc::UpdateType >(type_);
 }
-inline void UpdateChatInfo::set_type(::mimc::UpdateType value) {
+inline void UpdateCallInfo::set_type(::mimc::UpdateType value) {
   assert(::mimc::UpdateType_IsValid(value));
   set_has_type();
   type_ = value;

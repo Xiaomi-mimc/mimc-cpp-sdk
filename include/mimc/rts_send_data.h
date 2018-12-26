@@ -12,8 +12,8 @@ public:
 	static uint64_t createRelayConn(User* user);
 	static bool sendBindRelayRequest(User* user);
 	static bool sendPingRelayRequest(User* user);
-	static bool sendRtsDataByRelay(User* user, uint64_t chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount);
-	static bool closeRelayConnWhenNoChat(User* user);
+	static bool sendRtsDataByRelay(User* user, uint64_t callId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount);
+	static bool closeRelayConnWhenNoCall(User* user);
 };
 
 #endif

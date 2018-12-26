@@ -16,7 +16,7 @@ namespace mimc {
 
 void protobuf_ShutdownFile_rts_5fsignal_2eproto() {
   delete UserInfo::default_instance_;
-  delete ChatInfo::default_instance_;
+  delete CallInfo::default_instance_;
   delete XmqRTSExchange::default_instance_;
   delete RTSMessage::default_instance_;
   delete CreateRequest::default_instance_;
@@ -29,7 +29,7 @@ void protobuf_ShutdownFile_rts_5fsignal_2eproto() {
   delete PingResponse::default_instance_;
   delete ByeRequest::default_instance_;
   delete ByeResponse::default_instance_;
-  delete UpdateChatInfo::default_instance_;
+  delete UpdateCallInfo::default_instance_;
 }
 
 #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
@@ -45,7 +45,7 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
 
 #endif
   UserInfo::default_instance_ = new UserInfo();
-  ChatInfo::default_instance_ = new ChatInfo();
+  CallInfo::default_instance_ = new CallInfo();
   XmqRTSExchange::default_instance_ = new XmqRTSExchange();
   RTSMessage::default_instance_ = new RTSMessage();
   CreateRequest::default_instance_ = new CreateRequest();
@@ -58,9 +58,9 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
   PingResponse::default_instance_ = new PingResponse();
   ByeRequest::default_instance_ = new ByeRequest();
   ByeResponse::default_instance_ = new ByeResponse();
-  UpdateChatInfo::default_instance_ = new UpdateChatInfo();
+  UpdateCallInfo::default_instance_ = new UpdateCallInfo();
   UserInfo::default_instance_->InitAsDefaultInstance();
-  ChatInfo::default_instance_->InitAsDefaultInstance();
+  CallInfo::default_instance_->InitAsDefaultInstance();
   XmqRTSExchange::default_instance_->InitAsDefaultInstance();
   RTSMessage::default_instance_->InitAsDefaultInstance();
   CreateRequest::default_instance_->InitAsDefaultInstance();
@@ -73,7 +73,7 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
   PingResponse::default_instance_->InitAsDefaultInstance();
   ByeRequest::default_instance_->InitAsDefaultInstance();
   ByeResponse::default_instance_->InitAsDefaultInstance();
-  UpdateChatInfo::default_instance_->InitAsDefaultInstance();
+  UpdateCallInfo::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_rts_5fsignal_2eproto);
 }
 
@@ -110,7 +110,7 @@ bool RTSMessageType_IsValid(int value) {
   }
 }
 
-bool ChatType_IsValid(int value) {
+bool CallType_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -149,7 +149,7 @@ bool RTSResult_IsValid(int value) {
   }
 }
 
-bool ChatStatus_IsValid(int value) {
+bool CallStatus_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -760,31 +760,31 @@ void UserInfo::Swap(UserInfo* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int ChatInfo::kChatIdFieldNumber;
-const int ChatInfo::kChatTypeFieldNumber;
-const int ChatInfo::kChatStatusFieldNumber;
-const int ChatInfo::kCreatorIdFieldNumber;
-const int ChatInfo::kCreatorResourceFieldNumber;
-const int ChatInfo::kMembersFieldNumber;
+const int CallInfo::kCallIdFieldNumber;
+const int CallInfo::kChatTypeFieldNumber;
+const int CallInfo::kChatStatusFieldNumber;
+const int CallInfo::kCreatorIdFieldNumber;
+const int CallInfo::kCreatorResourceFieldNumber;
+const int CallInfo::kMembersFieldNumber;
 #endif  // !_MSC_VER
 
-ChatInfo::ChatInfo()
+CallInfo::CallInfo()
   : ::google::protobuf::MessageLite() {
   SharedCtor();
 }
 
-void ChatInfo::InitAsDefaultInstance() {
+void CallInfo::InitAsDefaultInstance() {
 }
 
-ChatInfo::ChatInfo(const ChatInfo& from)
+CallInfo::CallInfo(const CallInfo& from)
   : ::google::protobuf::MessageLite() {
   SharedCtor();
   MergeFrom(from);
 }
 
-void ChatInfo::SharedCtor() {
+void CallInfo::SharedCtor() {
   _cached_size_ = 0;
-  chatid_ = GOOGLE_ULONGLONG(0);
+  callid_ = GOOGLE_ULONGLONG(0);
   chattype_ = 1;
   chatstatus_ = 1;
   creatorid_ = GOOGLE_LONGLONG(0);
@@ -792,11 +792,11 @@ void ChatInfo::SharedCtor() {
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-ChatInfo::~ChatInfo() {
+CallInfo::~CallInfo() {
   SharedDtor();
 }
 
-void ChatInfo::SharedDtor() {
+void CallInfo::SharedDtor() {
   if (creatorresource_ != &::google::protobuf::internal::kEmptyString) {
     delete creatorresource_;
   }
@@ -808,12 +808,12 @@ void ChatInfo::SharedDtor() {
   }
 }
 
-void ChatInfo::SetCachedSize(int size) const {
+void CallInfo::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
-const ChatInfo& ChatInfo::default_instance() {
+const CallInfo& CallInfo::default_instance() {
 #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   protobuf_AddDesc_rts_5fsignal_2eproto();
 #else
@@ -822,15 +822,15 @@ const ChatInfo& ChatInfo::default_instance() {
   return *default_instance_;
 }
 
-ChatInfo* ChatInfo::default_instance_ = NULL;
+CallInfo* CallInfo::default_instance_ = NULL;
 
-ChatInfo* ChatInfo::New() const {
-  return new ChatInfo;
+CallInfo* CallInfo::New() const {
+  return new CallInfo;
 }
 
-void ChatInfo::Clear() {
+void CallInfo::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    chatid_ = GOOGLE_ULONGLONG(0);
+    callid_ = GOOGLE_ULONGLONG(0);
     chattype_ = 1;
     chatstatus_ = 1;
     creatorid_ = GOOGLE_LONGLONG(0);
@@ -844,20 +844,20 @@ void ChatInfo::Clear() {
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-bool ChatInfo::MergePartialFromCodedStream(
+bool CallInfo::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!(EXPRESSION)) return false
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional uint64 chatId = 1;
+      // optional uint64 callId = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chatid_)));
-          set_has_chatid();
+                 input, &callid_)));
+          set_has_callid();
         } else {
           goto handle_uninterpreted;
         }
@@ -865,7 +865,7 @@ bool ChatInfo::MergePartialFromCodedStream(
         break;
       }
 
-      // optional .mimc.ChatType chatType = 2;
+      // optional .mimc.CallType chatType = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -874,8 +874,8 @@ bool ChatInfo::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::mimc::ChatType_IsValid(value)) {
-            set_chattype(static_cast< ::mimc::ChatType >(value));
+          if (::mimc::CallType_IsValid(value)) {
+            set_chattype(static_cast< ::mimc::CallType >(value));
           }
         } else {
           goto handle_uninterpreted;
@@ -884,7 +884,7 @@ bool ChatInfo::MergePartialFromCodedStream(
         break;
       }
 
-      // optional .mimc.ChatStatus chatStatus = 3;
+      // optional .mimc.CallStatus chatStatus = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
@@ -893,8 +893,8 @@ bool ChatInfo::MergePartialFromCodedStream(
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::mimc::ChatStatus_IsValid(value)) {
-            set_chatstatus(static_cast< ::mimc::ChatStatus >(value));
+          if (::mimc::CallStatus_IsValid(value)) {
+            set_chatstatus(static_cast< ::mimc::CallStatus >(value));
           }
         } else {
           goto handle_uninterpreted;
@@ -963,20 +963,20 @@ bool ChatInfo::MergePartialFromCodedStream(
 #undef DO_
 }
 
-void ChatInfo::SerializeWithCachedSizes(
+void CallInfo::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // optional uint64 chatId = 1;
-  if (has_chatid()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->chatid(), output);
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
   }
 
-  // optional .mimc.ChatType chatType = 2;
+  // optional .mimc.CallType chatType = 2;
   if (has_chattype()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       2, this->chattype(), output);
   }
 
-  // optional .mimc.ChatStatus chatStatus = 3;
+  // optional .mimc.CallStatus chatStatus = 3;
   if (has_chatstatus()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
       3, this->chatstatus(), output);
@@ -1001,24 +1001,24 @@ void ChatInfo::SerializeWithCachedSizes(
 
 }
 
-int ChatInfo::ByteSize() const {
+int CallInfo::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional uint64 chatId = 1;
-    if (has_chatid()) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chatid());
+          this->callid());
     }
 
-    // optional .mimc.ChatType chatType = 2;
+    // optional .mimc.CallType chatType = 2;
     if (has_chattype()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->chattype());
     }
 
-    // optional .mimc.ChatStatus chatStatus = 3;
+    // optional .mimc.CallStatus chatStatus = 3;
     if (has_chatstatus()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->chatstatus());
@@ -1053,17 +1053,17 @@ int ChatInfo::ByteSize() const {
   return total_size;
 }
 
-void ChatInfo::CheckTypeAndMergeFrom(
+void CallInfo::CheckTypeAndMergeFrom(
     const ::google::protobuf::MessageLite& from) {
-  MergeFrom(*::google::protobuf::down_cast<const ChatInfo*>(&from));
+  MergeFrom(*::google::protobuf::down_cast<const CallInfo*>(&from));
 }
 
-void ChatInfo::MergeFrom(const ChatInfo& from) {
+void CallInfo::MergeFrom(const CallInfo& from) {
   GOOGLE_CHECK_NE(&from, this);
   members_.MergeFrom(from.members_);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_chatid()) {
-      set_chatid(from.chatid());
+    if (from.has_callid()) {
+      set_callid(from.callid());
     }
     if (from.has_chattype()) {
       set_chattype(from.chattype());
@@ -1080,20 +1080,20 @@ void ChatInfo::MergeFrom(const ChatInfo& from) {
   }
 }
 
-void ChatInfo::CopyFrom(const ChatInfo& from) {
+void CallInfo::CopyFrom(const CallInfo& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool ChatInfo::IsInitialized() const {
+bool CallInfo::IsInitialized() const {
 
   return true;
 }
 
-void ChatInfo::Swap(ChatInfo* other) {
+void CallInfo::Swap(CallInfo* other) {
   if (other != this) {
-    std::swap(chatid_, other->chatid_);
+    std::swap(callid_, other->callid_);
     std::swap(chattype_, other->chattype_);
     std::swap(chatstatus_, other->chatstatus_);
     std::swap(creatorid_, other->creatorid_);
@@ -1104,8 +1104,8 @@ void ChatInfo::Swap(ChatInfo* other) {
   }
 }
 
-::std::string ChatInfo::GetTypeName() const {
-  return "mimc.ChatInfo";
+::std::string CallInfo::GetTypeName() const {
+  return "mimc.CallInfo";
 }
 
 
@@ -1481,8 +1481,8 @@ void XmqRTSExchange::Swap(XmqRTSExchange* other) {
 
 #ifndef _MSC_VER
 const int RTSMessage::kTypeFieldNumber;
-const int RTSMessage::kChatIdFieldNumber;
-const int RTSMessage::kChatTypeFieldNumber;
+const int RTSMessage::kCallIdFieldNumber;
+const int RTSMessage::kCallTypeFieldNumber;
 const int RTSMessage::kUuidFieldNumber;
 const int RTSMessage::kResourceFieldNumber;
 const int RTSMessage::kPayloadFieldNumber;
@@ -1506,8 +1506,8 @@ RTSMessage::RTSMessage(const RTSMessage& from)
 void RTSMessage::SharedCtor() {
   _cached_size_ = 0;
   type_ = 1;
-  chatid_ = GOOGLE_ULONGLONG(0);
-  chattype_ = 1;
+  callid_ = GOOGLE_ULONGLONG(0);
+  calltype_ = 1;
   uuid_ = GOOGLE_LONGLONG(0);
   resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
@@ -1557,8 +1557,8 @@ RTSMessage* RTSMessage::New() const {
 void RTSMessage::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     type_ = 1;
-    chatid_ = GOOGLE_ULONGLONG(0);
-    chattype_ = 1;
+    callid_ = GOOGLE_ULONGLONG(0);
+    calltype_ = 1;
     uuid_ = GOOGLE_LONGLONG(0);
     if (has_resource()) {
       if (resource_ != &::google::protobuf::internal::kEmptyString) {
@@ -1595,37 +1595,37 @@ bool RTSMessage::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(16)) goto parse_chatId;
+        if (input->ExpectTag(16)) goto parse_callId;
         break;
       }
 
-      // optional uint64 chatId = 2;
+      // optional uint64 callId = 2;
       case 2: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_chatId:
+         parse_callId:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chatid_)));
-          set_has_chatid();
+                 input, &callid_)));
+          set_has_callid();
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(24)) goto parse_chatType;
+        if (input->ExpectTag(24)) goto parse_callType;
         break;
       }
 
-      // optional .mimc.ChatType chatType = 3;
+      // optional .mimc.CallType callType = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_chatType:
+         parse_callType:
           int value;
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
                  input, &value)));
-          if (::mimc::ChatType_IsValid(value)) {
-            set_chattype(static_cast< ::mimc::ChatType >(value));
+          if (::mimc::CallType_IsValid(value)) {
+            set_calltype(static_cast< ::mimc::CallType >(value));
           }
         } else {
           goto handle_uninterpreted;
@@ -1717,15 +1717,15 @@ void RTSMessage::SerializeWithCachedSizes(
       1, this->type(), output);
   }
 
-  // optional uint64 chatId = 2;
-  if (has_chatid()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->chatid(), output);
+  // optional uint64 callId = 2;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->callid(), output);
   }
 
-  // optional .mimc.ChatType chatType = 3;
-  if (has_chattype()) {
+  // optional .mimc.CallType callType = 3;
+  if (has_calltype()) {
     ::google::protobuf::internal::WireFormatLite::WriteEnum(
-      3, this->chattype(), output);
+      3, this->calltype(), output);
   }
 
   // optional int64 uuid = 4;
@@ -1762,17 +1762,17 @@ int RTSMessage::ByteSize() const {
         ::google::protobuf::internal::WireFormatLite::EnumSize(this->type());
     }
 
-    // optional uint64 chatId = 2;
-    if (has_chatid()) {
+    // optional uint64 callId = 2;
+    if (has_callid()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chatid());
+          this->callid());
     }
 
-    // optional .mimc.ChatType chatType = 3;
-    if (has_chattype()) {
+    // optional .mimc.CallType callType = 3;
+    if (has_calltype()) {
       total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::EnumSize(this->chattype());
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->calltype());
     }
 
     // optional int64 uuid = 4;
@@ -1821,11 +1821,11 @@ void RTSMessage::MergeFrom(const RTSMessage& from) {
     if (from.has_type()) {
       set_type(from.type());
     }
-    if (from.has_chatid()) {
-      set_chatid(from.chatid());
+    if (from.has_callid()) {
+      set_callid(from.callid());
     }
-    if (from.has_chattype()) {
-      set_chattype(from.chattype());
+    if (from.has_calltype()) {
+      set_calltype(from.calltype());
     }
     if (from.has_uuid()) {
       set_uuid(from.uuid());
@@ -1856,8 +1856,8 @@ bool RTSMessage::IsInitialized() const {
 void RTSMessage::Swap(RTSMessage* other) {
   if (other != this) {
     std::swap(type_, other->type_);
-    std::swap(chatid_, other->chatid_);
-    std::swap(chattype_, other->chattype_);
+    std::swap(callid_, other->callid_);
+    std::swap(calltype_, other->calltype_);
     std::swap(uuid_, other->uuid_);
     std::swap(resource_, other->resource_);
     std::swap(payload_, other->payload_);
@@ -3994,36 +3994,36 @@ void ByeResponse::Swap(ByeResponse* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
-const int UpdateChatInfo::kChatIdFieldNumber;
-const int UpdateChatInfo::kTypeFieldNumber;
+const int UpdateCallInfo::kCallIdFieldNumber;
+const int UpdateCallInfo::kTypeFieldNumber;
 #endif  // !_MSC_VER
 
-UpdateChatInfo::UpdateChatInfo()
+UpdateCallInfo::UpdateCallInfo()
   : ::google::protobuf::MessageLite() {
   SharedCtor();
 }
 
-void UpdateChatInfo::InitAsDefaultInstance() {
+void UpdateCallInfo::InitAsDefaultInstance() {
 }
 
-UpdateChatInfo::UpdateChatInfo(const UpdateChatInfo& from)
+UpdateCallInfo::UpdateCallInfo(const UpdateCallInfo& from)
   : ::google::protobuf::MessageLite() {
   SharedCtor();
   MergeFrom(from);
 }
 
-void UpdateChatInfo::SharedCtor() {
+void UpdateCallInfo::SharedCtor() {
   _cached_size_ = 0;
-  chatid_ = GOOGLE_ULONGLONG(0);
+  callid_ = GOOGLE_ULONGLONG(0);
   type_ = 1;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-UpdateChatInfo::~UpdateChatInfo() {
+UpdateCallInfo::~UpdateCallInfo() {
   SharedDtor();
 }
 
-void UpdateChatInfo::SharedDtor() {
+void UpdateCallInfo::SharedDtor() {
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
   #else
@@ -4032,12 +4032,12 @@ void UpdateChatInfo::SharedDtor() {
   }
 }
 
-void UpdateChatInfo::SetCachedSize(int size) const {
+void UpdateCallInfo::SetCachedSize(int size) const {
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = size;
   GOOGLE_SAFE_CONCURRENT_WRITES_END();
 }
-const UpdateChatInfo& UpdateChatInfo::default_instance() {
+const UpdateCallInfo& UpdateCallInfo::default_instance() {
 #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   protobuf_AddDesc_rts_5fsignal_2eproto();
 #else
@@ -4046,34 +4046,34 @@ const UpdateChatInfo& UpdateChatInfo::default_instance() {
   return *default_instance_;
 }
 
-UpdateChatInfo* UpdateChatInfo::default_instance_ = NULL;
+UpdateCallInfo* UpdateCallInfo::default_instance_ = NULL;
 
-UpdateChatInfo* UpdateChatInfo::New() const {
-  return new UpdateChatInfo;
+UpdateCallInfo* UpdateCallInfo::New() const {
+  return new UpdateCallInfo;
 }
 
-void UpdateChatInfo::Clear() {
+void UpdateCallInfo::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    chatid_ = GOOGLE_ULONGLONG(0);
+    callid_ = GOOGLE_ULONGLONG(0);
     type_ = 1;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
-bool UpdateChatInfo::MergePartialFromCodedStream(
+bool UpdateCallInfo::MergePartialFromCodedStream(
     ::google::protobuf::io::CodedInputStream* input) {
 #define DO_(EXPRESSION) if (!(EXPRESSION)) return false
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // optional uint64 chatId = 1;
+      // optional uint64 callId = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
-                 input, &chatid_)));
-          set_has_chatid();
+                 input, &callid_)));
+          set_has_callid();
         } else {
           goto handle_uninterpreted;
         }
@@ -4115,11 +4115,11 @@ bool UpdateChatInfo::MergePartialFromCodedStream(
 #undef DO_
 }
 
-void UpdateChatInfo::SerializeWithCachedSizes(
+void UpdateCallInfo::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // optional uint64 chatId = 1;
-  if (has_chatid()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->chatid(), output);
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
   }
 
   // optional .mimc.UpdateType type = 2;
@@ -4130,15 +4130,15 @@ void UpdateChatInfo::SerializeWithCachedSizes(
 
 }
 
-int UpdateChatInfo::ByteSize() const {
+int UpdateCallInfo::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // optional uint64 chatId = 1;
-    if (has_chatid()) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt64Size(
-          this->chatid());
+          this->callid());
     }
 
     // optional .mimc.UpdateType type = 2;
@@ -4154,16 +4154,16 @@ int UpdateChatInfo::ByteSize() const {
   return total_size;
 }
 
-void UpdateChatInfo::CheckTypeAndMergeFrom(
+void UpdateCallInfo::CheckTypeAndMergeFrom(
     const ::google::protobuf::MessageLite& from) {
-  MergeFrom(*::google::protobuf::down_cast<const UpdateChatInfo*>(&from));
+  MergeFrom(*::google::protobuf::down_cast<const UpdateCallInfo*>(&from));
 }
 
-void UpdateChatInfo::MergeFrom(const UpdateChatInfo& from) {
+void UpdateCallInfo::MergeFrom(const UpdateCallInfo& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    if (from.has_chatid()) {
-      set_chatid(from.chatid());
+    if (from.has_callid()) {
+      set_callid(from.callid());
     }
     if (from.has_type()) {
       set_type(from.type());
@@ -4171,28 +4171,28 @@ void UpdateChatInfo::MergeFrom(const UpdateChatInfo& from) {
   }
 }
 
-void UpdateChatInfo::CopyFrom(const UpdateChatInfo& from) {
+void UpdateCallInfo::CopyFrom(const UpdateCallInfo& from) {
   if (&from == this) return;
   Clear();
   MergeFrom(from);
 }
 
-bool UpdateChatInfo::IsInitialized() const {
+bool UpdateCallInfo::IsInitialized() const {
 
   return true;
 }
 
-void UpdateChatInfo::Swap(UpdateChatInfo* other) {
+void UpdateCallInfo::Swap(UpdateCallInfo* other) {
   if (other != this) {
-    std::swap(chatid_, other->chatid_);
+    std::swap(callid_, other->callid_);
     std::swap(type_, other->type_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
 }
 
-::std::string UpdateChatInfo::GetTypeName() const {
-  return "mimc.UpdateChatInfo";
+::std::string UpdateCallInfo::GetTypeName() const {
+  return "mimc.UpdateCallInfo";
 }
 
 

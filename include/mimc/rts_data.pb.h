@@ -198,12 +198,12 @@ class UserPacket : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
-  // optional uint64 chat_id = 5;
-  inline bool has_chat_id() const;
-  inline void clear_chat_id();
-  static const int kChatIdFieldNumber = 5;
-  inline ::google::protobuf::uint64 chat_id() const;
-  inline void set_chat_id(::google::protobuf::uint64 value);
+  // optional uint64 call_id = 5;
+  inline bool has_call_id() const;
+  inline void clear_call_id();
+  static const int kCallIdFieldNumber = 5;
+  inline ::google::protobuf::uint64 call_id() const;
+  inline void set_call_id(::google::protobuf::uint64 value);
 
   // optional bytes payload = 6;
   inline bool has_payload() const;
@@ -234,8 +234,8 @@ class UserPacket : public ::google::protobuf::MessageLite {
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
-  inline void set_has_chat_id();
-  inline void clear_has_chat_id();
+  inline void set_has_call_id();
+  inline void clear_has_call_id();
   inline void set_has_payload();
   inline void clear_has_payload();
   inline void set_has_region_bucket();
@@ -245,7 +245,7 @@ class UserPacket : public ::google::protobuf::MessageLite {
   int pkt_type_;
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
-  ::google::protobuf::uint64 chat_id_;
+  ::google::protobuf::uint64 call_id_;
   ::std::string* payload_;
   ::google::protobuf::int64 region_bucket_;
 
@@ -1314,12 +1314,12 @@ class RouterPacket : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // required uint64 chat_id = 1;
-  inline bool has_chat_id() const;
-  inline void clear_chat_id();
-  static const int kChatIdFieldNumber = 1;
-  inline ::google::protobuf::uint64 chat_id() const;
-  inline void set_chat_id(::google::protobuf::uint64 value);
+  // required uint64 call_id = 1;
+  inline bool has_call_id() const;
+  inline void clear_call_id();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 call_id() const;
+  inline void set_call_id(::google::protobuf::uint64 value);
 
   // optional uint64 from_uuid = 2;
   inline bool has_from_uuid() const;
@@ -1394,8 +1394,8 @@ class RouterPacket : public ::google::protobuf::MessageLite {
 
   // @@protoc_insertion_point(class_scope:mimc.RouterPacket)
  private:
-  inline void set_has_chat_id();
-  inline void clear_has_chat_id();
+  inline void set_has_call_id();
+  inline void clear_has_call_id();
   inline void set_has_from_uuid();
   inline void clear_has_from_uuid();
   inline void set_has_from_resource();
@@ -1413,7 +1413,7 @@ class RouterPacket : public ::google::protobuf::MessageLite {
   inline void set_has_region_bucket();
   inline void clear_has_region_bucket();
 
-  ::google::protobuf::uint64 chat_id_;
+  ::google::protobuf::uint64 call_id_;
   ::google::protobuf::uint64 from_uuid_;
   ::std::string* from_resource_;
   ::google::protobuf::uint64 to_uuid_;
@@ -1511,12 +1511,12 @@ class BurrowPacket : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
-  // required uint64 chat_id = 3;
-  inline bool has_chat_id() const;
-  inline void clear_chat_id();
-  static const int kChatIdFieldNumber = 3;
-  inline ::google::protobuf::uint64 chat_id() const;
-  inline void set_chat_id(::google::protobuf::uint64 value);
+  // required uint64 call_id = 3;
+  inline bool has_call_id() const;
+  inline void clear_call_id();
+  static const int kCallIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 call_id() const;
+  inline void set_call_id(::google::protobuf::uint64 value);
 
   // required uint64 burrow_id = 4;
   inline bool has_burrow_id() const;
@@ -1538,8 +1538,8 @@ class BurrowPacket : public ::google::protobuf::MessageLite {
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
-  inline void set_has_chat_id();
-  inline void clear_has_chat_id();
+  inline void set_has_call_id();
+  inline void clear_has_call_id();
   inline void set_has_burrow_id();
   inline void clear_has_burrow_id();
   inline void set_has_burrow_type();
@@ -1547,7 +1547,7 @@ class BurrowPacket : public ::google::protobuf::MessageLite {
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
-  ::google::protobuf::uint64 chat_id_;
+  ::google::protobuf::uint64 call_id_;
   ::google::protobuf::uint64 burrow_id_;
   int burrow_type_;
 
@@ -1709,26 +1709,26 @@ inline void UserPacket::set_allocated_resource(::std::string* resource) {
   }
 }
 
-// optional uint64 chat_id = 5;
-inline bool UserPacket::has_chat_id() const {
+// optional uint64 call_id = 5;
+inline bool UserPacket::has_call_id() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
-inline void UserPacket::set_has_chat_id() {
+inline void UserPacket::set_has_call_id() {
   _has_bits_[0] |= 0x00000010u;
 }
-inline void UserPacket::clear_has_chat_id() {
+inline void UserPacket::clear_has_call_id() {
   _has_bits_[0] &= ~0x00000010u;
 }
-inline void UserPacket::clear_chat_id() {
-  chat_id_ = GOOGLE_ULONGLONG(0);
-  clear_has_chat_id();
+inline void UserPacket::clear_call_id() {
+  call_id_ = GOOGLE_ULONGLONG(0);
+  clear_has_call_id();
 }
-inline ::google::protobuf::uint64 UserPacket::chat_id() const {
-  return chat_id_;
+inline ::google::protobuf::uint64 UserPacket::call_id() const {
+  return call_id_;
 }
-inline void UserPacket::set_chat_id(::google::protobuf::uint64 value) {
-  set_has_chat_id();
-  chat_id_ = value;
+inline void UserPacket::set_call_id(::google::protobuf::uint64 value) {
+  set_has_call_id();
+  call_id_ = value;
 }
 
 // optional bytes payload = 6;
@@ -2975,26 +2975,26 @@ inline void RelayKickResponse::set_is_ok(bool value) {
 
 // RouterPacket
 
-// required uint64 chat_id = 1;
-inline bool RouterPacket::has_chat_id() const {
+// required uint64 call_id = 1;
+inline bool RouterPacket::has_call_id() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
-inline void RouterPacket::set_has_chat_id() {
+inline void RouterPacket::set_has_call_id() {
   _has_bits_[0] |= 0x00000001u;
 }
-inline void RouterPacket::clear_has_chat_id() {
+inline void RouterPacket::clear_has_call_id() {
   _has_bits_[0] &= ~0x00000001u;
 }
-inline void RouterPacket::clear_chat_id() {
-  chat_id_ = GOOGLE_ULONGLONG(0);
-  clear_has_chat_id();
+inline void RouterPacket::clear_call_id() {
+  call_id_ = GOOGLE_ULONGLONG(0);
+  clear_has_call_id();
 }
-inline ::google::protobuf::uint64 RouterPacket::chat_id() const {
-  return chat_id_;
+inline ::google::protobuf::uint64 RouterPacket::call_id() const {
+  return call_id_;
 }
-inline void RouterPacket::set_chat_id(::google::protobuf::uint64 value) {
-  set_has_chat_id();
-  chat_id_ = value;
+inline void RouterPacket::set_call_id(::google::protobuf::uint64 value) {
+  set_has_call_id();
+  call_id_ = value;
 }
 
 // optional uint64 from_uuid = 2;
@@ -3414,26 +3414,26 @@ inline void BurrowPacket::set_allocated_resource(::std::string* resource) {
   }
 }
 
-// required uint64 chat_id = 3;
-inline bool BurrowPacket::has_chat_id() const {
+// required uint64 call_id = 3;
+inline bool BurrowPacket::has_call_id() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void BurrowPacket::set_has_chat_id() {
+inline void BurrowPacket::set_has_call_id() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void BurrowPacket::clear_has_chat_id() {
+inline void BurrowPacket::clear_has_call_id() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void BurrowPacket::clear_chat_id() {
-  chat_id_ = GOOGLE_ULONGLONG(0);
-  clear_has_chat_id();
+inline void BurrowPacket::clear_call_id() {
+  call_id_ = GOOGLE_ULONGLONG(0);
+  clear_has_call_id();
 }
-inline ::google::protobuf::uint64 BurrowPacket::chat_id() const {
-  return chat_id_;
+inline ::google::protobuf::uint64 BurrowPacket::call_id() const {
+  return call_id_;
 }
-inline void BurrowPacket::set_chat_id(::google::protobuf::uint64 value) {
-  set_has_chat_id();
-  chat_id_ = value;
+inline void BurrowPacket::set_call_id(::google::protobuf::uint64 value) {
+  set_has_call_id();
+  call_id_ = value;
 }
 
 // required uint64 burrow_id = 4;

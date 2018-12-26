@@ -2,7 +2,7 @@
 #include <mimc/user.h>
 #include <mimc/packet_manager.h>
 
-bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t chatId) {
+bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
 	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse.IsInitialized()) {
 		
@@ -16,7 +16,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t chatId) {
 		return false;
 	}
 
-	P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+	P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 	mimc::CreateRequest createRequest;
 	mimc::UserInfo* fromUser = createRequest.add_members();
 	fromUser->set_uuid(user->getUuid());
@@ -32,12 +32,12 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t chatId) {
 	fromUser->set_connid(user->getRelayConnId());
 
 	mimc::UserInfo* toUser = createRequest.add_members();
-	mimc::UserInfo toUserInfo = chatSession.getPeerUser();
+	mimc::UserInfo toUserInfo = callSession.getPeerUser();
 	toUser->set_appid(toUserInfo.appid());
 	toUser->set_appaccount(toUserInfo.appaccount());
 	toUser->set_resource(toUserInfo.resource());
 
-	createRequest.set_appcontent(chatSession.getAppContent());
+	createRequest.set_appcontent(callSession.getAppContent());
 
 	int create_request_size = createRequest.ByteSize();
 	char createRequestBytes[create_request_size];
@@ -45,17 +45,17 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t chatId) {
 	createRequest.SerializeToArray(createRequestBytes, create_request_size);
 	std::string createRequestBytesStr(createRequestBytes, create_request_size);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::CREATE_REQUEST, chatSession.getChatType(), createRequestBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::CREATE_REQUEST, callSession.getCallType(), createRequestBytesStr);
 
-	chatSession.setChatState(WAIT_CREATE_RESPONSE);
-	chatSession.setLatestLegalChatStateTs(time(NULL));
+	callSession.setCallState(WAIT_CREATE_RESPONSE);
+	callSession.setLatestLegalCallStateTs(time(NULL));
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, chatId is %llu", user->getAppAccount().c_str(), chatId);
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, callId is %llu", user->getAppAccount().c_str(), callId);
 
 	return true;
 }
 
-bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t chatId, mimc::ChatType chatType, mimc::RTSResult result, std::string errmsg) {
+bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::CallType callType, mimc::RTSResult result, std::string errMsg) {
 	std::string localIp;
 	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
@@ -82,7 +82,7 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t chatId, mimc::
 	theUser->set_connid(user->getRelayConnId());
 
 	inviteResponse.set_result(result);
-	inviteResponse.set_errmsg(errmsg);
+	inviteResponse.set_errmsg(errMsg);
 
 	int invite_response_size = inviteResponse.ByteSize();
 	char inviteResponseBytes[invite_response_size];
@@ -90,16 +90,16 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t chatId, mimc::
 	inviteResponse.SerializeToArray(inviteResponseBytes, invite_response_size);
 	std::string inviteResponseBytesStr(inviteResponseBytes, invite_response_size);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::INVITE_RESPONSE, chatType, inviteResponseBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::INVITE_RESPONSE, callType, inviteResponseBytesStr);
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, chatId is %llu, result is %d, errmsg is %s", user->getAppAccount().c_str(), chatId, result, errmsg.c_str());
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, callId is %llu, result is %d, errMsg is %s", user->getAppAccount().c_str(), callId, result, errMsg.c_str());
 
 	return true;
 }
 
-bool RtsSendSignal::sendByeRequest(const User* user, uint64_t chatId, std::string byeReason) {
-	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
-	if (chatSession.getChatState() != RUNNING && chatSession.getChatState() != WAIT_SEND_UPDATE_REQUEST && chatSession.getChatState() != WAIT_UPDATE_RESPONSE) {
+bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::string byeReason) {
+	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+	if (callSession.getCallState() != RUNNING && callSession.getCallState() != WAIT_SEND_UPDATE_REQUEST && callSession.getCallState() != WAIT_UPDATE_RESPONSE) {
 		return false;
 	}
 	mimc::ByeRequest byeRequest;
@@ -113,15 +113,15 @@ bool RtsSendSignal::sendByeRequest(const User* user, uint64_t chatId, std::strin
 	byeRequest.SerializeToArray(byeRequestBytes, bye_request_size);
 	std::string byeRequestBytesStr(byeRequestBytes, bye_request_size);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::BYE_REQUEST, chatSession.getChatType(), byeRequestBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::BYE_REQUEST, callSession.getCallType(), byeRequestBytesStr);
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, chatId is %llu, byeReason is %s", user->getAppAccount().c_str(), chatId, byeReason.c_str());
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, callId is %llu, byeReason is %s", user->getAppAccount().c_str(), callId, byeReason.c_str());
 
 	return true;
 }
 
-bool RtsSendSignal::sendByeResponse(const User* user, uint64_t chatId, mimc::RTSResult result) {
-	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+bool RtsSendSignal::sendByeResponse(const User* user, uint64_t callId, mimc::RTSResult result) {
+	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 	mimc::ByeResponse byeResponse;
 	byeResponse.set_result(result);
 	int bye_response_size = byeResponse.ByteSize();
@@ -130,14 +130,14 @@ bool RtsSendSignal::sendByeResponse(const User* user, uint64_t chatId, mimc::RTS
 	byeResponse.SerializeToArray(byeResponseBytes, bye_response_size);
 	std::string byeResponseBytesStr(byeResponseBytes, bye_response_size);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::BYE_RESPONSE, chatSession.getChatType(), byeResponseBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::BYE_RESPONSE, callSession.getCallType(), byeResponseBytesStr);
 
 	
 
 	return true;
 }
 
-bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t chatId) {
+bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
 	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse.IsInitialized()) {
 		
@@ -170,18 +170,18 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t chatId) {
 	updateRequest.SerializeToArray(updateRequestBytes, update_request_size);
 	std::string updateRequestBytesStr(updateRequestBytes, update_request_size);
 
-	P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+	P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::UPDATE_REQUEST, chatSession.getChatType(), updateRequestBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_REQUEST, callSession.getCallType(), updateRequestBytesStr);
 	
 
-	chatSession.setChatState(WAIT_UPDATE_RESPONSE);
-	chatSession.setLatestLegalChatStateTs(time(NULL));
+	callSession.setCallState(WAIT_UPDATE_RESPONSE);
+	callSession.setLatestLegalCallStateTs(time(NULL));
 
 	return true;
 }
 
-bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t chatId, mimc::RTSResult result) {
+bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::RTSResult result) {
 	mimc::UpdateResponse updateResponse;
 	updateResponse.set_result(result);
 
@@ -191,16 +191,16 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t chatId, mimc::
 	updateResponse.SerializeToArray(updateResponseBytes, update_response_size);
 	std::string updateResponseBytesStr(updateResponseBytes, update_response_size);
 
-	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::UPDATE_RESPONSE, chatSession.getChatType(), updateResponseBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_RESPONSE, callSession.getCallType(), updateResponseBytesStr);
 	
 
 	return true;
 }
 
-bool RtsSendSignal::pingChatManager(const User* user, uint64_t chatId) {
-	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+bool RtsSendSignal::pingCallManager(const User* user, uint64_t callId) {
+	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 	mimc::PingRequest pingRequest;
 	int ping_request_size = pingRequest.ByteSize();
 	char pingRequestBytes[ping_request_size];
@@ -208,18 +208,18 @@ bool RtsSendSignal::pingChatManager(const User* user, uint64_t chatId) {
 	pingRequest.SerializeToArray(pingRequestBytes, ping_request_size);
 	std::string pingRequestBytesStr(pingRequestBytes, ping_request_size);
 
-	std::string packetId = sendRtsMessage(user, chatId, mimc::PING_REQUEST, chatSession.getChatType(), pingRequestBytesStr);
+	std::string packetId = sendRtsMessage(user, callId, mimc::PING_REQUEST, callSession.getCallType(), pingRequestBytesStr);
 
 	
 
 	return true;
 }
 
-std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t chatId, mimc::RTSMessageType messageType, mimc::ChatType chatType, std::string payload) {
+std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t callId, mimc::RTSMessageType messageType, mimc::CallType callType, std::string payload) {
 	mimc::RTSMessage rtsMessage;
 	rtsMessage.set_type(messageType);
-	rtsMessage.set_chatid(chatId);
-	rtsMessage.set_chattype(chatType);
+	rtsMessage.set_callid(callId);
+	rtsMessage.set_calltype(callType);
 	rtsMessage.set_uuid(user->getUuid());
 	rtsMessage.set_resource(user->getResource());
 	rtsMessage.set_payload(payload);

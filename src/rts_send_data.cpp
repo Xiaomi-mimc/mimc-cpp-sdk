@@ -113,13 +113,13 @@ bool RtsSendData::sendBindRelayRequest(User* user) {
 }
 
 bool RtsSendData::sendPingRelayRequest(User* user) {
-	pthread_rwlock_rdlock(&user->getChatsRwlock());
-	if (user->getCurrentChats()->empty() || user->getRelayLinkState() != SUCC_CREATED) {
-		pthread_rwlock_unlock(&user->getChatsRwlock());
+	pthread_rwlock_rdlock(&user->getCallsRwlock());
+	if (user->getCurrentCalls()->empty() || user->getRelayLinkState() != SUCC_CREATED) {
+		pthread_rwlock_unlock(&user->getCallsRwlock());
 		return false;
 	}
 
-	pthread_rwlock_unlock(&user->getChatsRwlock());
+	pthread_rwlock_unlock(&user->getCallsRwlock());
 	mimc::PingRelayRequest pingRelayRequest;
 	pingRelayRequest.set_uuid(user->getUuid());
 	pingRelayRequest.set_resource(user->getResource());
@@ -148,7 +148,7 @@ bool RtsSendData::sendPingRelayRequest(User* user) {
 	return true;
 }
 
-bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t callId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
 	uint64_t relayConnId = user->getRelayConnId();
 	if (relayConnId == 0) {
 		
@@ -159,7 +159,7 @@ bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t chatId, const std::str
 	userPacket.set_resource(user->getResource());
 	userPacket.set_pkt_type(pktType);
 	userPacket.set_payload(std::string(data));
-	userPacket.set_chat_id(chatId);
+	userPacket.set_call_id(callId);
 
 	int message_size = userPacket.ByteSize();
 	char messageBytes[message_size];
@@ -210,12 +210,12 @@ bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t chatId, const std::str
 	return true;
 }
 
-bool RtsSendData::closeRelayConnWhenNoChat(User* user) {
+bool RtsSendData::closeRelayConnWhenNoCall(User* user) {
 	if (user->getRelayConnId() == 0) {
 		
 		return false;
 	}
-	if (user->getCurrentChats()->size() > 0) {
+	if (user->getCurrentCalls()->size() > 0) {
 		
 		return false;
 	}

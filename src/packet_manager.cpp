@@ -363,22 +363,22 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					
 					return -1;
 				}
-				const uint64_t& chatId = rtsMessage.chatid();
+				const uint64_t& callId = rtsMessage.callid();
 				
 				
 				switch (rtsMessage.type()) {
 					case mimc::INVITE_REQUEST:
 						{
-						XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, chatId is %llu, user is %s", chatId, user->getAppAccount().c_str());
+						XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, callId is %llu, user is %s", callId, user->getAppAccount().c_str());
 						mimc::InviteRequest inviteRequest;
 						if (!inviteRequest.ParseFromString(rtsMessage.payload())) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RTS_PAYLOAD_PARSE_ERROR");
-							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::INTERNAL_ERROR1, "RTS_PAYLOAD_PARSE_ERROR");
+							RtsSendSignal::sendInviteResponse(user, callId, rtsMessage.calltype(), mimc::INTERNAL_ERROR1, "RTS_PAYLOAD_PARSE_ERROR");
 							return -1;
 						}
 						if (!inviteRequest.has_streamtype() || inviteRequest.members_size() == 0) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: INVALID_PARAM");
-							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "INVALID_PARAM");
+							RtsSendSignal::sendInviteResponse(user, callId, rtsMessage.calltype(), mimc::PARAMETER_ERROR, "INVALID_PARAM");
 							return 0;
 						}
 
@@ -394,15 +394,15 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						if (!uuid_in_members) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: MEMBERS_NOT_CONTAIN_SENDER");
-							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PARAMETER_ERROR, "MEMBERS_NOT_CONTAIN_SENDER");
+							RtsSendSignal::sendInviteResponse(user, callId, rtsMessage.calltype(), mimc::PARAMETER_ERROR, "MEMBERS_NOT_CONTAIN_SENDER");
 							return 0;
 						}
 
-						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						if (user->getCurrentChats()->size() == user->getMaxCallNum()) {
-							XMDLoggerWrapper::instance()->warn("In INVITE_REQUEST, currentChats size has reached maxCallNum %d!", user->getMaxCallNum());
-							RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_REFUSE, "USER_BUSY");
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_wrlock(&user->getCallsRwlock());
+						if (user->getCurrentCalls()->size() == user->getMaxCallNum()) {
+							XMDLoggerWrapper::instance()->warn("In INVITE_REQUEST, currentCalls size has reached maxCallNum %d!", user->getMaxCallNum());
+							RtsSendSignal::sendInviteResponse(user, callId, rtsMessage.calltype(), mimc::PEER_REFUSE, "USER_BUSY");
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						if (user->getRelayLinkState() == NOT_CREATED) {
@@ -412,71 +412,70 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is NOT_CREATED, relayConnId is %llu", connId);
 							if (connId == 0) {
 								XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RELAY CAN NOT BE CONNECTED");
-								RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_OFFLINE, "RELAY CAN NOT BE CONNECTED");
-								pthread_rwlock_unlock(&user->getChatsRwlock());
+								RtsSendSignal::sendInviteResponse(user, callId, rtsMessage.calltype(), mimc::PEER_OFFLINE, "RELAY CAN NOT BE CONNECTED");
+								pthread_rwlock_unlock(&user->getCallsRwlock());
 								return 0;
 							}
-							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentCalls()->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, from, rtsMessage.calltype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else if (user->getRelayLinkState() == BEING_CREATED) {
 							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is BEING_CREATED");
-							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentCalls()->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, from, rtsMessage.calltype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else {
 							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is SUCC_CREATED");
-							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_INVITEE_RESPONSE, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentCalls()->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, from, rtsMessage.calltype(), WAIT_INVITEE_RESPONSE, time(NULL), false, inviteRequest.appcontent())));
 							
 							struct onLaunchedParam* param = new struct onLaunchedParam();
 							param->user = user;
-							param->chatId = chatId;
+							param->callId = callId;
 							pthread_t onLaunchedThread;
 							pthread_attr_t attr;
 							pthread_attr_init(&attr);
 							pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 							pthread_create (&onLaunchedThread, &attr, User::onLaunched, (void *)param);
-							user->getOnlaunchChats()->insert(std::pair<uint64_t, pthread_t>(chatId, onLaunchedThread));
+							user->getOnlaunchCalls()->insert(std::pair<uint64_t, pthread_t>(callId, onLaunchedThread));
 							pthread_attr_destroy(&attr);
 						}
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 					case mimc::CREATE_RESPONSE:
 						{
-						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %llu, user is %s", chatId, user->getAppAccount().c_str());
-						if (user->getCurrentChats()->count(chatId) == 0) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_wrlock(&user->getCallsRwlock());
+						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, callId is %llu, user is %s", callId, user->getAppAccount().c_str());
+						if (user->getCurrentCalls()->count(callId) == 0) {
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						mimc::CreateResponse createResponse;
 						if (!createResponse.ParseFromString(rtsMessage.payload())) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
 						if (!createResponse.has_result() || !createResponse.has_errmsg() || createResponse.members_size() == 0) {
 							
-							user->getCurrentChats()->erase(chatId);
-							RtsSendData::closeRelayConnWhenNoChat(user);
-							user->getRTSCallEventHandler()->onAnswered(chatId, false, "param is abnormal");
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							user->getCurrentCalls()->erase(callId);
+							RtsSendData::closeRelayConnWhenNoCall(user);
+							user->getRTSCallEventHandler()->onAnswered(callId, false, "param is abnormal");
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
-						if (rtsMessage.chattype() == mimc::SINGLE_CHAT && createResponse.members_size() != 2) {
+						if (rtsMessage.calltype() == mimc::SINGLE_CALL && createResponse.members_size() != 2) {
 							
-							user->getCurrentChats()->erase(chatId);
-							RtsSendData::closeRelayConnWhenNoChat(user);
-							user->getRTSCallEventHandler()->onAnswered(chatId, false, "SINGLE_CHAT MEMBER SIZE IS NOT 2");
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							user->getCurrentCalls()->erase(callId);
+							RtsSendData::closeRelayConnWhenNoCall(user);
+							user->getRTSCallEventHandler()->onAnswered(callId, false, "SINGLE_CALL MEMBER SIZE IS NOT 2");
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
-
 						
 						bool accepted = false;
 						if (createResponse.result() == mimc::SUCC) {
 							accepted = true;
 						}
 						if (accepted) {
-							P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
+							P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 							mimc::UserInfo toUser;
 							for (int i = 0; i < createResponse.members_size(); i++) {
 								const mimc::UserInfo& member = createResponse.members(i);
@@ -485,124 +484,124 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 									break;
 								}
 							}
-							chatSession.setChatState(RUNNING);
-							chatSession.setLatestLegalChatStateTs(time(NULL));
+							callSession.setCallState(RUNNING);
+							callSession.setLatestLegalCallStateTs(time(NULL));
 
 							//会话接通，开始打洞
 						} else {
 							XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, accepted is false");	
-							user->getCurrentChats()->erase(chatId);
-							RtsSendData::closeRelayConnWhenNoChat(user);
+							user->getCurrentCalls()->erase(callId);
+							RtsSendData::closeRelayConnWhenNoCall(user);
 						}
-						user->getRTSCallEventHandler()->onAnswered(chatId, accepted, createResponse.errmsg());
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						user->getRTSCallEventHandler()->onAnswered(callId, accepted, createResponse.errmsg());
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 					case mimc::BYE_REQUEST:
 						{
-						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %llu, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
-						if (user->getCurrentChats()->count(chatId) == 0) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_wrlock(&user->getCallsRwlock());
+						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, callId is %llu, user is %s, resource is %s", callId, user->getAppAccount().c_str(), user->getResource().c_str());
+						if (user->getCurrentCalls()->count(callId) == 0) {
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						mimc::ByeRequest byeRequest;
 						if (!byeRequest.ParseFromString(rtsMessage.payload())) {
 							
-							RtsSendSignal::sendByeResponse(user, chatId, mimc::INTERNAL_ERROR1);
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							RtsSendSignal::sendByeResponse(user, callId, mimc::INTERNAL_ERROR1);
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
-						if (user->getOnlaunchChats()->count(chatId) > 0) {
-							pthread_t onlaunchChatThread = user->getOnlaunchChats()->at(chatId);
-							pthread_cancel(onlaunchChatThread);
-							user->getOnlaunchChats()->erase(chatId);
+						if (user->getOnlaunchCalls()->count(callId) > 0) {
+							pthread_t onlaunchCallThread = user->getOnlaunchCalls()->at(callId);
+							pthread_cancel(onlaunchCallThread);
+							user->getOnlaunchCalls()->erase(callId);
 						}
 						
-						RtsSendSignal::sendByeResponse(user, chatId, mimc::SUCC);
-						user->getCurrentChats()->erase(chatId);
-						RtsSendData::closeRelayConnWhenNoChat(user);
-						user->getRTSCallEventHandler()->onClosed(chatId, byeRequest.reason());
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						RtsSendSignal::sendByeResponse(user, callId, mimc::SUCC);
+						user->getCurrentCalls()->erase(callId);
+						RtsSendData::closeRelayConnWhenNoCall(user);
+						user->getRTSCallEventHandler()->onClosed(callId, byeRequest.reason());
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 					case mimc::BYE_RESPONSE:
 						{
-						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In BYE_RESPONSE, chatId is %llu, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
-						if (user->getCurrentChats()->count(chatId) == 0) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_wrlock(&user->getCallsRwlock());
+						XMDLoggerWrapper::instance()->info("In BYE_RESPONSE, callId is %llu, user is %s, resource is %s", callId, user->getAppAccount().c_str(), user->getResource().c_str());
+						if (user->getCurrentCalls()->count(callId) == 0) {
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						mimc::ByeResponse byeResponse;
 						if (!byeResponse.ParseFromString(rtsMessage.payload())) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
 						if (!byeResponse.has_result()) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 
-						user->getCurrentChats()->erase(chatId);
-						RtsSendData::closeRelayConnWhenNoChat(user);
-						user->getRTSCallEventHandler()->onClosed(chatId, byeResponse.reason());
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						user->getCurrentCalls()->erase(callId);
+						RtsSendData::closeRelayConnWhenNoCall(user);
+						user->getRTSCallEventHandler()->onClosed(callId, byeResponse.reason());
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 					case mimc::UPDATE_REQUEST:
 						{
-						pthread_rwlock_rdlock(&user->getChatsRwlock());
-						if (user->getCurrentChats()->count(chatId) == 0) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_rdlock(&user->getCallsRwlock());
+						if (user->getCurrentCalls()->count(callId) == 0) {
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						mimc::UpdateRequest updateRequest;
 						if (!updateRequest.ParseFromString(rtsMessage.payload())) {
 							
-							RtsSendSignal::sendUpdateResponse(user, chatId, mimc::INTERNAL_ERROR1);
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							RtsSendSignal::sendUpdateResponse(user, callId, mimc::INTERNAL_ERROR1);
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
 						if (!updateRequest.has_user()) {
 							
-							RtsSendSignal::sendUpdateResponse(user, chatId, mimc::PARAMETER_ERROR);
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							RtsSendSignal::sendUpdateResponse(user, callId, mimc::PARAMETER_ERROR);
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						const mimc::UserInfo& toUser = updateRequest.user();
 						if (!toUser.has_internetip() || !toUser.has_internetport() || !toUser.has_intranetip() || !toUser.has_intranetport()) {
 							
-							RtsSendSignal::sendUpdateResponse(user, chatId, mimc::PARAMETER_ERROR);
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							RtsSendSignal::sendUpdateResponse(user, callId, mimc::PARAMETER_ERROR);
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
-						P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
-						chatSession.setPeerUser(toUser);
-						RtsSendSignal::sendUpdateResponse(user, chatId, mimc::SUCC);
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+						callSession.setPeerUser(toUser);
+						RtsSendSignal::sendUpdateResponse(user, callId, mimc::SUCC);
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 					case mimc::UPDATE_RESPONSE:
 						{
-						pthread_rwlock_rdlock(&user->getChatsRwlock());
-						if (user->getCurrentChats()->count(chatId) == 0) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+						pthread_rwlock_rdlock(&user->getCallsRwlock());
+						if (user->getCurrentCalls()->count(callId) == 0) {
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
 						mimc::UpdateResponse updateResponse;
 						if (!updateResponse.ParseFromString(rtsMessage.payload())) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
 						if (!updateResponse.has_result()) {
-							pthread_rwlock_unlock(&user->getChatsRwlock());
+							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
-						P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
-						chatSession.setChatState(RUNNING);
-						chatSession.setLatestLegalChatStateTs(time(NULL));
-						pthread_rwlock_unlock(&user->getChatsRwlock());
+						P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+						callSession.setCallState(RUNNING);
+						callSession.setLatestLegalCallStateTs(time(NULL));
+						pthread_rwlock_unlock(&user->getCallsRwlock());
 						}
 						break;
 				}

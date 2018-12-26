@@ -43,7 +43,7 @@ private:
 public:
 	ThreadSafeQueue<struct waitToSendContent> packetsWaitToSend;
 	std::map<std::string, MIMCMessage> packetsWaitToTimeout;
-	std::set<long> sequencesReceived;
+	std::set<int64_t> sequencesReceived;
 };
 
 #endif

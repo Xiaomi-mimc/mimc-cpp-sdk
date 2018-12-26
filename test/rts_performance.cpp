@@ -84,8 +84,8 @@ protected:
 		logIn(user1, callEventHandler1);
 		logIn(user2, callEventHandler2);
 
-		uint64_t chatId = 0;
-		createCall(chatId, user1, callEventHandler1, user2, callEventHandler2);
+		uint64_t callId = 0;
+		createCall(callId, user1, callEventHandler1, user2, callEventHandler2);
 
 		const int COUNT = (durationSec * dataSpeedKB) / dataSizeKB;
 		const int TIMEVAL_US = 1000 * (1000 * dataSizeKB / dataSpeedKB);
@@ -94,14 +94,14 @@ protected:
 			unsigned char dataId_char[4];
 			int2char(dataId, dataId_char, 0);
 			sendData.insert(0, (char *)dataId_char, 4);
-			if (user1->sendRtsData(chatId, sendData, AUDIO)) {
+			if (user1->sendRtsData(callId, sendData, AUDIO)) {
 				sendDatas.insert(pair<int, RtsPerformanceData>(dataId, RtsPerformanceData(sendData, Utils::currentTimeMillis())));
 			}
 			usleep(TIMEVAL_US);
 		}
 		sleep(5);
 		const map<int, RtsPerformanceData>& recvDatas = callEventHandler2->pollDataInfo();
-		closeCall(chatId, user1, callEventHandler1, callEventHandler2);
+		closeCall(callId, user1, callEventHandler1, callEventHandler2);
 
 		for (int i = 0; i < COUNT; i++) {
 			if (sendDatas.count(i) == 0) {
@@ -173,15 +173,15 @@ protected:
 		}
 	}
 
-	void createCall(uint64_t& chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent = "") {
-		chatId = from->dialCall(to->getAppAccount(), appContent);
-		ASSERT_NE(chatId, 0);
+	void createCall(uint64_t& callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent = "") {
+		callId = from->dialCall(to->getAppAccount(), appContent);
+		ASSERT_NE(callId, 0);
 		sleep(1);
 
 		RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(inviteRequest == NULL);
 		if (inviteRequest != NULL) {
-			ASSERT_EQ(chatId, inviteRequest->getChatId());
+			ASSERT_EQ(callId, inviteRequest->getCallId());
 			ASSERT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
 			ASSERT_EQ(from->getResource(), inviteRequest->getFromResource());
 			ASSERT_EQ(appContent, inviteRequest->getAppContent());
@@ -190,25 +190,25 @@ protected:
 		RtsMessageData* createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(createResponse == NULL);
 		if (createResponse != NULL) {
-			ASSERT_EQ(chatId, createResponse->getChatId());
+			ASSERT_EQ(callId, createResponse->getCallId());
 			ASSERT_EQ(true, createResponse->isAccepted());
-			ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrmsg());
+			ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
 		}
 	}
 
-	void closeCall(uint64_t chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
-		from->closeCall(chatId);
+	void closeCall(uint64_t callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
+		from->closeCall(callId);
 		sleep(1);
 
 		RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeRequest == NULL);
-		ASSERT_EQ(chatId, byeRequest->getChatId());
-		ASSERT_EQ("", byeRequest->getErrmsg());
+		ASSERT_EQ(callId, byeRequest->getCallId());
+		ASSERT_EQ("", byeRequest->getErrMsg());
 
 		RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeResponse == NULL);
-		ASSERT_EQ(chatId, byeResponse->getChatId());
-		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
+		ASSERT_EQ(callId, byeResponse->getCallId());
+		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
 	}
 
 	void int2char(int data, unsigned char* result, int index) {

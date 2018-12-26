@@ -9,30 +9,30 @@ class RtsMessageData {
 private:
 	string fromAccount;
 	string fromResource;
-	uint64_t chatId;
+	uint64_t callId;
 	string appContent;
 	bool accepted = false;
-	string errmsg;
+	string errMsg;
 	string recvData;
 	RtsDataType dataType;
 	RtsChannelType channelType;
 public:
 	RtsMessageData(){}
-	RtsMessageData(uint64_t chatId, string fromAccount, string appContent, string fromResource) {
-		this->chatId = chatId;
+	RtsMessageData(uint64_t callId, string fromAccount, string appContent, string fromResource) {
+		this->callId = callId;
 		this->fromAccount = fromAccount;
 		this->appContent = appContent;
 		this->fromResource = fromResource;
 	}
 
-	RtsMessageData(uint64_t chatId, string errmsg, bool accepted = false) {
-		this->chatId = chatId;
-		this->errmsg = errmsg;
+	RtsMessageData(uint64_t callId, string errMsg, bool accepted = false) {
+		this->callId = callId;
+		this->errMsg = errMsg;
 		this->accepted = accepted;
 	}
 
-	RtsMessageData(uint64_t chatId, string recvData, RtsDataType dataType, RtsChannelType channelType) {
-		this->chatId = chatId;
+	RtsMessageData(uint64_t callId, string recvData, RtsDataType dataType, RtsChannelType channelType) {
+		this->callId = callId;
 		this->recvData = recvData;
 		this->dataType = dataType;
 		this->channelType = channelType;
@@ -40,10 +40,10 @@ public:
 
 	string getFromAccount() {return this->fromAccount;}
 	string getFromResource() {return this->fromResource;}
-	uint64_t getChatId() {return this->chatId;}
+	uint64_t getCallId() {return this->callId;}
 	string getAppContent() {return this->appContent;}
 	bool isAccepted() {return this->accepted;}
-	string getErrmsg() {return this->errmsg;}
+	string getErrMsg() {return this->errMsg;}
 	string getRecvData() {return this->recvData;}
 	RtsDataType getDataType() {return this->dataType;}
 	RtsChannelType getChannelType() {return this->channelType;}

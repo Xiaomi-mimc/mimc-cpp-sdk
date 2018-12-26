@@ -36,7 +36,7 @@ public:
         }
     }
 
-    void handleServerAck(std::string packetId, long sequence, time_t timestamp, std::string errorMsg) {
+    void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string errorMsg) {
         
     }
 
@@ -56,29 +56,29 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(uint64_t chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
-        XMDLoggerWrapper::instance()->info("In onLaunched, chatId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", chatId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
+    LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+        XMDLoggerWrapper::instance()->info("In onLaunched, callId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", callId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
         }
         XMDLoggerWrapper::instance()->info("In onLaunched, appContent is equal to this->appContent");
-        chatIds.push_back(chatId);
+        callIds.push_back(callId);
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(uint64_t chatId, bool accepted, const std::string errmsg) {
-        XMDLoggerWrapper::instance()->info("In onAnswered, chatId is %llu, accepted is %d, errmsg is %s", chatId, accepted, errmsg.c_str());
+    void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
+        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, errMsg is %s", callId, accepted, errMsg.c_str());
         if (accepted) {
-            chatIds.push_back(chatId);
+            callIds.push_back(callId);
         }
     }
 
-    void onClosed(uint64_t chatId, const std::string errmsg) {
-        XMDLoggerWrapper::instance()->info("In onClosed, chatId is %llu, errmsg is %s", chatId, errmsg.c_str());
+    void onClosed(uint64_t callId, const std::string errMsg) {
+        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, errMsg is %s", callId, errMsg.c_str());
         std::list<uint64_t>::iterator iter;
-        for (iter = chatIds.begin(); iter != chatIds.end();) {
-            if(*iter == chatId) {
-                iter = chatIds.erase(iter);
+        for (iter = callIds.begin(); iter != callIds.end();) {
+            if(*iter == callId) {
+                iter = callIds.erase(iter);
                 break;
             } else {
                 iter++;
@@ -86,19 +86,19 @@ public:
         }
     }
 
-    void handleData(uint64_t chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
-        XMDLoggerWrapper::instance()->info("In handleData, chatId is %llu, data is %s, dataType is %d", chatId, data.c_str(), dataType);
+    void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+        XMDLoggerWrapper::instance()->info("In handleData, callId is %llu, data is %s, dataType is %d", callId, data.c_str(), dataType);
     }
 
-    void handleSendDataSucc(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-    void handleSendDataFail(uint64_t chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-    std::list<uint64_t>& getChatIds() {return this->chatIds;}
+    std::list<uint64_t>& getChatIds() {return this->callIds;}
 
     const std::string& getAppContent() {return this->appContent;}
 
@@ -109,7 +109,7 @@ private:
     std::string appContent;
     const std::string LAUNCH_OK = "OK";
     const std::string LAUNCH_ERR_ILLEGALSIG = "ILLEGALSIG";
-    std::list<uint64_t> chatIds;
+    std::list<uint64_t> callIds;
 };
 
 class TestTokenFetcher : public MIMCTokenFetcher {
@@ -204,8 +204,8 @@ public:
 
         usleep(500000);
 
-        string msg1 = "WITH MIMC,WE CAN FLY HIGHER！";
-        string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
+        string payload1 = "WITH MIMC,WE CAN FLY HIGHER！";
+        string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
         
 
         usleep(300000);
@@ -233,7 +233,6 @@ public:
         TestMessageHandler* fromMessageHandler = new TestMessageHandler();
         TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
-
         from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
         from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
         from->registerMessageHandler(fromMessageHandler);
@@ -254,16 +253,16 @@ public:
         int num = 0;
         while (num++ < MAX_NUM) {
             
-            string msg1 = "With mimc,we can communicate much easier！";
-            string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg1);
+            string payload1 = "With mimc,we can communicate much easier！";
+            string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
             usleep(300000);
             while (message = toMessageHandler->pollMessage())
             {
                 
             }
 
-            string msg2 = "Yes~I feel it";
-            string packetId_sent2 = to->sendMessage(from->getAppAccount(), msg2);
+            string payload2 = "Yes~I feel it";
+            string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload2);
             usleep(300000);
             while (message = fromMessageHandler->pollMessage())
             {
@@ -275,16 +274,16 @@ public:
         sleep(60);
         while (num++ < GOON_NUM) {
             
-            string msg3 = "Let's go on!";
-            string packetId_sent1 = from->sendMessage(to->getAppAccount(), msg3);
+            string payload3 = "Let's go on!";
+            string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload3);
             usleep(300000);
             while (message = toMessageHandler->pollMessage())
             {
                 
             }
 
-            string msg4 = "OK!";
-            string packetId_sent2 = to->sendMessage(from->getAppAccount(), msg4);
+            string payload4 = "OK!";
+            string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload4);
             usleep(300000);
             while (message = fromMessageHandler->pollMessage())
             {
