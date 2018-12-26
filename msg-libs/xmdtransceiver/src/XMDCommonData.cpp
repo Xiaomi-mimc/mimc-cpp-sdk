@@ -26,9 +26,6 @@ XMDCommonData::XMDCommonData(int decodeThreadSize) {
     datagramQueueMaxLen_ = DEFAULT_DATAGRAM_QUEUE_LEN;
     callbackQueueMaxLen_ = DEFAULT_CALLBACK_QUEUE_LEN;
     resendQueueMaxLen_ = DEFAULT_RESEND_QUEUE_LEN;
-    callbackQueueSize_ = 0;
-    datagramQueueSize_ = 0;
-    resendQueueSize_ = 0;
 }
 
 XMDCommonData::~XMDCommonData() {
@@ -108,14 +105,13 @@ StreamData* XMDCommonData::packetRecoverQueuePop(int id) {
 }
 
 bool XMDCommonData::callbackQueuePush(CallbackQueueData* data) {
-    if (callbackQueueSize_ >= callbackQueueMaxLen_) {
+    if (callbackQueue_.Size() >= callbackQueueMaxLen_) {
         XMDLoggerWrapper::instance()->warn("callbackQueue size(%d) bigger than queue max len(%d)", 
-                                           callbackQueueSize_, callbackQueueMaxLen_);
+                                           callbackQueue_.Size(), callbackQueueMaxLen_);
         delete data;
         return false;
     }
     callbackQueue_.Push(data);
-    callbackQueueSize_++;
     return true;
 }
 
@@ -123,7 +119,6 @@ CallbackQueueData* XMDCommonData::callbackQueuePop() {
     CallbackQueueData* data = NULL;
     bool result = callbackQueue_.Pop(data);
     if (result) {
-        callbackQueueSize_--;
         return data;
     } else {
         return NULL;
@@ -140,7 +135,7 @@ int XMDCommonData::getCallbackQueueSize() {
 
 
 float XMDCommonData::getCallbackQueueUsegeRate() {
-    return float(callbackQueueSize_) / float(callbackQueueMaxLen_);
+    return float(callbackQueue_.Size()) / float(callbackQueueMaxLen_);
 }
 
 void XMDCommonData::clearCallbackQueue() {
@@ -153,15 +148,14 @@ void XMDCommonData::clearCallbackQueue() {
 
 bool XMDCommonData::datagramQueuePush(SendQueueData* data) {
     pthread_mutex_lock(&datagram_queue_mutex_);
-    if (datagramQueueSize_ >= datagramQueueMaxLen_) {
+    if (datagramQueue_.size() >= datagramQueueMaxLen_) {
         XMDLoggerWrapper::instance()->warn("datagramQueue size(%d) bigger than queue max len(%d)", 
-                                           datagramQueueSize_, datagramQueueMaxLen_);
+                                           datagramQueue_.size(), datagramQueueMaxLen_);
         pthread_mutex_unlock(&datagram_queue_mutex_);
         delete data;
         return false;
     }
     datagramQueue_.push(data);
-    datagramQueueSize_++;
     pthread_mutex_unlock(&datagram_queue_mutex_);
     return true;
 }
@@ -177,7 +171,6 @@ SendQueueData* XMDCommonData::datagramQueuePop() {
     uint64_t currentMs = current_ms();
     if (data->sendTime <= currentMs) {
         datagramQueue_.pop();
-        datagramQueueSize_--;
     } else {
         data = NULL;
     }
@@ -191,7 +184,7 @@ void XMDCommonData::setDatagramQueueSize(int size) {
 }
 
 float XMDCommonData::getDatagramQueueUsageRate() {
-    return float(datagramQueueSize_) / float(datagramQueueMaxLen_);
+    return float(datagramQueue_.size()) / float(datagramQueueMaxLen_);
 }
 
 void XMDCommonData::clearDatagramQueue() {
@@ -199,7 +192,6 @@ void XMDCommonData::clearDatagramQueue() {
     while (!datagramQueue_.empty()) {
         datagramQueue_.pop();
     }
-    datagramQueueSize_ = 0;
     pthread_mutex_unlock(&datagram_queue_mutex_);
 }
 
@@ -274,7 +266,6 @@ int XMDCommonData::deleteConn(uint64_t connId) {
         ss << connId << i;
         std::string key = ss.str();
         deleteLastPacketTime(key);
-        //deleteLastRecvGroupId(key);
         deleteGroupId(key);
         deleteLastCallbackGroupId(key);
         deletefromCallbackDataMap(key);
@@ -473,15 +464,14 @@ uint64_t XMDCommonData::getPakcetId(uint64_t connId) {
 
 bool XMDCommonData::resendQueuePush(ResendData* data) {
     pthread_mutex_lock(&resend_queue_mutex_);
-    if (resendQueueSize_ >= resendQueueMaxLen_) {
+    if (resendQueue_.size() >= resendQueueMaxLen_) {
         XMDLoggerWrapper::instance()->warn("resendQueue size(%d) bigger than queue max len(%d)", 
-                                           resendQueueSize_, resendQueueMaxLen_);
+                                           resendQueue_.size(), resendQueueMaxLen_);
         pthread_mutex_unlock(&resend_queue_mutex_);
         delete data;
         return false;
     }
     resendQueue_.push(data);
-    resendQueueSize_++;
     pthread_mutex_unlock(&resend_queue_mutex_);
     return true;
 }
@@ -494,7 +484,6 @@ ResendData* XMDCommonData::resendQueuePop() {
     data = resendQueue_.top();
     if (data->reSendTime <= currentMs) {
         resendQueue_.pop();
-        resendQueueSize_--;
     } else {
         data = NULL;
     }
@@ -522,7 +511,7 @@ int XMDCommonData::getResendQueueSize() {
 
 
 float XMDCommonData::getResendQueueUsageRate() {
-    return float(resendQueueSize_) / float(resendQueueMaxLen_);
+    return float(resendQueue_.size()) / float(resendQueueMaxLen_);
 }
 
 void XMDCommonData::clearResendQueue() {
@@ -530,7 +519,6 @@ void XMDCommonData::clearResendQueue() {
     while (!resendQueue_.empty()) {
         resendQueue_.pop();
     }
-    resendQueueSize_ = 0;
     pthread_mutex_unlock(&resend_queue_mutex_);
 }
 

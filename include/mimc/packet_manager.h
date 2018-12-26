@@ -22,15 +22,15 @@ public:
 	int encodeUnBindPacket(unsigned char * &packet, const Connection * connection);
 	int encodePingPacket(unsigned char * &packet, const Connection * connection);
 	int decodePacketAndHandle(unsigned char * packet, Connection * connection);
-	short char2short(const unsigned char* result, int index);
-	int char2int(const unsigned char* result, int index);
+	int16_t char2short(const unsigned char* result, int index);
+	int32_t char2int(const unsigned char* result, int index);
 	std::string createPacketId();
 	void checkMessageSendTimeout(const User * user);
 private:
 	ims::ClientHeader * createClientHeader(const User * user, std::string cmd, int cipher);
 	int encodePacket(unsigned char * &packet, const ims::ClientHeader * header, const google::protobuf::MessageLite * message, const std::string &body_key="", const std::string &payload_key="");
-	void short2char(short data, unsigned char* result, int index);
-	void int2char(int data, unsigned char* result, int index);
+	void short2char(int16_t data, unsigned char* result, int index);
+	void int2char(int32_t data, unsigned char* result, int index);
 
 	uint32_t compute_crc32(const unsigned char *data, size_t len); 
 	std::string generateSig(const ims::ClientHeader * header, const ims::XMMsgBind * bindmsg, const Connection * connection);

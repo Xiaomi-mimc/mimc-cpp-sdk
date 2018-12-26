@@ -23,8 +23,8 @@ class MIMCTest: public testing::Test
 {
 protected:
     void SetUp() {
-        from = new User(atol(appId.c_str()), appAccount1);
-        to = new User(atol(appId.c_str()), appAccount2);
+        from = new User(atoll(appId.c_str()), appAccount1);
+        to = new User(atoll(appId.c_str()), appAccount2);
         fromMessageHandler = new TestMessageHandler();
         toMessageHandler = new TestMessageHandler();
 

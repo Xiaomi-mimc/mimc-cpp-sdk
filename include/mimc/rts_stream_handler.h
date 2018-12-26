@@ -62,10 +62,10 @@ public:
 			this->user->setBindRelayResponse(bindRelayResponse);
 			this->user->setRelayLinkState(SUCC_CREATED);
 			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-			std::map<long, P2PChatSession>* currentChats = this->user->getCurrentChats();
-			for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
-				const long& chatId = iter->first;
-				XMDLoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, chatId is %ld", chatId);
+			std::map<uint64_t, P2PChatSession>* currentChats = this->user->getCurrentChats();
+			for (std::map<uint64_t, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
+				const uint64_t& chatId = iter->first;
+				XMDLoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, relay bind succeed, chatId is %llu", chatId);
 				P2PChatSession& p2pChatSession = iter->second;
 				if (p2pChatSession.getChatState() == WAIT_SEND_CREATE_REQUEST && p2pChatSession.isCreator()) {
 					
@@ -80,7 +80,7 @@ public:
 					pthread_attr_init(&attr);
 					pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 					pthread_create(&onLaunchedThread, &attr, User::onLaunched, (void *)param);
-					this->user->getOnlaunchChats()->insert(std::pair<long, pthread_t>(chatId, onLaunchedThread));
+					this->user->getOnlaunchChats()->insert(std::pair<uint64_t, pthread_t>(chatId, onLaunchedThread));
 					pthread_attr_destroy(&attr);
 				} else if (p2pChatSession.getChatState() == WAIT_SEND_UPDATE_REQUEST) {
 
@@ -103,8 +103,8 @@ public:
 				this->user->resetRelayLinkState();
 				RtsSendData::createRelayConn(this->user);
 				pthread_rwlock_wrlock(&this->user->getChatsRwlock());
-				std::map<long, P2PChatSession>* currentChats = this->user->getCurrentChats();
-				for (std::map<long, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
+				std::map<uint64_t, P2PChatSession>* currentChats = this->user->getCurrentChats();
+				for (std::map<uint64_t, P2PChatSession>::iterator iter = currentChats->begin(); iter != currentChats->end(); iter++) {
 					P2PChatSession& chatSession = iter->second;
 					chatSession.setChatState(WAIT_SEND_UPDATE_REQUEST);
 					chatSession.setLatestLegalChatStateTs(time(NULL));
@@ -112,7 +112,7 @@ public:
 				pthread_rwlock_unlock(&this->user->getChatsRwlock());
 			}
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_AUDIO) {
-			long chatId = userPacket.chat_id();
+			uint64_t chatId = userPacket.chat_id();
 			
 			pthread_rwlock_rdlock(&this->user->getChatsRwlock());
 			if (this->user->getCurrentChats()->count(chatId) == 0) {
@@ -132,7 +132,7 @@ public:
 			}
 			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_VIDEO) {
-			long chatId = userPacket.chat_id();
+			uint64_t chatId = userPacket.chat_id();
 			
 			pthread_rwlock_rdlock(&this->user->getChatsRwlock());
 			if (this->user->getCurrentChats()->count(chatId) == 0) {
@@ -155,7 +155,7 @@ public:
 	}
 
 	virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
-		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataSucc, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataSucc, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 		if (ctx != NULL) {
 			RtsContext* rtsContext = (RtsContext*)ctx;
 			this->user->getRTSCallEventHandler()->handleSendDataSucc(rtsContext->getChatId(), groupId, rtsContext->getCtx());
@@ -164,7 +164,7 @@ public:
 	}
 
 	virtual void sendStreamDataFail(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
-		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataFail, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataFail, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 		if (ctx != NULL) {
 			RtsContext* rtsContext = (RtsContext*)ctx;
 			this->user->getRTSCallEventHandler()->handleSendDataFail(rtsContext->getChatId(), groupId, rtsContext->getCtx());
@@ -173,7 +173,7 @@ public:
 	}
 
 	virtual void sendFECStreamDataComplete(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
-		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendFECStreamDataComplete, conn_id is %ld, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
+		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendFECStreamDataComplete, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 		if (ctx != NULL) {
 			RtsContext* rtsContext = (RtsContext*)ctx;
 			delete rtsContext;

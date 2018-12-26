@@ -167,8 +167,8 @@ int PacketManager::encodePacket(unsigned char * &packet, const ims::ClientHeader
 }
 
 int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * connection) {
-	short magic = char2short(packet, HEADER_MAGIC_OFFSET);
-	short version = char2short(packet, HEADER_VERSION_OFFSET);
+	int16_t magic = char2short(packet, HEADER_MAGIC_OFFSET);
+	int16_t version = char2short(packet, HEADER_VERSION_OFFSET);
 	if (magic != HEADER_MAGIC || version != HEADER_VERSION) {
 		return -1;
 	}
@@ -228,7 +228,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			return -1;
 		}
 		OnlineStatus onlineStatus = resp.result() ? Online : Offline;
-		XMDLoggerWrapper::instance()->info("bindresp receive succeed, onlineStatus is %d, user is %s, uuid is %ld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
+		XMDLoggerWrapper::instance()->info("bindresp receive succeed, onlineStatus is %d, user is %s, uuid is %lld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
 		if (onlineStatus == Online) {
 			
 		} else {
@@ -363,13 +363,13 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					
 					return -1;
 				}
-				const long& chatId = rtsMessage.chatid();
+				const uint64_t& chatId = rtsMessage.chatid();
 				
 				
 				switch (rtsMessage.type()) {
 					case mimc::INVITE_REQUEST:
 						{
-						XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
+						XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, chatId is %llu, user is %s", chatId, user->getAppAccount().c_str());
 						mimc::InviteRequest inviteRequest;
 						if (!inviteRequest.ParseFromString(rtsMessage.payload())) {
 							XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RTS_PAYLOAD_PARSE_ERROR");
@@ -408,23 +408,23 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						if (user->getRelayLinkState() == NOT_CREATED) {
 							
 							user->checkToRunXmdTranseiver();
-							unsigned long connId = RtsSendData::createRelayConn(user);
-							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is NOT_CREATED, relayConnId is %ld", connId);
+							uint64_t connId = RtsSendData::createRelayConn(user);
+							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is NOT_CREATED, relayConnId is %llu", connId);
 							if (connId == 0) {
 								XMDLoggerWrapper::instance()->error("In INVITE_REQUEST, ERROR: RELAY CAN NOT BE CONNECTED");
 								RtsSendSignal::sendInviteResponse(user, chatId, rtsMessage.chattype(), mimc::PEER_OFFLINE, "RELAY CAN NOT BE CONNECTED");
 								pthread_rwlock_unlock(&user->getChatsRwlock());
 								return 0;
 							}
-							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else if (user->getRelayLinkState() == BEING_CREATED) {
 							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is BEING_CREATED");
-							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_CALL_ONLAUNCHED, time(NULL), false, inviteRequest.appcontent())));
 							
 						} else {
 							XMDLoggerWrapper::instance()->info("In INVITE_REQUEST, relayLinkState is SUCC_CREATED");
-							user->getCurrentChats()->insert(std::pair<long, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_INVITEE_RESPONSE, time(NULL), false, inviteRequest.appcontent())));
+							user->getCurrentChats()->insert(std::pair<uint64_t, P2PChatSession>(chatId, P2PChatSession(chatId, from, rtsMessage.chattype(), WAIT_INVITEE_RESPONSE, time(NULL), false, inviteRequest.appcontent())));
 							
 							struct onLaunchedParam* param = new struct onLaunchedParam();
 							param->user = user;
@@ -434,7 +434,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							pthread_attr_init(&attr);
 							pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 							pthread_create (&onLaunchedThread, &attr, User::onLaunched, (void *)param);
-							user->getOnlaunchChats()->insert(std::pair<long, pthread_t>(chatId, onLaunchedThread));
+							user->getOnlaunchChats()->insert(std::pair<uint64_t, pthread_t>(chatId, onLaunchedThread));
 							pthread_attr_destroy(&attr);
 						}
 						pthread_rwlock_unlock(&user->getChatsRwlock());
@@ -443,7 +443,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					case mimc::CREATE_RESPONSE:
 						{
 						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %ld, user is %s", chatId, user->getAppAccount().c_str());
+						XMDLoggerWrapper::instance()->info("In CREATE_RESPONSE, chatId is %llu, user is %s", chatId, user->getAppAccount().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							pthread_rwlock_unlock(&user->getChatsRwlock());
 							return 0;
@@ -501,7 +501,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					case mimc::BYE_REQUEST:
 						{
 						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
+						XMDLoggerWrapper::instance()->info("In BYE_REQUEST, chatId is %llu, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							pthread_rwlock_unlock(&user->getChatsRwlock());
 							return 0;
@@ -529,7 +529,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 					case mimc::BYE_RESPONSE:
 						{
 						pthread_rwlock_wrlock(&user->getChatsRwlock());
-						XMDLoggerWrapper::instance()->info("In BYE_RESPONSE, chatId is %ld, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
+						XMDLoggerWrapper::instance()->info("In BYE_RESPONSE, chatId is %llu, user is %s, resource is %s", chatId, user->getAppAccount().c_str(), user->getResource().c_str());
 						if (user->getCurrentChats()->count(chatId) == 0) {
 							pthread_rwlock_unlock(&user->getChatsRwlock());
 							return 0;
@@ -645,14 +645,14 @@ void PacketManager::checkMessageSendTimeout(const User * user) {
 	pthread_mutex_unlock(&packetsTimeoutMutex);
 }
 
-void PacketManager::short2char(short data, unsigned char* result, int index) {
+void PacketManager::short2char(int16_t data, unsigned char* result, int index) {
 	unsigned char lowByte = data & 0XFF;
 	unsigned char highByte = (data >> 8) & 0xFF;
 	result[index] = highByte;
 	result[index + 1] = lowByte;
 }
 
-void PacketManager::int2char(int data, unsigned char* result, int index) {
+void PacketManager::int2char(int32_t data, unsigned char* result, int index) {
 	unsigned char firstByte = data & (0xff);
 	unsigned char secondByte = (data >> 8) & (0xff);
 	unsigned char thirdByte = (data >> 16) & (0xff);
@@ -663,14 +663,14 @@ void PacketManager::int2char(int data, unsigned char* result, int index) {
 	result[index + 3] = firstByte;
 }
 
-short PacketManager::char2short(const unsigned char* result, int index) {
+int16_t PacketManager::char2short(const unsigned char* result, int index) {
 	unsigned char highByte = result[index];
 	unsigned char lowByte = result[index + 1];
 	short ret = (highByte << 8) | lowByte;
 	return ret;
 }
 
-int PacketManager::char2int(const unsigned char* result, int index) {
+int32_t PacketManager::char2int(const unsigned char* result, int index) {
 	unsigned char fourthByte = result[index];
 	unsigned char thirdByte = result[index + 1];
 	unsigned char secondByte = result[index + 2];

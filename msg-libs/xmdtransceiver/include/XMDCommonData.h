@@ -338,10 +338,7 @@ private:
 
     unsigned int decodeThreadSize_;
     unsigned int datagramQueueMaxLen_;
-    unsigned int datagramQueueSize_;
-    unsigned int callbackQueueSize_;
     unsigned int callbackQueueMaxLen_;
-    unsigned int resendQueueSize_;
     unsigned int resendQueueMaxLen_;
     
 public:

@@ -38,7 +38,7 @@ public:
     User * getUser() const{ return user; }
     FEConnState getState() { return state; }
 
-    long getNextResetSockTs() { return nextResetSockTimestamp; }
+    time_t getNextResetSockTs() { return nextResetSockTimestamp; }
     void clearNextResetSockTs() { this->nextResetSockTimestamp = -1; }
     void trySetNextResetTs();
 private:
@@ -46,7 +46,7 @@ private:
     int sdk;
     int andver;
     int socketfd;
-    long nextResetSockTimestamp;
+    time_t nextResetSockTimestamp;
     std::string model;
     std::string os;
     std::string udid;

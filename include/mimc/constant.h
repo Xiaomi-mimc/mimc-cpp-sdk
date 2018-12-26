@@ -3,6 +3,7 @@
 
 #include <google/protobuf/message.h>
 #include <mimc/mimc.pb.h>
+#include <stdint.h>
 
 enum PacketPayloadType {
 	THRIFT = 1,
@@ -49,8 +50,8 @@ struct waitToSendContent
 	google::protobuf::MessageLite * message;
 };
 
-const short HEADER_MAGIC = 0xc2fe;
-const short HEADER_VERSION = 0x0005;
+const int16_t HEADER_MAGIC = 0xc2fe;
+const int16_t HEADER_VERSION = 0x0005;
 const short BODY_HEADER_PAYLOADTYPE = PROTOBUF;
 const unsigned int BODY_PAYLOAD_CONN_VERSION = 106;
 const int BODY_PAYLOAD_CONN_SDK = 33;

@@ -34,11 +34,11 @@ class RtsTest: public testing::Test
 {
 protected:
     void SetUp() {
-        rtsUser1_r1 = new User(atol(appId.c_str()), appAccount1, "rts_staging_resource1");
-        rtsUser1_r2 = new User(atol(appId.c_str()), appAccount1, "rts_staging_resource2");
-        rtsUser2_r1 = new User(atol(appId.c_str()), appAccount2, "rts_staging_resource1");
-        rtsUser2_r2 = new User(atol(appId.c_str()), appAccount2, "rts_staging_resource2");
-        rtsUser3 = new User(atol(appId.c_str()), appAccount3, "rts_staging_resource1");
+        rtsUser1_r1 = new User(atoll(appId.c_str()), appAccount1, "rts_staging_resource1");
+        rtsUser1_r2 = new User(atoll(appId.c_str()), appAccount1, "rts_staging_resource2");
+        rtsUser2_r1 = new User(atoll(appId.c_str()), appAccount2, "rts_staging_resource1");
+        rtsUser2_r2 = new User(atoll(appId.c_str()), appAccount2, "rts_staging_resource2");
+        rtsUser3 = new User(atoll(appId.c_str()), appAccount3, "rts_staging_resource1");
 
         msgHandler1_r1 = new TestMessageHandler();
         msgHandler1_r2 = new TestMessageHandler();
@@ -165,7 +165,8 @@ protected:
         logIn(rtsUser1_r1, callEventHandler1_r1);
         logIn(rtsUser2_r1, callEventHandler2_r1);
 
-        long chatId = createCall(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
+        uint64_t chatId = 0;
+        createCall(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
         testCloseCall(chatId, rtsUser1_r1, callEventHandler1_r1, callEventHandler2_r1);
     }
 
@@ -174,7 +175,8 @@ protected:
         logIn(rtsUser1_r1, callEventHandler1_r1);
         logIn(rtsUser2_r1, callEventHandler2_r1);
 
-        long chatId = createCall(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
+        uint64_t chatId = 0; 
+        createCall(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
         closeCallSameTime(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1);
     }
 
@@ -183,7 +185,8 @@ protected:
         logIn(rtsUser1_r1, callEventHandler1_r1);
         logIn(rtsUser2_r1, callEventHandler2_r1);
 
-        long chatId = createCall(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
+        uint64_t chatId = 0;
+        createCall(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
 
         sendDatas(chatId, rtsUser1_r1, callEventHandler2_r1, RELAY);
 
@@ -195,7 +198,8 @@ protected:
         logIn(rtsUser1_r1, callEventHandler1_r1);
         logIn(rtsUser2_r1, callEventHandler2_r1);
 
-        long chatId = createCall(rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
+        uint64_t chatId = 0;
+        createCall(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, "ll123456");
 
         sendDataToEachOther(chatId, rtsUser1_r1, callEventHandler1_r1, rtsUser2_r1, callEventHandler2_r1, RELAY);
 
@@ -220,14 +224,14 @@ protected:
 */
 
     void logIn(User* user, TestRTSCallEventHandler* callEventHandler) {
-        long loginTs = time(NULL);
+        time_t loginTs = time(NULL);
         user->login();
         while (time(NULL) - loginTs < LOGIN_TIMEOUT && user->getOnlineStatus() == Offline) {
             usleep(100000);
         }
         ASSERT_EQ(Online, user->getOnlineStatus());
         if (callEventHandler != NULL) {
-            XMDLoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%ld", user->getUuid());
+            XMDLoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%lld", user->getUuid());
             callEventHandler->clear();
         }
     }
@@ -237,8 +241,8 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
         //A_STREAM
-        long chatId1 = from->dialCall(to->getAppAccount(), appContent);
-        ASSERT_NE(chatId1, -1);
+        uint64_t chatId1 = from->dialCall(to->getAppAccount(), appContent);
+        ASSERT_NE(chatId1, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -256,8 +260,8 @@ protected:
 
         closeCall(chatId1, from, callEventHandlerFrom, callEventHandlerTo);
         //V_STREAM
-        long chatId2 = from->dialCall(to->getAppAccount());
-        ASSERT_NE(chatId2, -1);
+        uint64_t chatId2 = from->dialCall(to->getAppAccount());
+        ASSERT_NE(chatId2, 0);
         sleep(1);
 
         inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -275,8 +279,8 @@ protected:
 
         closeCall(chatId2, from, callEventHandlerFrom, callEventHandlerTo);
         //AV_STREAM
-        long chatId3 = from->dialCall(to->getAppAccount());
-        ASSERT_NE(chatId3, -1);
+        uint64_t chatId3 = from->dialCall(to->getAppAccount());
+        ASSERT_NE(chatId3, 0);
         sleep(1);
 
         inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -295,32 +299,30 @@ protected:
         closeCall(chatId3, from, callEventHandlerFrom, callEventHandlerTo);
     }
 
-    long createCall(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
-        long chatId = from->dialCall(to->getAppAccount(), appContent);
-        EXPECT_NE(chatId, -1);
+    void createCall(uint64_t& chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, const string& appContent) {
+        chatId = from->dialCall(to->getAppAccount(), appContent);
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
-        EXPECT_FALSE(inviteRequest == NULL);
+        ASSERT_FALSE(inviteRequest == NULL);
         if (inviteRequest != NULL) {
-            EXPECT_EQ(chatId, inviteRequest->getChatId());
-            EXPECT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
-            EXPECT_EQ(from->getResource(), inviteRequest->getFromResource());
-            EXPECT_EQ(appContent, inviteRequest->getAppContent());
+            ASSERT_EQ(chatId, inviteRequest->getChatId());
+            ASSERT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
+            ASSERT_EQ(from->getResource(), inviteRequest->getFromResource());
+            ASSERT_EQ(appContent, inviteRequest->getAppContent());
         }
 
         RtsMessageData* createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-        EXPECT_FALSE(createResponse == NULL);
+        ASSERT_FALSE(createResponse == NULL);
         if (createResponse != NULL) {
-            EXPECT_EQ(chatId, createResponse->getChatId());
-            EXPECT_EQ(true, createResponse->isAccepted());
-            EXPECT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrmsg());
+            ASSERT_EQ(chatId, createResponse->getChatId());
+            ASSERT_EQ(true, createResponse->isAccepted());
+            ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrmsg());
         }
-
-        return chatId;
     }
 
-    void closeCall(long chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, TestRTSCallEventHandler* callEventHandlerTo) {
+    void closeCall(uint64_t chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, TestRTSCallEventHandler* callEventHandlerTo) {
         from->closeCall(chatId);
         sleep(1);
 
@@ -335,7 +337,7 @@ protected:
         ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
     }
 
-    void sendDatas(long chatId, User* from, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
+    void sendDatas(uint64_t chatId, User* from, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
         vector<string> sendDatas;
         for (int size = 0; size <= 500; size += 50) {
             string sendData = Utils::generateRandomString(size * 1024);
@@ -361,7 +363,7 @@ protected:
         ASSERT_FALSE(from->sendRtsData(chatId, sendData0, AUDIO, channel_type));
     }
 
-    void sendDataToEachOther(long chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
+    void sendDataToEachOther(uint64_t chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
         string sendData1 = "hello to";
         string sendData2 = "hello from";
 
@@ -393,7 +395,8 @@ protected:
 
         string sendData = Utils::generateRandomString(50);
 
-        long chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
+        uint64_t chatId = 0;
+        createCall(chatId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         from->closeCall(chatId);
         ASSERT_FALSE(from->sendRtsData(chatId, sendData, AUDIO));
         RtsMessageData* recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
@@ -409,7 +412,7 @@ protected:
         ASSERT_EQ(chatId, byeResponse->getChatId());
         ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
 
-        chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
+        createCall(chatId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->closeCall(chatId);
         ASSERT_TRUE(from->sendRtsData(chatId, sendData, VIDEO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
@@ -436,7 +439,8 @@ protected:
 
         string sendData = Utils::generateRandomString(30);
 
-        long chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
+        uint64_t chatId = 0;
+        createCall(chatId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->setTestPacketLoss(100);
 
         ASSERT_TRUE(to->sendRtsData(chatId, sendData, AUDIO));
@@ -473,7 +477,8 @@ protected:
 
         string sendData = Utils::generateRandomString(30);
 
-        long chatId = createCall(from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
+        uint64_t chatId = 0;
+        createCall(chatId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->setTestNetworkBlocked(true);
 
         ASSERT_TRUE(to->sendRtsData(chatId, sendData, AUDIO));
@@ -504,8 +509,8 @@ protected:
         logIn(to, NULL);
         callEventHandlerTo->clear();
 
-        long chatId = from->dialCall(to->getAppAccount());
-        ASSERT_NE(chatId, -1);
+        uint64_t chatId = from->dialCall(to->getAppAccount());
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -535,8 +540,8 @@ protected:
     void testP2PSendOneRtsSignalToOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
         logIn(from, callEventHandlerFrom);
 
-        long chatId = from->dialCall(to->getAppAccount(), appContent);
-        ASSERT_NE(chatId, -1);
+        uint64_t chatId = from->dialCall(to->getAppAccount(), appContent);
+        ASSERT_NE(chatId, 0);
         sleep(1);
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(inviteRequest == NULL);
@@ -554,16 +559,16 @@ protected:
     void testP2PSendOneRtsSignalFromOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
         logIn(to, callEventHandlerTo);
 
-        long chatId = from->dialCall(to->getAppAccount(), appContent);
-        ASSERT_EQ(chatId, -1);
+        uint64_t chatId = from->dialCall(to->getAppAccount(), appContent);
+        ASSERT_EQ(chatId, 0);
     }
 
     void testCreateCallRefuse(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
 
-        long chatId = from->dialCall(to->getAppAccount(), appContent);
-        ASSERT_NE(chatId, -1);
+        uint64_t chatId = from->dialCall(to->getAppAccount(), appContent);
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -584,8 +589,8 @@ protected:
         logIn(from, callEventHandlerFrom);
         logIn(to, callEventHandlerTo);
 
-        long chatId1 = from->dialCall(from->getAppAccount(), "", from->getResource());
-        ASSERT_NE(chatId1, -1);
+        uint64_t chatId1 = from->dialCall(from->getAppAccount(), "", from->getResource());
+        ASSERT_NE(chatId1, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerFrom->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -597,8 +602,8 @@ protected:
         ASSERT_EQ(false, createResponse->isAccepted());
         ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrmsg());
 
-        long chatId2 = from->dialCall(from->getAppAccount(), "", to->getResource());
-        ASSERT_NE(chatId2, -1);
+        uint64_t chatId2 = from->dialCall(from->getAppAccount(), "", to->getResource());
+        ASSERT_NE(chatId2, 0);
         sleep(1);
 
         inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -621,8 +626,8 @@ protected:
         logIn(from_r2, callEventHandlerFrom2);
         logIn(to, callEventHandlerTo);
 
-        long chatId = from_r1->dialCall(to->getAppAccount(), "ll123456");
-        ASSERT_NE(chatId, -1);
+        uint64_t chatId = from_r1->dialCall(to->getAppAccount(), "ll123456");
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -651,8 +656,8 @@ protected:
         callEventHandlerTo2->clear();
         to_r2->registerRTSCallEventHandler(callEventHandlerTo2);
 
-        long chatId = from->dialCall(to_r1->getAppAccount(), "ll123456", to_r1->getResource());
-        ASSERT_NE(chatId, -1);
+        uint64_t chatId = from->dialCall(to_r1->getAppAccount(), "ll123456", to_r1->getResource());
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandlerTo2->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -675,7 +680,7 @@ protected:
 
         //call with no given resource, success with the resource answer first
         chatId = from->dialCall(to_r1->getAppAccount(), "ll123456");
-        ASSERT_NE(chatId, -1);
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         inviteRequest = callEventHandlerTo1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -711,7 +716,7 @@ protected:
 
         //call with no given resource, resource2 answer after call close
         chatId = from->dialCall(to_r1->getAppAccount(), "ll123456");
-        ASSERT_NE(chatId, -1);
+        ASSERT_NE(chatId, 0);
         sleep(1);
 
         inviteRequest = callEventHandlerTo1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -751,8 +756,8 @@ protected:
         logIn(user2_r1, callEventHandler2_r1);
         logIn(user2_r2, callEventHandler2_r2);
 
-        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
-        ASSERT_NE(chatId1, -1);
+        uint64_t chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
+        ASSERT_NE(chatId1, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandler2_r1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -768,8 +773,8 @@ protected:
         ASSERT_EQ(true, createResponse->isAccepted());
         ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrmsg());
 
-        long chatId2 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
-        ASSERT_NE(chatId2, -1);
+        uint64_t chatId2 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
+        ASSERT_NE(chatId2, 0);
         sleep(1);
 
         inviteRequest = callEventHandler2_r1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -781,8 +786,8 @@ protected:
         ASSERT_EQ(false, createResponse->isAccepted());
         ASSERT_EQ("USER_BUSY", createResponse->getErrmsg());
 
-        long chatId3 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r2->getResource());
-        ASSERT_NE(chatId3, -1);
+        uint64_t chatId3 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r2->getResource());
+        ASSERT_NE(chatId3, 0);
         sleep(1);
 
         inviteRequest = callEventHandler2_r2->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -808,8 +813,8 @@ protected:
         logIn(user2_r1, callEventHandler2_r1);
         logIn(user2_r2, callEventHandler2_r2);
 
-        long chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
-        ASSERT_NE(chatId1, -1);
+        uint64_t chatId1 = user1_r1->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
+        ASSERT_NE(chatId1, 0);
         sleep(1);
 
         RtsMessageData* inviteRequest = callEventHandler2_r1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -825,8 +830,8 @@ protected:
         ASSERT_EQ(true, createResponse->isAccepted());
         ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrmsg());
 
-        long chatId2 = user2_r2->dialCall(user1_r1->getAppAccount());
-        ASSERT_NE(chatId2, -1);
+        uint64_t chatId2 = user2_r2->dialCall(user1_r1->getAppAccount());
+        ASSERT_NE(chatId2, 0);
         sleep(1);
 
         inviteRequest = callEventHandler1_r1->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
@@ -857,11 +862,11 @@ protected:
         logIn(user3, callEventHandler3);
 
         //user1 call user2 and user3
-        long chatId1 = user1->dialCall(user2->getAppAccount(), "ll123456");
-        long chatId2 = user1->dialCall(user3->getAppAccount());
+        uint64_t chatId1 = user1->dialCall(user2->getAppAccount(), "ll123456");
+        uint64_t chatId2 = user1->dialCall(user3->getAppAccount());
         sleep(1);
-        ASSERT_NE(chatId1, -1);
-        ASSERT_EQ(chatId2, -1);
+        ASSERT_NE(chatId1, 0);
+        ASSERT_EQ(chatId2, 0);
 
         RtsMessageData* inviteRequest = callEventHandler2->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(inviteRequest == NULL);
@@ -887,8 +892,8 @@ protected:
         logIn(to, callEventHandlerTo);
         ASSERT_TRUE(to->logout());
         sleep(1);
-        long chatId = from->dialCall(to->getAppAccount(), "ll123456");
-        ASSERT_NE(-1, chatId);
+        uint64_t chatId = from->dialCall(to->getAppAccount(), "ll123456");
+        ASSERT_NE(0, chatId);
 
         sleep(1);
 
@@ -903,7 +908,7 @@ protected:
         ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrmsg());
     }
 
-    void testCloseCall(long chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, TestRTSCallEventHandler* callEventHandlerTo) {
+    void testCloseCall(uint64_t chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, TestRTSCallEventHandler* callEventHandlerTo) {
         string byeReason = "i don't wanna talk";
 
         from->closeCall(chatId, byeReason);
@@ -919,7 +924,7 @@ protected:
         ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrmsg());
     }
 
-    void closeCallSameTime(long chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo) {
+    void closeCallSameTime(uint64_t chatId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo) {
         string byeReasonFrom = "close by from";
         string byeReasonTo = "close by to";
 

@@ -104,7 +104,7 @@ public:
 		}
 	}
 
-	void handleServerAck(std::string packetId, long sequence, long timestamp, std::string errorMsg) {
+	void handleServerAck(std::string packetId, long sequence, time_t timestamp, std::string errorMsg) {
 
 	}
 
@@ -124,14 +124,14 @@ private:
 
 class AVRTSCallEventHandler : public RTSCallEventHandler {
 public:
-	virtual LaunchedResponse onLaunched(long chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+	virtual LaunchedResponse onLaunched(uint64_t chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
 		LaunchedResponse response = LaunchedResponse(true, LAUNCH_OK);
 		chatIds.push_back(chatId);
 
 		return response;
 	}
 
-	virtual void onAnswered(long chatId, bool accepted, const std::string errmsg) {
+	virtual void onAnswered(uint64_t chatId, bool accepted, const std::string errmsg) {
 		if (accepted) {
 			chatIds.push_back(chatId);
 		} else {
@@ -139,9 +139,9 @@ public:
 		}
 	}
 
-	virtual void onClosed(long chatId, const std::string errmsg) {
-		XMDLoggerWrapper::instance()->info("onClosed: chatId is %ld, error message is %s", chatId, errmsg.c_str());
-		for (list<long>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
+	virtual void onClosed(uint64_t chatId, const std::string errmsg) {
+		XMDLoggerWrapper::instance()->info("onClosed: chatId is %llu, error message is %s", chatId, errmsg.c_str());
+		for (list<uint64_t>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
 			if (*iter == chatId) {
 				chatIds.erase(iter);
 				break;
@@ -149,27 +149,27 @@ public:
 		}
 	}
 
-	virtual void handleData(long chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+	virtual void handleData(uint64_t chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
 		user->sendRtsData(chatId, data, dataType, channelType);
 		if (chatDataMap.count(chatId) == 0) {
 			list<string> dataList;
 			dataList.push_back(data);
-			chatDataMap.insert(pair<long, list<string>>(chatId, dataList));
+			chatDataMap.insert(pair<uint64_t, list<string>>(chatId, dataList));
 		} else {
 			list<string>& audioDataList = chatDataMap.at(chatId);
 			audioDataList.push_back(data);
 		}
 	}
 
-	virtual void handleSendDataSucc(long chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("handleSendDataSucc: chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+	virtual void handleSendDataSucc(uint64_t chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("handleSendDataSucc: chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
     }
 
-    virtual void handleSendDataFail(long chatId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("handleSendDataFail: chatId is %ld, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
+    virtual void handleSendDataFail(uint64_t chatId, int groupId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("handleSendDataFail: chatId is %llu, groupId is %d, ctx is %s", chatId, groupId, ctx.c_str());
     }
 
-	string getChatData(long chatId) {
+	string getChatData(uint64_t chatId) {
 		string chatData;
 		list<string>& audioDataList = chatDataMap.at(chatId);
 		for (list<string>::iterator iter = audioDataList.begin(); iter != audioDataList.end(); iter++) {
@@ -179,7 +179,7 @@ public:
 		return chatData;
 	}
 
-	list<long>& getChatIds() {
+	list<uint64_t>& getChatIds() {
 		return chatIds;
 	}
 
@@ -189,9 +189,9 @@ public:
 
 private:
 	User* user;
-	list<long> chatIds;
+	list<uint64_t> chatIds;
 	const string LAUNCH_OK = "OK";
-	map<long, list<string>> chatDataMap;
+	map<uint64_t, list<string>> chatDataMap;
 };
 
 class RtsDemo {
@@ -199,7 +199,7 @@ public:
 	static void receiveDataToFile() {
 		string resource1 = Utils::generateRandomString(8);
 
-		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
+		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
@@ -211,10 +211,10 @@ public:
 
 		sleep(10);
 
-		list<long>& chatIds = rtsCallEventHandler->getChatIds();
+		list<uint64_t>& chatIds = rtsCallEventHandler->getChatIds();
 
-		for (list<long>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
-			long chatId = *iter;
+		for (list<uint64_t>::iterator iter = chatIds.begin(); iter != chatIds.end(); iter++) {
+			uint64_t chatId = *iter;
 			const string& data = rtsCallEventHandler->getChatData(chatId);
 			const char* filename = "test.pcm";
 			ofstream file(filename, ios::out | ios::binary | ios::ate);
@@ -246,7 +246,7 @@ public:
 		buffer = NULL;
 
 		string resource1 = Utils::generateRandomString(8);
-		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
+		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
@@ -261,12 +261,12 @@ public:
 		user1->dialCall("5566", "AUDIO", "JAVA-FEEtSinu");
 
 		sleep(2);
-		std::list<long>& chatIds = rtsCallEventHandler->getChatIds();
+		std::list<uint64_t>& chatIds = rtsCallEventHandler->getChatIds();
 		if (!chatIds.empty()) {
-			std::list<long>::iterator iter;
+			std::list<uint64_t>::iterator iter;
 			for (iter = chatIds.begin(); iter != chatIds.end(); iter++) {
-				long chatId = *iter;
-				XMDLoggerWrapper::instance()->info("from chatId is %ld", chatId);
+				uint64_t chatId = *iter;
+				XMDLoggerWrapper::instance()->info("from chatId is %llu", chatId);
 				user1->sendRtsData(chatId, rtsData, AUDIO);
 			}
 		}
@@ -278,7 +278,7 @@ public:
 
 	static void call() {
 		string resource1 = Utils::generateRandomString(8);
-		User* user1 = new User(atol(appId.c_str()), appAccount1, resource1);
+		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
 		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
 		user1->registerTokenFetcher(tokenFetcher);
 		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());

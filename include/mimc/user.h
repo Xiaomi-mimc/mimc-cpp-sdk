@@ -25,7 +25,7 @@
 
 struct onLaunchedParam {
 	User* user;
-	long chatId;
+	uint64_t chatId;
 };
 
 class Connection;
@@ -35,20 +35,20 @@ class RtsStreamHandler;
 
 class User {
 public:
-	User(long appId, std::string appAccount, std::string resource = "", std::string cachePath = "");
+	User(int64_t appId, std::string appAccount, std::string resource = "", std::string cachePath = "");
 	~User();
 
 	void setTestPacketLoss(int testPacketLoss) {this->testPacketLoss = testPacketLoss;if(this->xmdTranseiver) {this->xmdTranseiver->setTestPacketLoss(testPacketLoss);}}
-	void setLastLoginTimestamp(long ts) {this->lastLoginTimestamp = ts;}
-	void setLastCreateConnTimestamp(long ts) {this->lastCreateConnTimestamp = ts;}
+	void setLastLoginTimestamp(time_t ts) {this->lastLoginTimestamp = ts;}
+	void setLastCreateConnTimestamp(time_t ts) {this->lastCreateConnTimestamp = ts;}
 	void setOnlineStatus(OnlineStatus status) {this->onlineStatus = status;}
 	void setRelayLinkState(RelayLinkState state) {this->relayLinkState = state;}
-	void setRelayConnId(unsigned long relayConnId) {this->relayConnId = relayConnId;}
-	void setRelayControlStreamId(unsigned short relayControlStreamId) {this->relayControlStreamId = relayControlStreamId;}
-	void setRelayVideoStreamId(unsigned short relayVideoStreamId) { this->relayVideoStreamId = relayVideoStreamId; }
-	void setRelayAudioStreamId(unsigned short relayAudioStreamId) { this->relayAudioStreamId = relayAudioStreamId; }
+	void setRelayConnId(uint64_t relayConnId) {this->relayConnId = relayConnId;}
+	void setRelayControlStreamId(uint16_t relayControlStreamId) {this->relayControlStreamId = relayControlStreamId;}
+	void setRelayVideoStreamId(uint16_t relayVideoStreamId) { this->relayVideoStreamId = relayVideoStreamId; }
+	void setRelayAudioStreamId(uint16_t relayAudioStreamId) { this->relayAudioStreamId = relayAudioStreamId; }
 	void setBindRelayResponse(const mimc::BindRelayResponse& bindRelayResponse) {this->bindRelayResponse = bindRelayResponse;}
-	void setLatestLegalRelayLinkStateTs(long ts) {this->latestLegalRelayLinkStateTs = ts;}
+	void setLatestLegalRelayLinkStateTs(time_t ts) {this->latestLegalRelayLinkStateTs = ts;}
 	void setMaxCallNum(unsigned int num) {this->maxCallNum = num;}
 	void setTokenExpired(bool tokenExpired) {this->tokenExpired = tokenExpired;}
 	void setAddressInvalid(bool addressInvalid) {this->addressInvalid = addressInvalid;}
@@ -65,12 +65,12 @@ public:
 	void clearRecvBuffer() {if(this->xmdTranseiver) {this->xmdTranseiver->clearRecvBuffer();}}
 
 	int getChid() const {return this->chid;}
-	long getUuid() const {return this->uuid;}
+	int64_t getUuid() const {return this->uuid;}
 	std::string getResource() const {return this->resource;}
 	std::string getToken() const {return this->token;}
 	std::string getSecurityKey() const {return this->securityKey;}
 	std::string getAppAccount() const {return this->appAccount;}
-	long getAppId() const {return this->appId;}
+	int64_t getAppId() const {return this->appId;}
 	std::string getAppPackage() const {return this->appPackage;}
 	int getRegionBucket() const {return this->regionBucket;}
 	std::string getFeDomain() const {return this->feDomain;}
@@ -85,27 +85,27 @@ public:
 	std::string getCloudAttrs() const {return join(cloudAttrs);}
 	PacketManager* getPacketManager() const {return this->packetManager;}
 	RelayLinkState getRelayLinkState() const {return this->relayLinkState;}
-	unsigned long getRelayConnId() const {return this->relayConnId;}
-	unsigned short getRelayControlStreamId() const {return this->relayControlStreamId;}
-	unsigned short getRelayVideoStreamId() const{ return this->relayVideoStreamId; }
-	unsigned short getRelayAudioStreamId() const{ return this->relayAudioStreamId; }
-	std::map<long, P2PChatSession>* getCurrentChats() const {return this->currentChats;}
-	std::map<long, pthread_t>* getOnlaunchChats() const {return this->onlaunchChats;}
+	uint64_t getRelayConnId() const {return this->relayConnId;}
+	uint16_t getRelayControlStreamId() const {return this->relayControlStreamId;}
+	uint16_t getRelayVideoStreamId() const{ return this->relayVideoStreamId; }
+	uint16_t getRelayAudioStreamId() const{ return this->relayAudioStreamId; }
+	std::map<uint64_t, P2PChatSession>* getCurrentChats() const {return this->currentChats;}
+	std::map<uint64_t, pthread_t>* getOnlaunchChats() const {return this->onlaunchChats;}
 	XMDTransceiver* getXmdTransceiver() const {return this->xmdTranseiver;}
 	const mimc::BindRelayResponse& getBindRelayResponse() const {return this->bindRelayResponse;}
 	unsigned int getMaxCallNum() const {return this->maxCallNum;}
 	const RtsStreamConfig& getStreamConfig(RtsDataType rtsDataType) const {return rtsDataType == AUDIO ? this->audioStreamConfig : this->videoStreamConfig;}
 
-	unsigned long getP2PIntranetConnId(long chatId);
-	unsigned long getP2PInternetConnId(long chatId);
+	uint64_t getP2PIntranetConnId(uint64_t chatId);
+	uint64_t getP2PInternetConnId(uint64_t chatId);
 
 	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const std::string& bizType = "", const bool isStore = true);
-	long dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
-	bool sendRtsData(long chatId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
-	void closeCall(long chatId, std::string byeReason = "");
+	uint64_t dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
+	bool sendRtsData(uint64_t chatId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
+	void closeCall(uint64_t chatId, std::string byeReason = "");
 
 	void resetRelayLinkState();
-	void handleXMDConnClosed(unsigned long connId, ConnCloseType type);
+	void handleXMDConnClosed(uint64_t connId, ConnCloseType type);
 
 	bool login();
 	bool logout();
@@ -145,30 +145,30 @@ private:
 	std::vector<std::string> relayAddresses;
 
 	int chid;
-	long uuid;
+	int64_t uuid;
 	std::string resource;
 	std::string token;
 	std::string securityKey;
-	long appId;
+	int64_t appId;
 	std::string appAccount;
 	std::string appPackage;
 	int regionBucket;
 	std::string feDomain;
 	std::string relayDomain;
 
-	long lastLoginTimestamp;
-	long lastCreateConnTimestamp;
-	long lastPingTimestamp;
+	time_t lastLoginTimestamp;
+	time_t lastCreateConnTimestamp;
+	time_t lastPingTimestamp;
 
-	long latestLegalRelayLinkStateTs;
+	time_t latestLegalRelayLinkStateTs;
 
 	int testPacketLoss;
 	OnlineStatus onlineStatus;
 	RelayLinkState relayLinkState;
-	unsigned long relayConnId;
-	unsigned short relayControlStreamId;
-	unsigned short relayVideoStreamId;
-	unsigned short relayAudioStreamId;
+	uint64_t relayConnId;
+	uint16_t relayControlStreamId;
+	uint16_t relayVideoStreamId;
+	uint16_t relayAudioStreamId;
 	unsigned int maxCallNum;
 
 	std::map<std::string, std::string> clientAttrs;
@@ -195,8 +195,8 @@ private:
 	RtsStreamConfig videoStreamConfig;
 	int xmdSendBufferSize;
 	int xmdRecvBufferSize;
-	std::map<long, P2PChatSession>* currentChats;
-	std::map<long, pthread_t>* onlaunchChats;
+	std::map<uint64_t, P2PChatSession>* currentChats;
+	std::map<uint64_t, pthread_t>* onlaunchChats;
 	mimc::BindRelayResponse bindRelayResponse;
 
 	pthread_t sendThread, receiveThread, checkThread;

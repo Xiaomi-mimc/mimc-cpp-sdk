@@ -15,7 +15,7 @@ public:
         }
     }
 
-    void handleServerAck(std::string packetId, long sequence, long timestamp, std::string errorMsg) {
+    void handleServerAck(std::string packetId, long sequence, time_t timestamp, std::string errorMsg) {
         packetIds.push(packetId);
     }
 

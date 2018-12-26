@@ -48,7 +48,36 @@ uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, i
     getLocalInfo(local_ip, local_port);
     uint64_t conn_id = rand64(local_ip, local_port);
 
-    RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
+    //RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
+
+    RSA* rsa = RSA_new();
+    BIGNUM* bne = BN_new();
+    if (rsa == NULL || bne == NULL) {
+        XMDLoggerWrapper::instance()->warn("rsa fail");
+        if (rsa) {
+            RSA_free(rsa);
+        }
+        if (bne) {
+            BN_free(bne);
+        }
+        return 0;
+    }
+    int ret = BN_set_word(bne, RSA_F4);
+    ret = RSA_generate_key_ex(rsa, 1024, bne, NULL);
+    if (ret == 0) {
+        XMDLoggerWrapper::instance()->warn("RSA_generate_key_ex fail");
+        if (rsa) {
+            RSA_free(rsa);
+        }
+        if (bne) {
+            BN_free(bne);
+        }
+        return 0;
+    }
+
+    if (bne) {
+        BN_free(bne);
+    }
     
     uint16_t n_len = BN_num_bytes(rsa->n);
     uint16_t e_len = BN_num_bytes(rsa->e);
@@ -200,11 +229,12 @@ int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, i
         XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
         return -1;
     }
-    
+
+    uint32_t groupId = commonData_->getGroupId(connId, streamId);
     StreamQueueData* queueData = new StreamQueueData(len);
     queueData->connId = connId;
     queueData->streamId = streamId;
-    queueData->groupId = commonData_->getGroupId(connId, streamId);
+    queueData->groupId = groupId;
     queueData->len = len;
     queueData->canBeDropped = canBeDropped;
     queueData->dataPriority = priority;
@@ -214,7 +244,7 @@ int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, i
     }
     memcpy(queueData->data, data, len);
     commonData_->streamQueuePush(queueData);
-    return queueData->groupId;
+    return groupId;
 }
 
 

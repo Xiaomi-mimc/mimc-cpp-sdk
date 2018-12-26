@@ -2,7 +2,7 @@
 #include <mimc/user.h>
 #include <mimc/packet_manager.h>
 
-bool RtsSendSignal::sendCreateRequest(const User* user, long chatId) {
+bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t chatId) {
 	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse.IsInitialized()) {
 		
@@ -50,12 +50,12 @@ bool RtsSendSignal::sendCreateRequest(const User* user, long chatId) {
 	chatSession.setChatState(WAIT_CREATE_RESPONSE);
 	chatSession.setLatestLegalChatStateTs(time(NULL));
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, chatId is %ld", user->getAppAccount().c_str(), chatId);
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, chatId is %llu", user->getAppAccount().c_str(), chatId);
 
 	return true;
 }
 
-bool RtsSendSignal::sendInviteResponse(const User* user, long chatId, mimc::ChatType chatType, mimc::RTSResult result, std::string errmsg) {
+bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t chatId, mimc::ChatType chatType, mimc::RTSResult result, std::string errmsg) {
 	std::string localIp;
 	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
@@ -92,12 +92,12 @@ bool RtsSendSignal::sendInviteResponse(const User* user, long chatId, mimc::Chat
 
 	std::string packetId = sendRtsMessage(user, chatId, mimc::INVITE_RESPONSE, chatType, inviteResponseBytesStr);
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, chatId is %ld, result is %d, errmsg is %s", user->getAppAccount().c_str(), chatId, result, errmsg.c_str());
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, chatId is %llu, result is %d, errmsg is %s", user->getAppAccount().c_str(), chatId, result, errmsg.c_str());
 
 	return true;
 }
 
-bool RtsSendSignal::sendByeRequest(const User* user, long chatId, std::string byeReason) {
+bool RtsSendSignal::sendByeRequest(const User* user, uint64_t chatId, std::string byeReason) {
 	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 	if (chatSession.getChatState() != RUNNING && chatSession.getChatState() != WAIT_SEND_UPDATE_REQUEST && chatSession.getChatState() != WAIT_UPDATE_RESPONSE) {
 		return false;
@@ -115,12 +115,12 @@ bool RtsSendSignal::sendByeRequest(const User* user, long chatId, std::string by
 
 	std::string packetId = sendRtsMessage(user, chatId, mimc::BYE_REQUEST, chatSession.getChatType(), byeRequestBytesStr);
 
-	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, chatId is %ld, byeReason is %s", user->getAppAccount().c_str(), chatId, byeReason.c_str());
+	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, chatId is %llu, byeReason is %s", user->getAppAccount().c_str(), chatId, byeReason.c_str());
 
 	return true;
 }
 
-bool RtsSendSignal::sendByeResponse(const User* user, long chatId, mimc::RTSResult result) {
+bool RtsSendSignal::sendByeResponse(const User* user, uint64_t chatId, mimc::RTSResult result) {
 	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 	mimc::ByeResponse byeResponse;
 	byeResponse.set_result(result);
@@ -137,7 +137,7 @@ bool RtsSendSignal::sendByeResponse(const User* user, long chatId, mimc::RTSResu
 	return true;
 }
 
-bool RtsSendSignal::sendUpdateRequest(const User* user, long chatId) {
+bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t chatId) {
 	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse.IsInitialized()) {
 		
@@ -181,7 +181,7 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, long chatId) {
 	return true;
 }
 
-bool RtsSendSignal::sendUpdateResponse(const User* user, long chatId, mimc::RTSResult result) {
+bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t chatId, mimc::RTSResult result) {
 	mimc::UpdateResponse updateResponse;
 	updateResponse.set_result(result);
 
@@ -199,7 +199,7 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, long chatId, mimc::RTSR
 	return true;
 }
 
-bool RtsSendSignal::pingChatManager(const User* user, long chatId) {
+bool RtsSendSignal::pingChatManager(const User* user, uint64_t chatId) {
 	const P2PChatSession& chatSession = user->getCurrentChats()->at(chatId);
 	mimc::PingRequest pingRequest;
 	int ping_request_size = pingRequest.ByteSize();
@@ -215,7 +215,7 @@ bool RtsSendSignal::pingChatManager(const User* user, long chatId) {
 	return true;
 }
 
-std::string RtsSendSignal::sendRtsMessage(const User* user, long chatId, mimc::RTSMessageType messageType, mimc::ChatType chatType, std::string payload) {
+std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t chatId, mimc::RTSMessageType messageType, mimc::ChatType chatType, std::string payload) {
 	mimc::RTSMessage rtsMessage;
 	rtsMessage.set_type(messageType);
 	rtsMessage.set_chatid(chatId);

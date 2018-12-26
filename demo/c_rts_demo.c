@@ -148,11 +148,11 @@ void status_change(online_status_t online_status, const char* err_type, const ch
     printf("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s\n", online_status, err_type, err_reason, err_description);
 }
 
-launched_response_t on_launched_1(long chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
-    printf("In on_launched_1, chatid is %ld, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
+launched_response_t on_launched_1(uint64_t chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
+    printf("In on_launched_1, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.errmsg = "illegal signature";
+    launched_response.errmsg = "illegal appcontent";
     if (appcontent_len != appcontent_1_len) {
         return launched_response;
     }
@@ -169,11 +169,11 @@ launched_response_t on_launched_1(long chatid, const char* from_account, const c
     return launched_response;
 }
 
-launched_response_t on_launched_2(long chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
-    printf("In on_launched_2, chatid is %ld, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
+launched_response_t on_launched_2(uint64_t chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
+    printf("In on_launched_2, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.errmsg = "illegal signature";
+    launched_response.errmsg = "illegal appcontent";
     if (appcontent_len != appcontent_2_len) {
         return launched_response;
     }
@@ -190,24 +190,24 @@ launched_response_t on_launched_2(long chatid, const char* from_account, const c
     return launched_response;
 }
 
-void on_answered(long chatid, bool accepted, const char* errmsg) {
-    printf("In on_answered, chatid is %ld, accepted is %d, errmsg is %s\n", chatid, accepted, errmsg);
+void on_answered(uint64_t chatid, bool accepted, const char* errmsg) {
+    printf("In on_answered, chatid is %llu, accepted is %d, errmsg is %s\n", chatid, accepted, errmsg);
 }
 
-void on_closed(long chatid, const char* errmsg) {
-    printf("In on_closed, chatid is %ld, errmsg is %s\n", chatid, errmsg);
+void on_closed(uint64_t chatid, const char* errmsg) {
+    printf("In on_closed, chatid is %llu, errmsg is %s\n", chatid, errmsg);
 }
 
-void handle_data(long chatid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type) {
-    printf("In handle_data, chatid is %ld, data_len is %d, data_type is %d, channel_type is %d\n", chatid, data_len, data_type, channel_type);
+void handle_data(uint64_t chatid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type) {
+    printf("In handle_data, chatid is %llu, data_len is %d, data_type is %d, channel_type is %d\n", chatid, data_len, data_type, channel_type);
 }
 
-void handle_send_data_succ(long chatid, int groupid, const char* ctx, const int ctx_len) {
-    printf("In handle_send_data_succ, chatid is %ld, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
+void handle_send_data_succ(uint64_t chatid, int groupid, const char* ctx, const int ctx_len) {
+    printf("In handle_send_data_succ, chatid is %llu, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
 }
 
-void handle_send_data_fail(long chatid, int groupid, const char* ctx, const int ctx_len) {
-    printf("In handle_send_data_fail, chatid is %ld, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
+void handle_send_data_fail(uint64_t chatid, int groupid, const char* ctx, const int ctx_len) {
+    printf("In handle_send_data_fail, chatid is %llu, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
 }
 
 static token_fetcher_t token_fetcher_1 = {
@@ -243,7 +243,7 @@ static rtscall_event_handler_t rtscall_event_handler_2 = {
 int main() {
     user_t user1_obj;
 	user_t* user1 = &user1_obj;
-	mimc_rtc_init(user1, atol(app_id), username1, "camera01", NULL);
+	mimc_rtc_init(user1, atoll(app_id), username1, "camera01", NULL);
     mimc_rtc_register_token_fetcher(user1, &token_fetcher_1);
     mimc_rtc_register_online_status_handler(user1, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user1, &rtscall_event_handler_1);
@@ -251,7 +251,7 @@ int main() {
 
     user_t user2_obj;
     user_t* user2 = &user2_obj;
-    mimc_rtc_init(user2, atol(app_id), username2, "camera02", NULL);
+    mimc_rtc_init(user2, atoll(app_id), username2, "camera02", NULL);
     mimc_rtc_register_token_fetcher(user2, &token_fetcher_2);
     mimc_rtc_register_online_status_handler(user2, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user2, &rtscall_event_handler_2);
@@ -277,7 +277,7 @@ int main() {
 
     mimc_rtc_set_sendbuffer_size(user2, 800);
 
-    long chatid = mimc_rtc_dial_call(user1, username2, appcontent_2, appcontent_2_len, "camera02");
+    uint64_t chatid = mimc_rtc_dial_call(user1, username2, appcontent_2, appcontent_2_len, "camera02");
     printf("user1 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user1));
 
     sleep(1);

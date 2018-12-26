@@ -20,6 +20,7 @@ public:
     bool Pop(T& ptr);
     bool empty();
     bool Front(T& ptr);
+    size_t Size();
 };
 
 template <typename T>
@@ -68,6 +69,12 @@ bool STLSafeQueue<T>::Front(T& data) {
     pthread_mutex_unlock(&queue_mutex_);
     return true;
 }
+
+template <typename T>
+size_t STLSafeQueue<T>::Size() {
+    return queue_.size();
+}
+
 
 
 /*

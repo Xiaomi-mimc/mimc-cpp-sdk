@@ -25,11 +25,11 @@ const int WAIT_TIME_FOR_MESSAGE = 1;
 class RtsPerformance: public testing::Test {
 protected:
 	void SetUp() {
-		rtsUser1 = new User(atol(appId.c_str()), appAccount1);
+		rtsUser1 = new User(atoll(appId.c_str()), appAccount1);
 		msgHandler1 = new TestMessageHandler();
 		callEventHandler1 = new RtsPerformanceHandler();
 
-		rtsUser2 = new User(atol(appId.c_str()), appAccount2);
+		rtsUser2 = new User(atoll(appId.c_str()), appAccount2);
 		msgHandler2 = new TestMessageHandler();
 		callEventHandler2 = new RtsPerformanceHandler();
 
@@ -84,7 +84,8 @@ protected:
 		logIn(user1, callEventHandler1);
 		logIn(user2, callEventHandler2);
 
-		long chatId = createCall(user1, callEventHandler1, user2, callEventHandler2);
+		uint64_t chatId = 0;
+		createCall(chatId, user1, callEventHandler1, user2, callEventHandler2);
 
 		const int COUNT = (durationSec * dataSpeedKB) / dataSizeKB;
 		const int TIMEVAL_US = 1000 * (1000 * dataSizeKB / dataSpeedKB);
@@ -159,7 +160,7 @@ protected:
 	}
 
 	void logIn(User* user, RtsPerformanceHandler* callEventHandler) {
-		long loginTs = time(NULL);
+		time_t loginTs = time(NULL);
 		user->login();
 		XMDLoggerWrapper::instance()->info("user %s called login", user->getAppAccount().c_str());
 		while (time(NULL) - loginTs < LOGIN_TIMEOUT && user->getOnlineStatus() == Offline) {
@@ -167,37 +168,35 @@ protected:
 		}
 		ASSERT_EQ(Online, user->getOnlineStatus());
 		if (callEventHandler != NULL) {
-			XMDLoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%ld", user->getUuid());
+			XMDLoggerWrapper::instance()->info("CLEAR CALLEVENTHANDLER OF UUID:%lld", user->getUuid());
 			callEventHandler->clear();
 		}
 	}
 
-	long createCall(User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent = "") {
-		long chatId = from->dialCall(to->getAppAccount(), appContent);
-		EXPECT_NE(chatId, -1);
+	void createCall(uint64_t& chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent = "") {
+		chatId = from->dialCall(to->getAppAccount(), appContent);
+		ASSERT_NE(chatId, 0);
 		sleep(1);
 
 		RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
-		EXPECT_FALSE(inviteRequest == NULL);
+		ASSERT_FALSE(inviteRequest == NULL);
 		if (inviteRequest != NULL) {
-			EXPECT_EQ(chatId, inviteRequest->getChatId());
-			EXPECT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
-			EXPECT_EQ(from->getResource(), inviteRequest->getFromResource());
-			EXPECT_EQ(appContent, inviteRequest->getAppContent());
+			ASSERT_EQ(chatId, inviteRequest->getChatId());
+			ASSERT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
+			ASSERT_EQ(from->getResource(), inviteRequest->getFromResource());
+			ASSERT_EQ(appContent, inviteRequest->getAppContent());
 		}
 
 		RtsMessageData* createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-		EXPECT_FALSE(createResponse == NULL);
+		ASSERT_FALSE(createResponse == NULL);
 		if (createResponse != NULL) {
-			EXPECT_EQ(chatId, createResponse->getChatId());
-			EXPECT_EQ(true, createResponse->isAccepted());
-			EXPECT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrmsg());
+			ASSERT_EQ(chatId, createResponse->getChatId());
+			ASSERT_EQ(true, createResponse->isAccepted());
+			ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrmsg());
 		}
-
-		return chatId;
 	}
 
-	void closeCall(long chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
+	void closeCall(uint64_t chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
 		from->closeCall(chatId);
 		sleep(1);
 

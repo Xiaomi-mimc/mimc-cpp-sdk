@@ -27,9 +27,9 @@ const int TIME_OUT = 5000;
 class RtsEfficiency : public testing::Test {
 protected:
 	void construct() {
-		rtsUser1 = new User(atol(appId.c_str()), appAccount1);
-		rtsUser2 = new User(atol(appId.c_str()), appAccount2);
-		rtsUser3 = new User(atol(appId.c_str()), appAccount3);
+		rtsUser1 = new User(atoll(appId.c_str()), appAccount1);
+		rtsUser2 = new User(atoll(appId.c_str()), appAccount2);
+		rtsUser3 = new User(atoll(appId.c_str()), appAccount3);
 
 		msgHandler1 = new TestMessageHandler();
 		msgHandler2 = new TestMessageHandler();
@@ -172,8 +172,8 @@ protected:
 		callEventHandler2->clear();
 		callEventHandler3->clear();
 		t4 = Utils::currentTimeMillis();
-		long chatId = user1->dialCall(user2->getAppAccount());
-		ASSERT_NE(chatId, -1);
+		uint64_t chatId = user1->dialCall(user2->getAppAccount());
+		ASSERT_NE(chatId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler1->getMsgSize(2) > 0) {
 				break;
@@ -204,7 +204,7 @@ protected:
 		callEventHandler3->clear();
 		t8 = Utils::currentTimeMillis();
 		chatId = user1->dialCall(user3->getAppAccount());
-		ASSERT_NE(chatId, -1);
+		ASSERT_NE(chatId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler1->getMsgSize(2) > 0) {
 				break;
@@ -235,7 +235,7 @@ protected:
 		callEventHandler3->clear();
 		t12 = Utils::currentTimeMillis();
 		chatId = user2->dialCall(user3->getAppAccount());
-		ASSERT_NE(chatId, -1);
+		ASSERT_NE(chatId, 0);
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler2->getMsgSize(2) > 0) {
 				break;
@@ -264,7 +264,7 @@ protected:
 		timeRecords.insert(pair<int, RtsPerformanceData>(idx, RtsPerformanceData((int)(t1-t0), (int)(t2-t0), (int)(t3-t0), (int)(t5-t4), (int)(t9-t8), (int)(t13-t12), (int)(t7-t6), (int)(t11-t10), (int)(t15-t14))));
 	}
 
-	void closeCall(long chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
+	void closeCall(uint64_t chatId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
 		from->closeCall(chatId);
 		sleep(1);
 

@@ -9,7 +9,7 @@ class RtsMessageData {
 private:
 	string fromAccount;
 	string fromResource;
-	long chatId;
+	uint64_t chatId;
 	string appContent;
 	bool accepted = false;
 	string errmsg;
@@ -18,20 +18,20 @@ private:
 	RtsChannelType channelType;
 public:
 	RtsMessageData(){}
-	RtsMessageData(long chatId, string fromAccount, string appContent, string fromResource) {
+	RtsMessageData(uint64_t chatId, string fromAccount, string appContent, string fromResource) {
 		this->chatId = chatId;
 		this->fromAccount = fromAccount;
 		this->appContent = appContent;
 		this->fromResource = fromResource;
 	}
 
-	RtsMessageData(long chatId, string errmsg, bool accepted = false) {
+	RtsMessageData(uint64_t chatId, string errmsg, bool accepted = false) {
 		this->chatId = chatId;
 		this->errmsg = errmsg;
 		this->accepted = accepted;
 	}
 
-	RtsMessageData(long chatId, string recvData, RtsDataType dataType, RtsChannelType channelType) {
+	RtsMessageData(uint64_t chatId, string recvData, RtsDataType dataType, RtsChannelType channelType) {
 		this->chatId = chatId;
 		this->recvData = recvData;
 		this->dataType = dataType;
@@ -40,7 +40,7 @@ public:
 
 	string getFromAccount() {return this->fromAccount;}
 	string getFromResource() {return this->fromResource;}
-	long getChatId() {return this->chatId;}
+	uint64_t getChatId() {return this->chatId;}
 	string getAppContent() {return this->appContent;}
 	bool isAccepted() {return this->accepted;}
 	string getErrmsg() {return this->errmsg;}

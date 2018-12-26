@@ -42,20 +42,20 @@ public:
 
 	}
 
-	LaunchedResponse onLaunched(long chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+	LaunchedResponse onLaunched(uint64_t chatId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
 		const launched_response_t& launched_response = _rtscall_event_handler.on_launched(chatId, fromAccount.c_str(), appContent.c_str(), appContent.length(), fromResource.c_str());
 		return LaunchedResponse(launched_response.accepted, launched_response.errmsg);
 	}
 
-	void onAnswered(long chatId, bool accepted, const std::string errmsg) {
+	void onAnswered(uint64_t chatId, bool accepted, const std::string errmsg) {
 		_rtscall_event_handler.on_answered(chatId, accepted, errmsg.c_str());
 	}
 
-	void onClosed(long chatId, const std::string errmsg) {
+	void onClosed(uint64_t chatId, const std::string errmsg) {
 		_rtscall_event_handler.on_closed(chatId, errmsg.c_str());
 	}
 
-	void handleData(long chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+	void handleData(uint64_t chatId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
 		data_type_t data_type;
 		switch(dataType) {
 			case AUDIO:
@@ -86,11 +86,11 @@ public:
 		_rtscall_event_handler.handle_data(chatId, data.c_str(), data.length(), data_type, channel_type);
 	}
 
-	void handleSendDataSucc(long chatId, int groupId, const std::string ctx) {
+	void handleSendDataSucc(uint64_t chatId, int groupId, const std::string ctx) {
 		_rtscall_event_handler.handle_send_data_succ(chatId, groupId, ctx.c_str(), ctx.length());
 	}
 
-	void handleSendDataFail(long chatId, int groupId, const std::string ctx) {
+	void handleSendDataFail(uint64_t chatId, int groupId, const std::string ctx) {
 		_rtscall_event_handler.handle_send_data_fail(chatId, groupId, ctx.c_str(), ctx.length());
 	}
 
@@ -98,7 +98,7 @@ private:
 	rtscall_event_handler_t _rtscall_event_handler;
 };
 
-void mimc_rtc_init(user_t* user, long appid, const char* appaccount, const char* resource, const char* cachepath) {
+void mimc_rtc_init(user_t* user, int64_t appid, const char* appaccount, const char* resource, const char* cachepath) {
 	std::string appaccountStr(appaccount);
 	std::string resourceStr;
 	if (resource == NULL) {
@@ -196,17 +196,17 @@ void mimc_rtc_clear_recvbuffer(user_t* user) {
 	userObj->clearRecvBuffer();
 }
 
-long mimc_rtc_dial_call(user_t* user, const char* to_appaccount, const char* appcontent, const int appcontent_len, const char* to_resource) {
+uint64_t mimc_rtc_dial_call(user_t* user, const char* to_appaccount, const char* appcontent, const int appcontent_len, const char* to_resource) {
 	User* userObj = (User*)(user->value);
 	return userObj->dialCall(to_appaccount, appcontent, to_resource);
 }
 
-void mimc_rtc_close_call(user_t* user, long chatid, const char* bye_reason) {
+void mimc_rtc_close_call(user_t* user, uint64_t chatid, const char* bye_reason) {
 	User* userObj = (User*)(user->value);
 	userObj->closeCall(chatid, bye_reason);
 }
 
-bool mimc_rtc_send_data(user_t* user, long chatid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count) {
+bool mimc_rtc_send_data(user_t* user, uint64_t chatid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count) {
 	User* userObj = (User*)(user->value);
 	RtsDataType dataType;
 	switch(data_type) {

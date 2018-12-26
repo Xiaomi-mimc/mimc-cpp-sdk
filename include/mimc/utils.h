@@ -42,15 +42,15 @@ const int MAXPATHLEN = 80;
 class Utils {
 public:
     static std::string generateRandomString(int length);
-    static long generateRandomLong();
+    static int64_t generateRandomLong();
     static std::string int2str(const int64_t& int_temp);
     static std::string hexToAscii(const char* src, int srcLen);
     static std::string hash4SHA1AndBase64(const std::string& plain);
     static std::string getLocalIp();
-    static long currentTimeMillis();
-    static long currentTimeMicros();
+    static int64_t currentTimeMillis();
+    static int64_t currentTimeMicros();
     static void getCwd(char* currentPath, int maxLen);
     static bool createDirIfNotExist(const std::string& pDir);
-    static char* ltoa(long value, char* str);
+    static char* ltoa(int64_t value, char* str);
 };
 #endif //MIMC_CPP_SDK_UTILS_H

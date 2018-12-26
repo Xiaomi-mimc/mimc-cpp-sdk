@@ -3,7 +3,7 @@
 #include <mimc/utils.h>
 #include <cstdlib>
 
-unsigned long RtsSendData::createRelayConn(User* user) {
+uint64_t RtsSendData::createRelayConn(User* user) {
 if (user->getRelayConnId() != 0) {
 	return user->getRelayConnId();
 }
@@ -43,7 +43,7 @@ std::string relayAddress;
 	memset(messageBytes, 0, message_size);
 	userPacket.SerializeToArray(messageBytes, message_size);
 
-	unsigned long relayConnId = user->getXmdTransceiver()->createConnection((char *)relayIp.c_str(), relayPort, messageBytes, message_size, XMD_TRAN_TIMEOUT, new RtsConnectionInfo(relayAddress, RELAY_CONN));
+	uint64_t relayConnId = user->getXmdTransceiver()->createConnection((char *)relayIp.c_str(), relayPort, messageBytes, message_size, XMD_TRAN_TIMEOUT, new RtsConnectionInfo(relayAddress, RELAY_CONN));
 	if (relayConnId == 0) {
 		return 0;
 	}
@@ -148,8 +148,8 @@ bool RtsSendData::sendPingRelayRequest(User* user) {
 	return true;
 }
 
-bool RtsSendData::sendRtsDataByRelay(User* user, long chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
-	unsigned long relayConnId = user->getRelayConnId();
+bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t chatId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+	uint64_t relayConnId = user->getRelayConnId();
 	if (relayConnId == 0) {
 		
 		return false;

@@ -18,7 +18,7 @@ public:
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->info("Relay connection create succeed");
 			//创建控制流
-			unsigned short streamId = this->user->getXmdTransceiver()->createStream(connId, ACK_STREAM, ACK_STREAM_WAIT_TIME_MS, false);
+			uint16_t streamId = this->user->getXmdTransceiver()->createStream(connId, ACK_STREAM, ACK_STREAM_WAIT_TIME_MS, false);
 
 			XMDLoggerWrapper::instance()->info("control streamId is %d", streamId);
 
@@ -34,14 +34,14 @@ public:
 			}
 		} else if (rtsConnectionInfo->getConnType() == INTRANET_CONN) {
 			
-			long chatId = rtsConnectionInfo->getChatId();
+			uint64_t chatId = rtsConnectionInfo->getChatId();
 			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
 			p2pChatSession.setP2PIntranetConnId(connId);
 			pthread_rwlock_unlock(&this->user->getChatsRwlock());
 		} else if (rtsConnectionInfo->getConnType() == INTERNET_CONN) {
 			
-			long chatId = rtsConnectionInfo->getChatId();
+			uint64_t chatId = rtsConnectionInfo->getChatId();
 			pthread_rwlock_wrlock(&this->user->getChatsRwlock());
 			P2PChatSession& p2pChatSession = this->user->getCurrentChats()->at(chatId);
 			p2pChatSession.setP2PInternetConnId(connId);
@@ -78,7 +78,7 @@ public:
 
 	void CloseConnection(uint64_t connId, ConnCloseType type) {
 		if (type == CLOSE_NORMAL) {
-			XMDLoggerWrapper::instance()->info("XMDConnection is closed normally, connId is %ld, ConnCloseType is %d", connId, type);
+			XMDLoggerWrapper::instance()->info("XMDConnection is closed normally, connId is %llu, ConnCloseType is %d", connId, type);
 			return;
 		}
 		//连接被关闭时，重置本地XMD连接及处理会话状态

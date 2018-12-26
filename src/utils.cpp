@@ -21,9 +21,9 @@ std::string Utils::generateRandomString(int length) {
     return randomString;
 }
 
-long Utils::generateRandomLong() {
+int64_t Utils::generateRandomLong() {
     srand(currentTimeMicros());
-    long l = rand() % 128;
+    int64_t l = rand() % 128;
     for (int i = 0; i < 7; i++) {
         srand(currentTimeMicros());
         l = l << 8 | rand() % 256;
@@ -50,7 +50,7 @@ std::string Utils::hexToAscii(const char* src, int srcLen) {
 
 std::string Utils::hash4SHA1AndBase64(const std::string& plain) {
     SHA_CTX c;
-    unsigned char md[SHA_DIGEST_LENGTH];
+    unsigned char md[SHA_DIGEST_LENGTH + 1];
     SHA1((unsigned char *)(plain.c_str()), plain.length(), md);
     SHA1_Init(&c);
     SHA1_Update(&c, plain.c_str(), plain.length());
@@ -103,13 +103,13 @@ std::string Utils::getLocalIp() {
     return localIp;
 }
 
-long Utils::currentTimeMillis() {
+int64_t Utils::currentTimeMillis() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-long Utils::currentTimeMicros() {
+int64_t Utils::currentTimeMicros() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000000 + tv.tv_usec;
@@ -156,7 +156,7 @@ bool Utils::createDirIfNotExist(const std::string& pDir) {
     return true;
 }
 
-char* Utils::ltoa(long value, char* str) {
-    sprintf(str, "%ld", value);
+char* Utils::ltoa(int64_t value, char* str) {
+    sprintf(str, "%llu", value);
     return str;
 }

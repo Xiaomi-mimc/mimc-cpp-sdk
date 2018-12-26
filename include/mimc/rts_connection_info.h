@@ -2,6 +2,7 @@
 #define MIMC_CPP_SDK_RTS_CONNECTION_INFO_H
 
 #include <string>
+#include <stdint.h>
 
 enum RtsConnType {
 	RELAY_CONN,
@@ -11,7 +12,7 @@ enum RtsConnType {
 
 class RtsConnectionInfo {
 public:
-	RtsConnectionInfo(std::string address, RtsConnType connType, long chatId = -1)
+	RtsConnectionInfo(std::string address, RtsConnType connType, uint64_t chatId = 0)
 		: address(address), rtsConnType(connType), chatId(chatId) {
 		
 	}
@@ -24,13 +25,13 @@ public:
 		return this->rtsConnType;
 	}
 
-	long getChatId() {
+	uint64_t getChatId() {
 		return this->chatId;
 	}
 private:
 	std::string address;
 	RtsConnType rtsConnType;
-	long chatId;
+	uint64_t chatId;
 };
 
 #endif

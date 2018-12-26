@@ -199,7 +199,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::string message = "test_send_createconn";
     std::string message2 = "test_send_RTDATA";
     std::string message3 = "1234567890abcdefghijklmnopqrstuvwxyz1234567无法威风威风威风无法为违法未访问涉非法为二分ssfefefefefefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    std::string ip = "10.239.44.232";
+    std::string ip = "127.0.0.1";
     int port = 44564;
 
     int len = 10;
@@ -224,9 +224,12 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::cout<<"stream id="<<streamId<<std::endl;
 
 
-    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0, 1);
+    int groupid = 0;
+    groupid = transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0, 1);
+    std::cout<<"groupid=" <<groupid << std::endl;
     usleep(200000);
-    transceiver->sendRTData(connId, streamId, (char*)message2.c_str(), message2.length(), false, P0, 1);
+    groupid = transceiver->sendRTData(connId, streamId, (char*)message2.c_str(), message2.length(), false, P0, 1);
+    std::cout<<"groupid=" <<groupid << std::endl;
     usleep(2000000);
     transceiver->closeStream(connId, streamId);
     usleep(200000);

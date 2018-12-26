@@ -3,6 +3,7 @@
 
 #include <mimc/rts_signal.pb.h>
 #include <string>
+#include <stdint.h>
 
 enum ChatState {
 	WAIT_SEND_CREATE_REQUEST,
@@ -16,7 +17,7 @@ enum ChatState {
 
 class P2PChatSession {
 public:
-	P2PChatSession(long chatId, mimc::UserInfo peerUser, mimc::ChatType chatType, ChatState chatState, long chatStateTs, bool is_creator, std::string appContent) 
+	P2PChatSession(uint64_t chatId, mimc::UserInfo peerUser, mimc::ChatType chatType, ChatState chatState, time_t chatStateTs, bool is_creator, std::string appContent) 
 		: chatId(chatId), peerUser(peerUser), chatType(chatType), chatState(chatState), latestLegalChatStateTs(chatStateTs), is_creator(is_creator), appContent(appContent)
 	{
 		clearP2PConn();
@@ -33,29 +34,29 @@ public:
 
 	std::string getAppContent() const{ return this->appContent; }
 
-	long getLatestLegalChatStateTs() const{ return this->latestLegalChatStateTs; }
-	void setLatestLegalChatStateTs(const long& latestLegalChatStateTs) { this->latestLegalChatStateTs = latestLegalChatStateTs; }
+	time_t getLatestLegalChatStateTs() const{ return this->latestLegalChatStateTs; }
+	void setLatestLegalChatStateTs(const time_t& latestLegalChatStateTs) { this->latestLegalChatStateTs = latestLegalChatStateTs; }
 
-	long getP2PIntranetConnId() const{ return this->P2PIntranetConnId; }
-	void setP2PIntranetConnId(const long& P2PIntranetConnId) { this->P2PIntranetConnId = P2PIntranetConnId; }
+	uint64_t getP2PIntranetConnId() const{ return this->P2PIntranetConnId; }
+	void setP2PIntranetConnId(const uint64_t& P2PIntranetConnId) { this->P2PIntranetConnId = P2PIntranetConnId; }
 
-	short getP2PIntranetVideoStreamId() const{ return this->P2PIntranetVideoStreamId; }
-	void setP2PIntranetVideoStreamId(const short& P2PIntranetVideoStreamId) { this->P2PIntranetVideoStreamId = P2PIntranetVideoStreamId; }
+	uint16_t getP2PIntranetVideoStreamId() const{ return this->P2PIntranetVideoStreamId; }
+	void setP2PIntranetVideoStreamId(const uint16_t& P2PIntranetVideoStreamId) { this->P2PIntranetVideoStreamId = P2PIntranetVideoStreamId; }
 
-	short getP2PIntranetAudioStreamId() const{ return this->P2PIntranetAudioStreamId; }
-	void setP2PIntranetAudioStreamId(const short& P2PIntranetAudioStreamId) { this->P2PIntranetAudioStreamId = P2PIntranetAudioStreamId; }
+	uint16_t getP2PIntranetAudioStreamId() const{ return this->P2PIntranetAudioStreamId; }
+	void setP2PIntranetAudioStreamId(const uint16_t& P2PIntranetAudioStreamId) { this->P2PIntranetAudioStreamId = P2PIntranetAudioStreamId; }
 
 	bool getIntranetBurrowState() const{ return this->intranetBurrowState; }
 	void setIntranetBurrowState(const bool& intranetBurrowState) { this->intranetBurrowState = intranetBurrowState; }
 
-	long getP2PInternetConnId() const{ return this->P2PInternetConnId; }
-	void setP2PInternetConnId(const long& P2PInternetConnId) { this->P2PInternetConnId = P2PInternetConnId; }
+	uint64_t getP2PInternetConnId() const{ return this->P2PInternetConnId; }
+	void setP2PInternetConnId(const uint64_t& P2PInternetConnId) { this->P2PInternetConnId = P2PInternetConnId; }
 
-	short getP2PInternetVideoStreamId() const{ return this->P2PInternetVideoStreamId; }
-	void setP2PInternetVideoStreamId(const short& P2PInternetVideoStreamId) { this->P2PInternetVideoStreamId = P2PInternetVideoStreamId; }
+	uint16_t getP2PInternetVideoStreamId() const{ return this->P2PInternetVideoStreamId; }
+	void setP2PInternetVideoStreamId(const uint16_t& P2PInternetVideoStreamId) { this->P2PInternetVideoStreamId = P2PInternetVideoStreamId; }
 
-	short getP2PInternetAudioStreamId() const{ return this->P2PInternetAudioStreamId; }
-	void setP2PInternetAudioStreamId(const short& P2PInternetAudioStreamId) { this->P2PInternetAudioStreamId = P2PInternetAudioStreamId; }
+	uint16_t getP2PInternetAudioStreamId() const{ return this->P2PInternetAudioStreamId; }
+	void setP2PInternetAudioStreamId(const uint16_t& P2PInternetAudioStreamId) { this->P2PInternetAudioStreamId = P2PInternetAudioStreamId; }
 
 	bool getInternetBurrowState() const{ return this->internetBurrowState; }
 	void setInternetBurrowState(const bool& internetBurrowState) { this->internetBurrowState = internetBurrowState; }
@@ -81,20 +82,20 @@ public:
 		resetP2PInternetConn();
 	}
 private:
-	long chatId;
+	uint64_t chatId;
 	mimc::UserInfo peerUser;
 	mimc::ChatType chatType;
 	ChatState chatState;
-	long latestLegalChatStateTs;
+	time_t latestLegalChatStateTs;
 
-	long P2PIntranetConnId;
-	short P2PIntranetVideoStreamId;
-	short P2PIntranetAudioStreamId;
+	uint64_t P2PIntranetConnId;
+	uint16_t P2PIntranetVideoStreamId;
+	uint16_t P2PIntranetAudioStreamId;
 	bool intranetBurrowState;
 
-	long P2PInternetConnId;
-	short P2PInternetVideoStreamId;
-	short P2PInternetAudioStreamId;
+	uint64_t P2PInternetConnId;
+	uint16_t P2PInternetVideoStreamId;
+	uint16_t P2PInternetAudioStreamId;
 	bool internetBurrowState;
 
 	bool is_creator;

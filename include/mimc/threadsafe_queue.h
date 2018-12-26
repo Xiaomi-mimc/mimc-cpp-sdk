@@ -42,7 +42,7 @@ void ThreadSafeQueue<T>::push(T new_data) {
 
 template <class T>
 void ThreadSafeQueue<T>::pop(long timeout, T** result) {
-	long start = time(NULL);
+	time_t start = time(NULL);
 	while (empty()) {
 		if (time(NULL) - start >= timeout) {
 			*result = NULL;
