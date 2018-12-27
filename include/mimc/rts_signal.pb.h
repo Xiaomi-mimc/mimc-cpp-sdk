@@ -401,19 +401,19 @@ class CallInfo : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::uint64 callid() const;
   inline void set_callid(::google::protobuf::uint64 value);
 
-  // optional .mimc.CallType chatType = 2;
-  inline bool has_chattype() const;
-  inline void clear_chattype();
-  static const int kChatTypeFieldNumber = 2;
-  inline ::mimc::CallType chattype() const;
-  inline void set_chattype(::mimc::CallType value);
+  // optional .mimc.CallType callType = 2;
+  inline bool has_calltype() const;
+  inline void clear_calltype();
+  static const int kCallTypeFieldNumber = 2;
+  inline ::mimc::CallType calltype() const;
+  inline void set_calltype(::mimc::CallType value);
 
-  // optional .mimc.CallStatus chatStatus = 3;
-  inline bool has_chatstatus() const;
-  inline void clear_chatstatus();
-  static const int kChatStatusFieldNumber = 3;
-  inline ::mimc::CallStatus chatstatus() const;
-  inline void set_chatstatus(::mimc::CallStatus value);
+  // optional .mimc.CallStatus callStatus = 3;
+  inline bool has_callstatus() const;
+  inline void clear_callstatus();
+  static const int kCallStatusFieldNumber = 3;
+  inline ::mimc::CallStatus callstatus() const;
+  inline void set_callstatus(::mimc::CallStatus value);
 
   // optional int64 creatorId = 4;
   inline bool has_creatorid() const;
@@ -450,18 +450,18 @@ class CallInfo : public ::google::protobuf::MessageLite {
  private:
   inline void set_has_callid();
   inline void clear_has_callid();
-  inline void set_has_chattype();
-  inline void clear_has_chattype();
-  inline void set_has_chatstatus();
-  inline void clear_has_chatstatus();
+  inline void set_has_calltype();
+  inline void clear_has_calltype();
+  inline void set_has_callstatus();
+  inline void clear_has_callstatus();
   inline void set_has_creatorid();
   inline void clear_has_creatorid();
   inline void set_has_creatorresource();
   inline void clear_has_creatorresource();
 
   ::google::protobuf::uint64 callid_;
-  int chattype_;
-  int chatstatus_;
+  int calltype_;
+  int callstatus_;
   ::google::protobuf::int64 creatorid_;
   ::std::string* creatorresource_;
   ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo > members_;
@@ -2416,50 +2416,50 @@ inline void CallInfo::set_callid(::google::protobuf::uint64 value) {
   callid_ = value;
 }
 
-// optional .mimc.CallType chatType = 2;
-inline bool CallInfo::has_chattype() const {
+// optional .mimc.CallType callType = 2;
+inline bool CallInfo::has_calltype() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
-inline void CallInfo::set_has_chattype() {
+inline void CallInfo::set_has_calltype() {
   _has_bits_[0] |= 0x00000002u;
 }
-inline void CallInfo::clear_has_chattype() {
+inline void CallInfo::clear_has_calltype() {
   _has_bits_[0] &= ~0x00000002u;
 }
-inline void CallInfo::clear_chattype() {
-  chattype_ = 1;
-  clear_has_chattype();
+inline void CallInfo::clear_calltype() {
+  calltype_ = 1;
+  clear_has_calltype();
 }
-inline ::mimc::CallType CallInfo::chattype() const {
-  return static_cast< ::mimc::CallType >(chattype_);
+inline ::mimc::CallType CallInfo::calltype() const {
+  return static_cast< ::mimc::CallType >(calltype_);
 }
-inline void CallInfo::set_chattype(::mimc::CallType value) {
+inline void CallInfo::set_calltype(::mimc::CallType value) {
   assert(::mimc::CallType_IsValid(value));
-  set_has_chattype();
-  chattype_ = value;
+  set_has_calltype();
+  calltype_ = value;
 }
 
-// optional .mimc.CallStatus chatStatus = 3;
-inline bool CallInfo::has_chatstatus() const {
+// optional .mimc.CallStatus callStatus = 3;
+inline bool CallInfo::has_callstatus() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void CallInfo::set_has_chatstatus() {
+inline void CallInfo::set_has_callstatus() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void CallInfo::clear_has_chatstatus() {
+inline void CallInfo::clear_has_callstatus() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void CallInfo::clear_chatstatus() {
-  chatstatus_ = 1;
-  clear_has_chatstatus();
+inline void CallInfo::clear_callstatus() {
+  callstatus_ = 1;
+  clear_has_callstatus();
 }
-inline ::mimc::CallStatus CallInfo::chatstatus() const {
-  return static_cast< ::mimc::CallStatus >(chatstatus_);
+inline ::mimc::CallStatus CallInfo::callstatus() const {
+  return static_cast< ::mimc::CallStatus >(callstatus_);
 }
-inline void CallInfo::set_chatstatus(::mimc::CallStatus value) {
+inline void CallInfo::set_callstatus(::mimc::CallStatus value) {
   assert(::mimc::CallStatus_IsValid(value));
-  set_has_chatstatus();
-  chatstatus_ = value;
+  set_has_callstatus();
+  callstatus_ = value;
 }
 
 // optional int64 creatorId = 4;

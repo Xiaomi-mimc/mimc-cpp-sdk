@@ -16,7 +16,7 @@ public:
 	static bool sendByeResponse(const User* user, uint64_t callId, mimc::RTSResult result);
 	static bool sendUpdateRequest(const User* user, uint64_t callId);
 	static bool sendUpdateResponse(const User* user, uint64_t callId, mimc::RTSResult result);
-	static bool pingCallManager(const User* user, uint64_t callId);
+	static bool pingCallCenter(const User* user, uint64_t callId);
 	static std::string sendRtsMessage(const User* user, uint64_t callId, mimc::RTSMessageType messageType, mimc::CallType callType, std::string payload);
 private:
 

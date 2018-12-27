@@ -46,11 +46,11 @@ protected:
 
     void testP2PSendOneMessage() {
         from->login();
-        usleep(500000);
+        sleep(2);
         ASSERT_EQ(Online, from->getOnlineStatus());
 
         to->login();
-        usleep(500000);
+        sleep(2);
         ASSERT_EQ(Online, to->getOnlineStatus());
 
         string payload1 = "你猜我是谁哈哈哈";
@@ -69,7 +69,8 @@ protected:
 
         ASSERT_TRUE(toMessageHandler->pollMessage() == NULL);
 
-        sleep(20);
+        sleep(10);
+
         ASSERT_TRUE(from->logout());
         usleep(400000);
         ASSERT_EQ(Offline, from->getOnlineStatus());

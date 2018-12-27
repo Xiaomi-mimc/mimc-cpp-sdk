@@ -257,7 +257,8 @@ int main() {
     mimc_rtc_register_rtscall_event_handler(user2, &rtscall_event_handler_2);
     mimc_rtc_login(user2);
 
-    sleep(1);
+    sleep(4);
+
     mimc_rtc_set_max_callnum(user1, 2);
     mimc_rtc_set_max_callnum(user2, 1);
 
@@ -280,7 +281,7 @@ int main() {
     uint64_t chatid = mimc_rtc_dial_call(user1, username2, appcontent_2, appcontent_2_len, "camera02");
     printf("user1 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user1));
 
-    sleep(1);
+    sleep(2);
     printf("user2 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user2));
     const char* data = "12323131323";
     const char* ctx = "dasda";

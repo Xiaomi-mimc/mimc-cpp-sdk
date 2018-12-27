@@ -33,6 +33,8 @@ public:
         std::vector<MIMCMessage>::iterator it = packets.begin();
         for (; it != packets.end(); ++it) {
             messages.push(*it);
+            MIMCMessage& message = *it;
+            printf("recv message, payload is %s, bizType is %s\n", message.getPayload().c_str(), message.getBizType().c_str());
         }
     }
 
@@ -202,7 +204,7 @@ public:
             return;
         }
 
-        usleep(500000);
+        sleep(4);
 
         string payload1 = "WITH MIMC,WE CAN FLY HIGHER！";
         string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
@@ -242,10 +244,10 @@ public:
         to->registerMessageHandler(toMessageHandler);
 
         from->login();
-        usleep(500000);
+        sleep(2);
 
         to->login();
-        usleep(500000);
+        sleep(2);
 
         MIMCMessage *message;
         const int MAX_NUM = 100;
@@ -271,7 +273,9 @@ public:
         }
 
         num = 0;
-        sleep(60);
+
+        sleep(10);
+
         while (num++ < GOON_NUM) {
             
             string payload3 = "Let's go on!";

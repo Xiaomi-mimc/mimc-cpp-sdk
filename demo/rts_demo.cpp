@@ -256,7 +256,7 @@ public:
 
 		user1->login();
 
-		sleep(1);
+		sleep(2);
 
 		user1->dialCall("5566", "AUDIO", "JAVA-FEEtSinu");
 
@@ -288,11 +288,11 @@ public:
 
 		user1->login();
 
-		sleep(1);
+		sleep(2);
 
 		user1->dialCall("5566","AUDIO");
 
-		sleep(6000);
+		sleep(60);
 
 		user1->logout();
 		sleep(2);

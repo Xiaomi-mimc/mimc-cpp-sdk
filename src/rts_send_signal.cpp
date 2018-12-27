@@ -199,7 +199,7 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::
 	return true;
 }
 
-bool RtsSendSignal::pingCallManager(const User* user, uint64_t callId) {
+bool RtsSendSignal::pingCallCenter(const User* user, uint64_t callId) {
 	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 	mimc::PingRequest pingRequest;
 	int ping_request_size = pingRequest.ByteSize();

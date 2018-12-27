@@ -341,8 +341,8 @@ void User::rtsScanAndCallBack() {
 		const P2PCallSession& callSession = iter->second;
 		const CallState& callState = callSession.getCallState();
 		if (callState == RUNNING) {
-			XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, callId %llu state RUNNING ping callmanager, user is %s", callId, appAccount.c_str());
-			RtsSendSignal::pingCallManager(this, callId);
+			XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, callId %llu state RUNNING ping callCenter, user is %s", callId, appAccount.c_str());
+			RtsSendSignal::pingCallCenter(this, callId);
 			iter++;
 			continue;
 		}
