@@ -24,12 +24,12 @@ public:
 
 	}
 
-	void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
+	void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
 		online_status_t online_status = OFFLINE;
 		if (status == Online) {
 			online_status = ONLINE;
 		}
-		_online_status_handler.status_change(online_status, errType.c_str(), errReason.c_str(), errDescription.c_str());
+		_online_status_handler.status_change(online_status, type.c_str(), reason.c_str(), desc.c_str());
 	}
 
 private:
@@ -44,15 +44,15 @@ public:
 
 	LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
 		const launched_response_t& launched_response = _rtscall_event_handler.on_launched(callId, fromAccount.c_str(), appContent.c_str(), appContent.length(), fromResource.c_str());
-		return LaunchedResponse(launched_response.accepted, launched_response.err_msg);
+		return LaunchedResponse(launched_response.accepted, launched_response.desc);
 	}
 
-	void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
-		_rtscall_event_handler.on_answered(callId, accepted, errMsg.c_str());
+	void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
+		_rtscall_event_handler.on_answered(callId, accepted, desc.c_str());
 	}
 
-	void onClosed(uint64_t callId, const std::string errMsg) {
-		_rtscall_event_handler.on_closed(callId, errMsg.c_str());
+	void onClosed(uint64_t callId, const std::string desc) {
+		_rtscall_event_handler.on_closed(callId, desc.c_str());
 	}
 
 	void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {

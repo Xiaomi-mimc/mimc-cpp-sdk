@@ -31,6 +31,7 @@ private:
     PingThread* pingThread_;
     PongThread* pongThread_;
     int port_;
+    static pthread_mutex_t create_conn_mutex_;
     
 public:
     XMDTransceiver(int decodeThreadSize, int port = 0) {

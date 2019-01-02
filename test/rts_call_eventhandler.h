@@ -18,14 +18,14 @@ public:
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
-        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, errMsg is %s", callId, accepted, errMsg.c_str());
-        createResponses.push(RtsMessageData(callId, errMsg, accepted));
+    void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
+        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, desc is %s", callId, accepted, desc.c_str());
+        createResponses.push(RtsMessageData(callId, desc, accepted));
     }
 
-    void onClosed(uint64_t callId, const std::string errMsg) {
-        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, errMsg is %s", callId, errMsg.c_str());
-        byes.push(RtsMessageData(callId, errMsg));
+    void onClosed(uint64_t callId, const std::string desc) {
+        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, desc is %s", callId, desc.c_str());
+        byes.push(RtsMessageData(callId, desc));
     }
 
     void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {

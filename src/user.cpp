@@ -19,7 +19,7 @@ User::User(int64_t appId, std::string appAccount, std::string resource, std::str
 	this->testPacketLoss = 0;
 	this->permitLogin = false;
 	this->onlineStatus = Offline;
-	this->tokenExpired = false;
+	this->tokenInvalid = false;
 	this->addressInvalid = false;
 	this->tokenFetchSucceed = false;
 	this->serverFetchSucceed = false;
@@ -146,7 +146,7 @@ void* User::sendPacket(void *arg) {
 		if (conn->getState() == HANDSHAKE_CONNECTED) {
 			time_t now = time(NULL);
 			if (user->getOnlineStatus() == Offline) {
-				if (now - user->lastLoginTimestamp > LOGIN_TIMEOUT || user->tokenExpired) {
+				if (now - user->lastLoginTimestamp > LOGIN_TIMEOUT || user->tokenInvalid) {
 					if (user->permitLogin && fetchToken(user)) {
 						packet_size = user->getPacketManager()->encodeBindPacket(packetBuffer, conn);
 						if (packet_size < 0) {
@@ -412,14 +412,14 @@ void* User::onLaunched(void *arg) {
 	}
 	P2PCallSession& P2PCallSession = user->getCurrentCalls()->at(callId);
 	if (!userResponse.isAccepted()) {
-		RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::PEER_REFUSE, userResponse.getErrMsg());
+		RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::PEER_REFUSE, userResponse.getDesc());
 		user->getCurrentCalls()->erase(callId);
 		RtsSendData::closeRelayConnWhenNoCall(user);
 		user->getOnlaunchCalls()->erase(callId);
 		pthread_rwlock_unlock(&user->getCallsRwlock());
 		return 0;
 	}
-	RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::SUCC, userResponse.getErrMsg());
+	RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::SUCC, userResponse.getDesc());
 	P2PCallSession.setCallState(RUNNING);
 	P2PCallSession.setLatestLegalCallStateTs(time(NULL));
 	pthread_rwlock_unlock(&user->getCallsRwlock());
@@ -461,7 +461,7 @@ void User::createCacheFileIfNotExist(User * user) {
 }
 
 bool User::fetchToken(User * user) {
-	if (user->tokenFetchSucceed && !user->tokenExpired) {
+	if (user->tokenFetchSucceed && !user->tokenInvalid) {
 		return true;
 	}
 	const char* str = NULL;
@@ -474,7 +474,7 @@ bool User::fetchToken(User * user) {
 		file.read(localStr, size);
 		file.close();
 		json_object* pobj_local;
-		if (user->parseToken(localStr, pobj_local) && !user->tokenExpired) {
+		if (user->parseToken(localStr, pobj_local) && !user->tokenInvalid) {
 			json_object_put(pobj_local);
 			return true;
 		} else {
@@ -485,7 +485,7 @@ bool User::fetchToken(User * user) {
 			std::string remoteStr = user->getTokenFetcher()->fetchToken();
 			json_object* pobj_remote;
 			if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
-				user->tokenExpired = false;
+				user->tokenInvalid = false;
 				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
 				if (file.is_open()) {
 					if (pobj_local == NULL) {
@@ -494,7 +494,7 @@ bool User::fetchToken(User * user) {
 					} else {
 						str = json_object_get_string(pobj_local);
 						json_object* dataobj = json_object_new_object();
-						char s[20];
+						char s[21] = {0};
 						json_object_object_add(dataobj, "appId", json_object_new_string(Utils::ltoa(user->getAppId(), s)));
 						json_object_object_add(dataobj, "appPackage", json_object_new_string(user->getAppPackage().c_str()));
 						json_object_object_add(dataobj, "appAccount", json_object_new_string(user->getAppAccount().c_str()));
@@ -530,7 +530,7 @@ bool User::fetchToken(User * user) {
 		std::string remoteStr = user->getTokenFetcher()->fetchToken();
 		json_object* pobj_remote;
 		if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
-			user->tokenExpired = false;
+			user->tokenInvalid = false;
 			createCacheFileIfNotExist(user);
 			if (user->cacheExist) {
 				std::ofstream file(user->getCacheFile(), std::ios::out | std::ios::ate);
@@ -817,13 +817,13 @@ std::string User::join(const std::map<std::string, std::string>& kvs) const {
 	return oss.str();
 }
 
-std::string User::sendMessage(const std::string & toAppAccount, const std::string & msg, const std::string & bizType, const bool isStore) {
+std::string User::sendMessage(const std::string & toAppAccount, const std::string & payload, const std::string & bizType, const bool isStore) {
 	if (this->messageHandler == NULL) {
 		XMDLoggerWrapper::instance()->error("In sendMessage, messageHandler is not registered!");
 		return "";
 	}
 
-	if (this->onlineStatus == Offline || toAppAccount == "" || msg == "" || msg.size() > MIMC_MAX_PAYLOAD_SIZE) {
+	if (this->onlineStatus == Offline || toAppAccount == "" || payload == "" || payload.size() > MIMC_MAX_PAYLOAD_SIZE) {
 		return "";
 	}
 
@@ -841,7 +841,7 @@ std::string User::sendMessage(const std::string & toAppAccount, const std::strin
 	mimc::MIMCP2PMessage * message = new mimc::MIMCP2PMessage();
 	message->set_allocated_from(from);
 	message->set_allocated_to(to);
-	message->set_payload(std::string(msg));
+	message->set_payload(std::string(payload));
 	message->set_biztype(bizType);
 	message->set_isstore(isStore);
 
@@ -855,23 +855,23 @@ std::string User::sendMessage(const std::string & toAppAccount, const std::strin
 	message = NULL;
 
 	std::string packetId = this->packetManager->createPacketId();
-	mimc::MIMCPacket * payload = new mimc::MIMCPacket();
-	payload->set_packetid(packetId);
-	payload->set_package(this->appPackage);
-	payload->set_type(mimc::P2P_MESSAGE);
-	payload->set_payload(messageBytesStr);
-	payload->set_timestamp(time(NULL));
+	mimc::MIMCPacket * packet = new mimc::MIMCPacket();
+	packet->set_packetid(packetId);
+	packet->set_package(this->appPackage);
+	packet->set_type(mimc::P2P_MESSAGE);
+	packet->set_payload(messageBytesStr);
+	packet->set_timestamp(time(NULL));
 
 	delete[] messageBytes;
 	messageBytes = NULL;
 
-	MIMCMessage mimcMessage(packetId, payload->sequence(), this->appAccount, this->resource, toAppAccount, "", msg, bizType, payload->timestamp());
+	MIMCMessage mimcMessage(packetId, packet->sequence(), this->appAccount, this->resource, toAppAccount, "", payload, bizType, packet->timestamp());
 	(this->packetManager->packetsWaitToTimeout).insert(std::pair<std::string, MIMCMessage>(packetId, mimcMessage));
 
 	struct waitToSendContent mimc_obj;
 	mimc_obj.cmd = BODY_CLIENTHEADER_CMD_SECMSG;
 	mimc_obj.type = C2S_DOUBLE_DIRECTION;
-	mimc_obj.message = payload;
+	mimc_obj.message = packet;
 	(this->packetManager->packetsWaitToSend).push(mimc_obj);
 
 	return packetId;
@@ -922,7 +922,7 @@ uint64_t User::dialCall(const std::string & toAppAccount, const std::string & ap
 	uint64_t callId;
 	do {
 		callId = Utils::generateRandomLong();
-	} while (currentCalls->count(callId) > 0);
+	} while (currentCalls->count(callId) > 0 || callId == 0);
 
 	XMDLoggerWrapper::instance()->info("In dialCall, callId is %llu", callId);
 	if (this->relayLinkState == NOT_CREATED) {

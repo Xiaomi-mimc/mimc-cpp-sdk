@@ -5,16 +5,16 @@
 
 class LaunchedResponse {
 	public:
-		LaunchedResponse(bool accepted, std::string msg) {
+		LaunchedResponse(bool accepted, std::string desc) {
 			this->accepted = accepted;
-			this->errMsg = msg;
+			this->desc = desc;
 		}
 		~LaunchedResponse(){}
 		bool isAccepted() { return this->accepted; }
-		std::string getErrMsg() { return this->errMsg; }
+		std::string getDesc() { return this->desc; }
 	private:
 		bool accepted;
-		std::string errMsg;
+		std::string desc;
 };
 
 #endif

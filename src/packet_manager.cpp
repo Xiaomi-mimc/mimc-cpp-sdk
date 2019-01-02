@@ -94,7 +94,7 @@ int PacketManager::encodePacket(unsigned char * &packet, const ims::ClientHeader
 				std::string raw((char *)raw_message, body_message_size);
 				std::string message_cipher;
 				if (ccb::CryptoRC4Util::Encrypt(raw, message_cipher, payload_key) != 0) {
-					
+					XMDLoggerWrapper::instance()->error("encodePacket failed, body_message encrypt failed");
 					return -1;
 				}
 				memmove(final_message, message_cipher.c_str(), body_message_size);
@@ -128,7 +128,7 @@ int PacketManager::encodePacket(unsigned char * &packet, const ims::ClientHeader
 			std::string raw((char *)raw_body, body_size);
 			std::string body_cipher;
 			if (ccb::CryptoRC4Util::Encrypt(raw, body_cipher, body_key) != 0) {
-				
+				XMDLoggerWrapper::instance()->error("encodePacket failed, body encrypt failed");
 				return -1;
 			}
 			memmove(final_body, body_cipher.c_str(), body_size);
@@ -178,12 +178,11 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 	uint32_t crc = char2int(packet, crc_offset);
 	
 	if (compute_crc != crc) {
-		
+		XMDLoggerWrapper::instance()->error("decodePacket failed, compute_crc != crc");
 		return -1;
 	}
 
 	if (body_size == 0) {
-		
 		return 0;
 	}
 
@@ -191,7 +190,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 		std::string raw((char *)(packet + HEADER_LENGTH), body_size);
 		std::string body_plain;
 		if (ccb::CryptoRC4Util::Decrypt(raw, body_plain, connection->getBodyKey()) != 0) {
-			
+			XMDLoggerWrapper::instance()->error("decodePacket failed, body decrypt failed");
 			return -1;
 		}
 		memmove(packet + HEADER_LENGTH, body_plain.c_str(), body_size);
@@ -203,7 +202,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 
 	ims::ClientHeader header;
 	if (!header.ParseFromArray(packet + HEADER_LENGTH + BODY_HEADER_LENGTH, body_head_size)) {
-		
+		XMDLoggerWrapper::instance()->error("decodePacket failed, header parse failed");
 		return -1;
 	}
 
@@ -229,11 +228,6 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 		}
 		OnlineStatus onlineStatus = resp.result() ? Online : Offline;
 		XMDLoggerWrapper::instance()->info("bindresp receive succeed, onlineStatus is %d, user is %s, uuid is %lld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
-		if (onlineStatus == Online) {
-			
-		} else {
-			
-		}
 
 		user->setOnlineStatus(onlineStatus);
 		if (user->getStatusHandler() != NULL) {
@@ -247,18 +241,15 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			return -1;
 		}
 		OnlineStatus onlineStatus = resp.result() ? Online : Offline;
-		if (onlineStatus == Offline) {
-			
-		} else {
+		XMDLoggerWrapper::instance()->info("bindresp(kick) receive succeed, onlineStatus is %d, user is %s, uuid is %lld", onlineStatus, user->getAppAccount().c_str(), user->getUuid());
 
-		}
 		user->setOnlineStatus(onlineStatus);
 		if (user->getStatusHandler() != NULL) {
 			user->getStatusHandler()->statusChange(onlineStatus, resp.error_type(), resp.error_reason(), resp.error_desc());
 		}
-		if (resp.error_type() == "token-expired") {
-			XMDLoggerWrapper::instance()->warn("bindresp receive succeed, error_type is token-expired, user is %s", user->getAppAccount().c_str());
-			user->setTokenExpired(true);
+		if (resp.error_type() == "token-expired" || resp.error_reason() == "invalid-token") {
+			XMDLoggerWrapper::instance()->warn("bindresp(kick) receive succeed, error_type is token-expired, user is %s", user->getAppAccount().c_str());
+			user->setTokenInvalid(true);
 		}
 	}
 	else if (cmd == BODY_CLIENTHEADER_CMD_SECMSG) {
@@ -267,20 +258,20 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			std::string body_plain;
 			std::string payload_key = generatePayloadKey(user->getSecurityKey(), header.id());
 			if (ccb::CryptoRC4Util::Decrypt(raw, body_plain, payload_key) != 0) {
-				
+				XMDLoggerWrapper::instance()->error("decodePacket failed, body_message decrypt failed");
 				return -1;
 			}
 			memmove(packet + HEADER_LENGTH + BODY_HEADER_LENGTH + body_head_size, body_plain.c_str(), body_message_size);
 			mimc::MIMCPacket mimcPacket;
 			if (!mimcPacket.ParseFromArray(packet + HEADER_LENGTH + BODY_HEADER_LENGTH + body_head_size, body_message_size)) {
-				
+				XMDLoggerWrapper::instance()->error("decodePacket failed, mimcPacket parse failed");
 				return -1;
 			}
 			
 			if (mimcPacket.type() == mimc::PACKET_ACK) {
 				mimc::MIMCPacketAck mimcPacketAck;
 				if (!mimcPacketAck.ParseFromString(mimcPacket.payload())) {
-					
+					XMDLoggerWrapper::instance()->error("decodePacket failed, mimcPacketAck parse failed");
 					return -1;
 				}
 				if (user->getMessageHandler() != NULL) {
@@ -294,7 +285,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			else if (mimcPacket.type() == mimc::COMPOUND) {
 				mimc::MIMCPacketList mimcPacketList;
 				if (!mimcPacketList.ParseFromString(mimcPacket.payload()) || mimcPacketList.packets_size() == 0) {
-					
+					XMDLoggerWrapper::instance()->error("decodePacket failed, mimcPacketList parse failed");
 					return -1;
 				}
 
@@ -360,7 +351,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 			else if (mimcPacket.type() == mimc::RTS_SIGNAL) {
 				mimc::RTSMessage rtsMessage;
 				if (!rtsMessage.ParseFromString(mimcPacket.payload())) {
-					
+					XMDLoggerWrapper::instance()->error("decodePacket failed, rtsMessage parse failed");
 					return -1;
 				}
 				const uint64_t& callId = rtsMessage.callid();

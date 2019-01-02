@@ -183,7 +183,7 @@ protected:
 		t5 = Utils::currentTimeMillis();
 		RtsMessageData* createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrMsg());
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getDesc());
 
 		string sendData = Utils::generateRandomString(dataSize);
 		t6 = Utils::currentTimeMillis();
@@ -214,7 +214,7 @@ protected:
 		t9 = Utils::currentTimeMillis();
 		createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrMsg());
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getDesc());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t10 = Utils::currentTimeMillis();
@@ -245,7 +245,7 @@ protected:
 		t13 = Utils::currentTimeMillis();
 		createResponse = callEventHandler2->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse->getErrMsg());
+		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse->getDesc());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t14 = Utils::currentTimeMillis();
@@ -271,12 +271,12 @@ protected:
 		RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeRequest == NULL);
 		ASSERT_EQ(callId, byeRequest->getCallId());
-		ASSERT_EQ("", byeRequest->getErrMsg());
+		ASSERT_EQ("", byeRequest->getDesc());
 
 		RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeResponse == NULL);
 		ASSERT_EQ(callId, byeResponse->getCallId());
-		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
 	}
 protected:
 	User* rtsUser1;

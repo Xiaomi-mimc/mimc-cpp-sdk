@@ -37,6 +37,8 @@ int XMDTransceiver::sendDatagram(char* ip, uint16_t port, char* data, int len, u
     return 0;
 }
 
+pthread_mutex_t XMDTransceiver::create_conn_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+
 uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, int len, uint16_t timeout, void* ctx) {
     if (NULL == ip || (NULL == data && len != 0)) {
         XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
@@ -50,6 +52,7 @@ uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, i
 
     //RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
 
+    pthread_mutex_lock(&create_conn_mutex_);
     RSA* rsa = RSA_new();
     BIGNUM* bne = BN_new();
     if (rsa == NULL || bne == NULL) {
@@ -60,6 +63,7 @@ uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, i
         if (bne) {
             BN_free(bne);
         }
+        pthread_mutex_unlock(&create_conn_mutex_);
         return 0;
     }
     int ret = BN_set_word(bne, RSA_F4);
@@ -72,12 +76,14 @@ uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, i
         if (bne) {
             BN_free(bne);
         }
+        pthread_mutex_unlock(&create_conn_mutex_);
         return 0;
     }
 
     if (bne) {
         BN_free(bne);
     }
+    pthread_mutex_unlock(&create_conn_mutex_);
     
     uint16_t n_len = BN_num_bytes(rsa->n);
     uint16_t e_len = BN_num_bytes(rsa->e);

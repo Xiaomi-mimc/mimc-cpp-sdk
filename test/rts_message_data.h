@@ -12,7 +12,7 @@ private:
 	uint64_t callId;
 	string appContent;
 	bool accepted = false;
-	string errMsg;
+	string desc;
 	string recvData;
 	RtsDataType dataType;
 	RtsChannelType channelType;
@@ -25,9 +25,9 @@ public:
 		this->fromResource = fromResource;
 	}
 
-	RtsMessageData(uint64_t callId, string errMsg, bool accepted = false) {
+	RtsMessageData(uint64_t callId, string desc, bool accepted = false) {
 		this->callId = callId;
-		this->errMsg = errMsg;
+		this->desc = desc;
 		this->accepted = accepted;
 	}
 
@@ -43,7 +43,7 @@ public:
 	uint64_t getCallId() {return this->callId;}
 	string getAppContent() {return this->appContent;}
 	bool isAccepted() {return this->accepted;}
-	string getErrMsg() {return this->errMsg;}
+	string getDesc() {return this->desc;}
 	string getRecvData() {return this->recvData;}
 	RtsDataType getDataType() {return this->dataType;}
 	RtsChannelType getChannelType() {return this->channelType;}

@@ -256,7 +256,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId1, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId1, from, callEventHandlerFrom, callEventHandlerTo);
         //V_STREAM
@@ -275,7 +275,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId2, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId2, from, callEventHandlerFrom, callEventHandlerTo);
         //AV_STREAM
@@ -294,7 +294,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId3, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId3, from, callEventHandlerFrom, callEventHandlerTo);
     }
@@ -318,7 +318,7 @@ protected:
         if (createResponse != NULL) {
             ASSERT_EQ(callId, createResponse->getCallId());
             ASSERT_EQ(true, createResponse->isAccepted());
-            ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+            ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
         }
     }
 
@@ -329,12 +329,12 @@ protected:
         RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("", byeRequest->getErrMsg());
+        ASSERT_EQ("", byeRequest->getDesc());
 
         RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeResponse == NULL);
         ASSERT_EQ(callId, byeResponse->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
     }
 
     void sendDatas(uint64_t callId, User* from, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
@@ -405,12 +405,12 @@ protected:
         RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("", byeRequest->getErrMsg());
+        ASSERT_EQ("", byeRequest->getDesc());
 
         RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeResponse == NULL);
         ASSERT_EQ(callId, byeResponse->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
 
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->closeCall(callId);
@@ -421,12 +421,12 @@ protected:
         byeRequest = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("", byeRequest->getErrMsg());
+        ASSERT_EQ("", byeRequest->getDesc());
 
         byeResponse = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeResponse == NULL);
         ASSERT_EQ(callId, byeResponse->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
 
         ASSERT_FALSE(from->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
@@ -498,7 +498,7 @@ protected:
         byeInfo = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeInfo == NULL);
         ASSERT_EQ(callId, byeInfo->getCallId());
-        ASSERT_EQ("ALL_DATA_TRANSPORTS_CLOSED", byeInfo->getErrMsg());
+        ASSERT_EQ("ALL_DATA_TRANSPORTS_CLOSED", byeInfo->getDesc());
 
 
     }
@@ -527,7 +527,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrMsg());
+        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getDesc());
 
         RtsMessageData* byeResponse_from = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(byeResponse_from == NULL);
@@ -553,7 +553,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrMsg());
+        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getDesc());
     }
 
     void testP2PSendOneRtsSignalFromOffline(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, string appContent) {
@@ -582,7 +582,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_ERR_ILLEGALAPPCONTENT, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_ERR_ILLEGALAPPCONTENT, createResponse->getDesc());
     }
 
     void testCreateCallWithSelf(User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo) {
@@ -600,7 +600,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId1, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrMsg());
+        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getDesc());
 
         uint64_t callId2 = from->dialCall(from->getAppAccount(), "", to->getResource());
         ASSERT_NE(callId2, 0);
@@ -616,7 +616,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId2, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId2, from, callEventHandlerFrom, callEventHandlerTo);
     }
@@ -644,7 +644,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom1->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom1->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId, from_r1, callEventHandlerFrom1, callEventHandlerTo);
     }
@@ -674,7 +674,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId, from, callEventHandlerFrom, callEventHandlerTo1);
 
@@ -701,7 +701,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
         createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(createResponse == NULL);
 
@@ -710,7 +710,7 @@ protected:
         byeRequest = callEventHandlerTo2->pollBye(WAIT_TIME_FOR_MESSAGE * 4);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("already answered", byeRequest->getErrMsg());
+        ASSERT_EQ("already answered", byeRequest->getDesc());
 
         closeCall(callId, from, callEventHandlerFrom, callEventHandlerTo1);
 
@@ -737,7 +737,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
         createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(createResponse == NULL);
 
@@ -746,7 +746,7 @@ protected:
         byeRequest = callEventHandlerTo2->pollBye(WAIT_TIME_FOR_MESSAGE * 4);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("illegal request", byeRequest->getErrMsg());
+        ASSERT_EQ("illegal request", byeRequest->getDesc());
     }
 
     //同一个用户不能接通超过maxcallnum的电话
@@ -771,7 +771,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId1, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getDesc());
 
         uint64_t callId2 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r1->getResource());
         ASSERT_NE(callId2, 0);
@@ -784,7 +784,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId2, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ("USER_BUSY", createResponse->getErrMsg());
+        ASSERT_EQ("USER_BUSY", createResponse->getDesc());
 
         uint64_t callId3 = user1_r2->dialCall(user2_r1->getAppAccount(), "ll123456", user2_r2->getResource());
         ASSERT_NE(callId3, 0);
@@ -801,7 +801,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId3, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandler1_r2->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandler1_r2->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId1, user1_r1, callEventHandler1_r1, callEventHandler2_r1);
         closeCall(callId3, user1_r2, callEventHandler1_r2, callEventHandler2_r2);
@@ -828,7 +828,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId1, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandler1_r1->LAUNCH_OK, createResponse->getDesc());
 
         uint64_t callId2 = user2_r2->dialCall(user1_r1->getAppAccount());
         ASSERT_NE(callId2, 0);
@@ -847,9 +847,9 @@ protected:
         createResponse = callEventHandler2_r2->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId2, createResponse->getCallId());
-        if ("USER_BUSY" == createResponse->getErrMsg()) {
+        if ("USER_BUSY" == createResponse->getDesc()) {
             ASSERT_EQ(false, createResponse->isAccepted());
-        } else if (callEventHandler2_r2->LAUNCH_OK == createResponse->getErrMsg()) {
+        } else if (callEventHandler2_r2->LAUNCH_OK == createResponse->getDesc()) {
             ASSERT_EQ(true, createResponse->isAccepted());
             closeCall(callId2, user2_r2, callEventHandler2_r2, callEventHandler1_r2);
         }
@@ -882,7 +882,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId1, createResponse->getCallId());
         ASSERT_EQ(true, createResponse->isAccepted());
-        ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getErrMsg());
+        ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getDesc());
 
         closeCall(callId1, user1, callEventHandler1, callEventHandler2);
     }
@@ -905,7 +905,7 @@ protected:
         ASSERT_FALSE(createResponse == NULL);
         ASSERT_EQ(callId, createResponse->getCallId());
         ASSERT_EQ(false, createResponse->isAccepted());
-        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getErrMsg());
+        ASSERT_EQ(DIAL_CALL_TIMEOUT, createResponse->getDesc());
     }
 
     void testCloseCall(uint64_t callId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, TestRTSCallEventHandler* callEventHandlerTo) {
@@ -916,12 +916,12 @@ protected:
         RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ(byeReason, byeRequest->getErrMsg());
+        ASSERT_EQ(byeReason, byeRequest->getDesc());
 
         RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeResponse == NULL);
         ASSERT_EQ(callId, byeResponse->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
     }
 
     void closeCallSameTime(uint64_t callId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo) {
@@ -936,12 +936,12 @@ protected:
         RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeRequest->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeRequest->getDesc());
 
         byeRequest = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(byeRequest == NULL);
         ASSERT_EQ(callId, byeRequest->getCallId());
-        ASSERT_EQ("CLOSED_INITIATIVELY", byeRequest->getErrMsg());
+        ASSERT_EQ("CLOSED_INITIATIVELY", byeRequest->getDesc());
     }
 protected:
     User* rtsUser1_r1;

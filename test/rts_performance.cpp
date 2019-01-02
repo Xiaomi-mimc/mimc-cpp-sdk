@@ -192,7 +192,7 @@ protected:
 		if (createResponse != NULL) {
 			ASSERT_EQ(callId, createResponse->getCallId());
 			ASSERT_EQ(true, createResponse->isAccepted());
-			ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getErrMsg());
+			ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
 		}
 	}
 
@@ -203,12 +203,12 @@ protected:
 		RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeRequest == NULL);
 		ASSERT_EQ(callId, byeRequest->getCallId());
-		ASSERT_EQ("", byeRequest->getErrMsg());
+		ASSERT_EQ("", byeRequest->getDesc());
 
 		RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
 		ASSERT_FALSE(byeResponse == NULL);
 		ASSERT_EQ(callId, byeResponse->getCallId());
-		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getErrMsg());
+		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
 	}
 
 	void int2char(int data, unsigned char* result, int index) {

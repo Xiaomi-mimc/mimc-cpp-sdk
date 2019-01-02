@@ -14,12 +14,12 @@ public:
 	/**
 	 * 会话被接通回调
 	 **/
-	virtual void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) = 0;
+	virtual void onAnswered(uint64_t callId, bool accepted, const std::string desc) = 0;
 
 	/**
 	 * 会话被关闭回调
 	 **/
-	virtual void onClosed(uint64_t callId, const std::string errMsg) = 0;
+	virtual void onClosed(uint64_t callId, const std::string desc) = 0;
 
 	/**
 	 * 接收到数据的回调

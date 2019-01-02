@@ -90,8 +90,8 @@ private:
 
 class AVOnlineStatusHandler : public OnlineStatusHandler {
 public:
-	void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
-		XMDLoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
+	void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
+		XMDLoggerWrapper::instance()->info("In statusChange, status is %d, type is %s, reason is %s, desc is %s", status, type.c_str(), reason.c_str(), desc.c_str());
 	}
 };
 
@@ -104,7 +104,7 @@ public:
 		}
 	}
 
-	void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string errorMsg) {
+	void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
 
 	}
 
@@ -131,16 +131,16 @@ public:
 		return response;
 	}
 
-	virtual void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
+	virtual void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
 		if (accepted) {
 			callIds.push_back(callId);
 		} else {
-			XMDLoggerWrapper::instance()->error("onAnswered: peer rejected, error message is %s", errMsg.c_str());
+			XMDLoggerWrapper::instance()->error("onAnswered: peer rejected, desc is %s", desc.c_str());
 		}
 	}
 
-	virtual void onClosed(uint64_t callId, const std::string errMsg) {
-		XMDLoggerWrapper::instance()->info("onClosed: callId is %llu, error message is %s", callId, errMsg.c_str());
+	virtual void onClosed(uint64_t callId, const std::string desc) {
+		XMDLoggerWrapper::instance()->info("onClosed: callId is %llu, desc is %s", callId, desc.c_str());
 		for (list<uint64_t>::iterator iter = callIds.begin(); iter != callIds.end(); iter++) {
 			if (*iter == callId) {
 				callIds.erase(iter);

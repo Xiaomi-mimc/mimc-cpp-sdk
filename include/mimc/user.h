@@ -50,7 +50,7 @@ public:
 	void setBindRelayResponse(const mimc::BindRelayResponse& bindRelayResponse) {this->bindRelayResponse = bindRelayResponse;}
 	void setLatestLegalRelayLinkStateTs(time_t ts) {this->latestLegalRelayLinkStateTs = ts;}
 	void setMaxCallNum(unsigned int num) {this->maxCallNum = num;}
-	void setTokenExpired(bool tokenExpired) {this->tokenExpired = tokenExpired;}
+	void setTokenInvalid(bool tokenInvalid) {this->tokenInvalid = tokenInvalid;}
 	void setAddressInvalid(bool addressInvalid) {this->addressInvalid = addressInvalid;}
 
 	void initAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {this->audioStreamConfig = audioStreamConfig;}
@@ -99,7 +99,7 @@ public:
 	uint64_t getP2PIntranetConnId(uint64_t callId);
 	uint64_t getP2PInternetConnId(uint64_t callId);
 
-	std::string sendMessage(const std::string& toAppAccount, const std::string& msg, const std::string& bizType = "", const bool isStore = true);
+	std::string sendMessage(const std::string& toAppAccount, const std::string& payload, const std::string& bizType = "", const bool isStore = true);
 	uint64_t dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
 	bool sendRtsData(uint64_t callId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
 	void closeCall(uint64_t callId, std::string byeReason = "");
@@ -130,7 +130,7 @@ private:
 	std::string cachePath;
 	std::string cacheFile;
 	bool cacheExist;
-	bool tokenExpired;
+	bool tokenInvalid;
 	bool addressInvalid;
 	bool tokenFetchSucceed;
 	bool serverFetchSucceed;

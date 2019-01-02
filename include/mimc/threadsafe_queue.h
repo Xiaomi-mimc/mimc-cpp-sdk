@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
-#include <mimc/mimcmessage.h>
 
 const int QUEUE_SIZE = 100;
 

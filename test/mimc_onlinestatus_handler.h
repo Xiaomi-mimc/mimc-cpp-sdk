@@ -6,8 +6,8 @@
 
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
-    void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
-        XMDLoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
+    void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
+        XMDLoggerWrapper::instance()->info("In statusChange, status is %d, type is %s, reason is %s, desc is %s", status, type.c_str(), reason.c_str(), desc.c_str());
     }
 };
 

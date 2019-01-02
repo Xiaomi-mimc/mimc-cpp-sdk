@@ -30,7 +30,7 @@ std::string relayAddress;
 	std::string relayIp = "10.38.162.142";
 	int relayPort = 6777;
 	char relayPortStr[5];
-	itoa(relayPort, relayPortStr, 10); 
+	Utils::ltoa(relayPort, relayPortStr);
 	relayAddress = relayIp + ":" + relayPortStr;
 #endif
 	mimc::UserPacket userPacket;

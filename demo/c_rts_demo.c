@@ -144,15 +144,15 @@ size_t WriteCallback_2(void *contents, size_t size, size_t nmemb, void *userp) {
     return size * nmemb;
 }
 
-void status_change(online_status_t online_status, const char* err_type, const char* err_reason, const char* err_description) {
-    printf("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s\n", online_status, err_type, err_reason, err_description);
+void status_change(online_status_t online_status, const char* type, const char* reason, const char* desc) {
+    printf("In statusChange, status is %d, type is %s, reason is %s, desc is %s\n", online_status, type, reason, desc);
 }
 
-launched_response_t on_launched_1(uint64_t chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
-    printf("In on_launched_1, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
+launched_response_t on_launched_1(uint64_t callid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
+    printf("In on_launched_1, callid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", callid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.err_msg = "illegal appcontent";
+    launched_response.desc = "illegal appcontent";
     if (appcontent_len != appcontent_1_len) {
         return launched_response;
     }
@@ -165,15 +165,15 @@ launched_response_t on_launched_1(uint64_t chatid, const char* from_account, con
     }
 
     launched_response.accepted = true;
-    launched_response.err_msg = "ok";
+    launched_response.desc = "ok";
     return launched_response;
 }
 
-launched_response_t on_launched_2(uint64_t chatid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
-    printf("In on_launched_2, chatid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", chatid, from_account, appcontent_len, from_resource);
+launched_response_t on_launched_2(uint64_t callid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource) {
+    printf("In on_launched_2, callid is %llu, from_account is %s, appcontent_len is %d, from_resource is %s\n", callid, from_account, appcontent_len, from_resource);
     launched_response_t launched_response;
     launched_response.accepted = false;
-    launched_response.err_msg = "illegal appcontent";
+    launched_response.desc = "illegal appcontent";
     if (appcontent_len != appcontent_2_len) {
         return launched_response;
     }
@@ -186,28 +186,28 @@ launched_response_t on_launched_2(uint64_t chatid, const char* from_account, con
     }
 
     launched_response.accepted = true;
-    launched_response.err_msg = "ok";
+    launched_response.desc = "ok";
     return launched_response;
 }
 
-void on_answered(uint64_t chatid, bool accepted, const char* err_msg) {
-    printf("In on_answered, chatid is %llu, accepted is %d, err_msg is %s\n", chatid, accepted, err_msg);
+void on_answered(uint64_t callid, bool accepted, const char* desc) {
+    printf("In on_answered, callid is %llu, accepted is %d, desc is %s\n", callid, accepted, desc);
 }
 
-void on_closed(uint64_t chatid, const char* err_msg) {
-    printf("In on_closed, chatid is %llu, err_msg is %s\n", chatid, err_msg);
+void on_closed(uint64_t callid, const char* desc) {
+    printf("In on_closed, callid is %llu, desc is %s\n", callid, desc);
 }
 
-void handle_data(uint64_t chatid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type) {
-    printf("In handle_data, chatid is %llu, data_len is %d, data_type is %d, channel_type is %d\n", chatid, data_len, data_type, channel_type);
+void handle_data(uint64_t callid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type) {
+    printf("In handle_data, callid is %llu, data_len is %d, data_type is %d, channel_type is %d\n", callid, data_len, data_type, channel_type);
 }
 
-void handle_send_data_succ(uint64_t chatid, int groupid, const char* ctx, const int ctx_len) {
-    printf("In handle_send_data_succ, chatid is %llu, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
+void handle_send_data_succ(uint64_t callid, int groupid, const char* ctx, const int ctx_len) {
+    printf("In handle_send_data_succ, callid is %llu, groupid is %d, ctx_len is %d\n", callid, groupid, ctx_len);
 }
 
-void handle_send_data_fail(uint64_t chatid, int groupid, const char* ctx, const int ctx_len) {
-    printf("In handle_send_data_fail, chatid is %llu, groupid is %d, ctx_len is %d\n", chatid, groupid, ctx_len);
+void handle_send_data_fail(uint64_t callid, int groupid, const char* ctx, const int ctx_len) {
+    printf("In handle_send_data_fail, callid is %llu, groupid is %d, ctx_len is %d\n", callid, groupid, ctx_len);
 }
 
 static token_fetcher_t token_fetcher_1 = {
@@ -278,17 +278,17 @@ int main() {
 
     mimc_rtc_set_sendbuffer_size(user2, 800);
 
-    uint64_t chatid = mimc_rtc_dial_call(user1, username2, appcontent_2, appcontent_2_len, "camera02");
+    uint64_t callid = mimc_rtc_dial_call(user1, username2, appcontent_2, appcontent_2_len, "camera02");
     printf("user1 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user1));
 
     sleep(2);
     printf("user2 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user2));
     const char* data = "12323131323";
     const char* ctx = "dasda";
-    mimc_rtc_send_data(user1, chatid, data, strlen(data), AUD, RELAY_T, ctx, strlen(ctx), false, P1_T, 2);
+    mimc_rtc_send_data(user1, callid, data, strlen(data), AUD, RELAY_T, ctx, strlen(ctx), false, P1_T, 2);
     printf("user1 sendbuffer usagerate is %f\n", mimc_rtc_get_sendbuffer_usagerate(user1));
     sleep(1);
-    mimc_rtc_close_call(user1, chatid, "i don't wanna talk");
+    mimc_rtc_close_call(user1, callid, "i don't wanna talk");
     sleep(1);
     mimc_rtc_logout(user1);
     mimc_rtc_logout(user2);

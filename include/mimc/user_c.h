@@ -47,7 +47,7 @@ typedef struct {
 
 typedef struct {
 	bool accepted;
-	const char* err_msg;
+	const char* desc;
 } launched_response_t;
 
 typedef struct {
@@ -55,13 +55,13 @@ typedef struct {
 } token_fetcher_t;
 
 typedef struct {
-	void (*status_change)(online_status_t online_status, const char* err_type, const char* err_reason, const char* err_description);
+	void (*status_change)(online_status_t online_status, const char* type, const char* reason, const char* desc);
 } online_status_handler_t;
 
 typedef struct {
 	launched_response_t (*on_launched)(uint64_t callid, const char* from_account, const char* appcontent, const int appcontent_len, const char* from_resource);
-	void (*on_answered)(uint64_t callid, bool accepted, const char* err_msg); 
-	void (*on_closed)(uint64_t callid, const char* err_msg);
+	void (*on_answered)(uint64_t callid, bool accepted, const char* desc); 
+	void (*on_closed)(uint64_t callid, const char* desc);
 	void (*handle_data)(uint64_t callid, const char* data, const int data_len, data_type_t data_type, channel_type_t channel_type);
 	void (*handle_send_data_succ)(uint64_t callid, int groupid, const char* ctx, const int ctx_len);
 	void (*handle_send_data_fail)(uint64_t callid, int groupid, const char* ctx, const int ctx_len);

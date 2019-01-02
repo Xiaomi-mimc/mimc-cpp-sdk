@@ -22,8 +22,8 @@ string appAccount3 = "Jerry";
 
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
-    void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) {
-        XMDLoggerWrapper::instance()->info("In statusChange, status is %d, errType is %s, errReason is %s, errDescription is %s", status, errType.c_str(), errReason.c_str(), errDescription.c_str());
+    void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
+        XMDLoggerWrapper::instance()->info("In statusChange, status is %d, type is %s, reason is %s, desc is %s", status, type.c_str(), reason.c_str(), desc.c_str());
     }
 };
 
@@ -38,7 +38,7 @@ public:
         }
     }
 
-    void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string errorMsg) {
+    void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
         
     }
 
@@ -68,15 +68,15 @@ public:
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(uint64_t callId, bool accepted, const std::string errMsg) {
-        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, errMsg is %s", callId, accepted, errMsg.c_str());
+    void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
+        XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, desc is %s", callId, accepted, desc.c_str());
         if (accepted) {
             callIds.push_back(callId);
         }
     }
 
-    void onClosed(uint64_t callId, const std::string errMsg) {
-        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, errMsg is %s", callId, errMsg.c_str());
+    void onClosed(uint64_t callId, const std::string desc) {
+        XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, desc is %s", callId, desc.c_str());
         std::list<uint64_t>::iterator iter;
         for (iter = callIds.begin(); iter != callIds.end();) {
             if(*iter == callId) {

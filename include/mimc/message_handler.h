@@ -7,7 +7,7 @@
 class MessageHandler {
 public:
 	virtual void handleMessage(std::vector<MIMCMessage> packets) = 0;
-	virtual void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string errMsg) = 0;
+	virtual void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) = 0;
 	virtual void handleSendMsgTimeout(MIMCMessage message) = 0;
 	virtual ~MessageHandler() {}
 };

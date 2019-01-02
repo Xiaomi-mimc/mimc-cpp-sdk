@@ -6,7 +6,7 @@
 
 class OnlineStatusHandler {
 public:
-	virtual void statusChange(OnlineStatus status, std::string errType, std::string errReason, std::string errDescription) = 0;
+	virtual void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) = 0;
 	virtual ~OnlineStatusHandler() {}
 };
 
