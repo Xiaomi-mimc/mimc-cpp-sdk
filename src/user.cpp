@@ -492,7 +492,6 @@ bool User::fetchToken(User * user) {
 						str = remoteStr.c_str();
 						str_size = remoteStr.size();
 					} else {
-						str = json_object_get_string(pobj_local);
 						json_object* dataobj = json_object_new_object();
 						char s[21] = {0};
 						json_object_object_add(dataobj, "appId", json_object_new_string(Utils::ltoa(user->getAppId(), s)));
