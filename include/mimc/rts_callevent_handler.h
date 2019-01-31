@@ -24,17 +24,17 @@ public:
 	/**
 	 * 接收到数据的回调
 	 **/
-	virtual void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) = 0;
+	virtual void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const std::string data, RtsDataType dataType, RtsChannelType channelType) = 0;
 
 	/**
      * 发送数据成功的回调
      */
-	virtual void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) = 0;
+	virtual void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) = 0;
 
 	/**
      * 发送数据失败的回调
      */
-	virtual void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) = 0;
+	virtual void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) = 0;
 
 	virtual ~RTSCallEventHandler() {}
 };

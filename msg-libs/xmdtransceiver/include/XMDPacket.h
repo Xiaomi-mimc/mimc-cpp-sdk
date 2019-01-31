@@ -15,7 +15,7 @@
 const static unsigned char XMDPACKET_MAGIC[2] = {0x0C, 0x2D};
 const uint16_t XMD_VERSION = 1;
 const int XMD_CRC_LEN = 4;
-const int MAX_PACKET_SIZE = 1398;  //1398 与sdk保持一致
+const int MAX_PACKET_SIZE = 1320;  //1398 与sdk保持一致
 const int MAX_ORIGIN_PACKET_NUM_IN_PARTITION = 40; //40
 const int STREAM_LEN_SIZE = 2;
 const int CONN_LEN = 8;

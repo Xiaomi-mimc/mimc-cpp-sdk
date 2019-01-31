@@ -396,6 +396,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return 0;
 						}
+		
 						if (user->getRelayLinkState() == NOT_CREATED) {
 							
 							user->checkToRunXmdTranseiver();
@@ -656,7 +657,7 @@ void PacketManager::int2char(int32_t data, unsigned char* result, int index) {
 int16_t PacketManager::char2short(const unsigned char* result, int index) {
 	unsigned char highByte = result[index];
 	unsigned char lowByte = result[index + 1];
-	short ret = (highByte << 8) | lowByte;
+	int16_t ret = (highByte << 8) | lowByte;
 	return ret;
 }
 
@@ -665,7 +666,7 @@ int32_t PacketManager::char2int(const unsigned char* result, int index) {
 	unsigned char thirdByte = result[index + 1];
 	unsigned char secondByte = result[index + 2];
 	unsigned char firstByte = result[index + 3];
-	int ret = (fourthByte << 24) | (thirdByte << 16) | (secondByte << 8) | firstByte;
+	int32_t ret = (fourthByte << 24) | (thirdByte << 16) | (secondByte << 8) | firstByte;
 	return ret;
 }
 

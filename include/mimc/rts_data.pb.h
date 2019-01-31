@@ -224,6 +224,18 @@ class UserPacket : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::int64 region_bucket() const;
   inline void set_region_bucket(::google::protobuf::int64 value);
 
+  // optional string from_app_account = 8;
+  inline bool has_from_app_account() const;
+  inline void clear_from_app_account();
+  static const int kFromAppAccountFieldNumber = 8;
+  inline const ::std::string& from_app_account() const;
+  inline void set_from_app_account(const ::std::string& value);
+  inline void set_from_app_account(const char* value);
+  inline void set_from_app_account(const char* value, size_t size);
+  inline ::std::string* mutable_from_app_account();
+  inline ::std::string* release_from_app_account();
+  inline void set_allocated_from_app_account(::std::string* from_app_account);
+
   // @@protoc_insertion_point(class_scope:mimc.UserPacket)
  private:
   inline void set_has_version();
@@ -240,6 +252,8 @@ class UserPacket : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_region_bucket();
   inline void clear_has_region_bucket();
+  inline void set_has_from_app_account();
+  inline void clear_has_from_app_account();
 
   ::google::protobuf::uint32 version_;
   int pkt_type_;
@@ -248,9 +262,10 @@ class UserPacket : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint64 call_id_;
   ::std::string* payload_;
   ::google::protobuf::int64 region_bucket_;
+  ::std::string* from_app_account_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -1392,6 +1407,18 @@ class RouterPacket : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::int64 region_bucket() const;
   inline void set_region_bucket(::google::protobuf::int64 value);
 
+  // optional string from_app_account = 10;
+  inline bool has_from_app_account() const;
+  inline void clear_from_app_account();
+  static const int kFromAppAccountFieldNumber = 10;
+  inline const ::std::string& from_app_account() const;
+  inline void set_from_app_account(const ::std::string& value);
+  inline void set_from_app_account(const char* value);
+  inline void set_from_app_account(const char* value, size_t size);
+  inline ::std::string* mutable_from_app_account();
+  inline ::std::string* release_from_app_account();
+  inline void set_allocated_from_app_account(::std::string* from_app_account);
+
   // @@protoc_insertion_point(class_scope:mimc.RouterPacket)
  private:
   inline void set_has_call_id();
@@ -1412,6 +1439,8 @@ class RouterPacket : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_region_bucket();
   inline void clear_has_region_bucket();
+  inline void set_has_from_app_account();
+  inline void clear_has_from_app_account();
 
   ::google::protobuf::uint64 call_id_;
   ::google::protobuf::uint64 from_uuid_;
@@ -1421,10 +1450,11 @@ class RouterPacket : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint64 to_conn_id_;
   ::std::string* payload_;
   ::google::protobuf::int64 region_bucket_;
+  ::std::string* from_app_account_;
   int stream_type_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(10 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -1821,6 +1851,76 @@ inline ::google::protobuf::int64 UserPacket::region_bucket() const {
 inline void UserPacket::set_region_bucket(::google::protobuf::int64 value) {
   set_has_region_bucket();
   region_bucket_ = value;
+}
+
+// optional string from_app_account = 8;
+inline bool UserPacket::has_from_app_account() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void UserPacket::set_has_from_app_account() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void UserPacket::clear_has_from_app_account() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void UserPacket::clear_from_app_account() {
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    from_app_account_->clear();
+  }
+  clear_has_from_app_account();
+}
+inline const ::std::string& UserPacket::from_app_account() const {
+  return *from_app_account_;
+}
+inline void UserPacket::set_from_app_account(const ::std::string& value) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(value);
+}
+inline void UserPacket::set_from_app_account(const char* value) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(value);
+}
+inline void UserPacket::set_from_app_account(const char* value, size_t size) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* UserPacket::mutable_from_app_account() {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  return from_app_account_;
+}
+inline ::std::string* UserPacket::release_from_app_account() {
+  clear_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = from_app_account_;
+    from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void UserPacket::set_allocated_from_app_account(::std::string* from_app_account) {
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    delete from_app_account_;
+  }
+  if (from_app_account) {
+    set_has_from_app_account();
+    from_app_account_ = from_app_account;
+  } else {
+    clear_has_from_app_account();
+    from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------
@@ -3316,6 +3416,76 @@ inline ::google::protobuf::int64 RouterPacket::region_bucket() const {
 inline void RouterPacket::set_region_bucket(::google::protobuf::int64 value) {
   set_has_region_bucket();
   region_bucket_ = value;
+}
+
+// optional string from_app_account = 10;
+inline bool RouterPacket::has_from_app_account() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void RouterPacket::set_has_from_app_account() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void RouterPacket::clear_has_from_app_account() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void RouterPacket::clear_from_app_account() {
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    from_app_account_->clear();
+  }
+  clear_has_from_app_account();
+}
+inline const ::std::string& RouterPacket::from_app_account() const {
+  return *from_app_account_;
+}
+inline void RouterPacket::set_from_app_account(const ::std::string& value) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(value);
+}
+inline void RouterPacket::set_from_app_account(const char* value) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(value);
+}
+inline void RouterPacket::set_from_app_account(const char* value, size_t size) {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  from_app_account_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* RouterPacket::mutable_from_app_account() {
+  set_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    from_app_account_ = new ::std::string;
+  }
+  return from_app_account_;
+}
+inline ::std::string* RouterPacket::release_from_app_account() {
+  clear_has_from_app_account();
+  if (from_app_account_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = from_app_account_;
+    from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void RouterPacket::set_allocated_from_app_account(::std::string* from_app_account) {
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    delete from_app_account_;
+  }
+  if (from_app_account) {
+    set_has_from_app_account();
+    from_app_account_ = from_app_account;
+  } else {
+    clear_has_from_app_account();
+    from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------

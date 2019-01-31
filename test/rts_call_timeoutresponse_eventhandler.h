@@ -29,17 +29,17 @@ public:
         byes.push(RtsMessageData(callId, desc));
     }
 
-    void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
-        XMDLoggerWrapper::instance()->info("In handleData, callId is %llu, dataLen is %d, data is %s, dataType is %d", callId, data.length(), data.c_str(), dataType);
+    void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+        XMDLoggerWrapper::instance()->info("In onData, callId is %llu, fromAccount is %s, resource is %s, dataLen is %d, data is %s, dataType is %d", callId, fromAccount.c_str(), resource.c_str(), data.length(), data.c_str(), dataType);
         avdata = data;
     }
 
-    void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+    void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("In onSendDataSuccess, callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
-    void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+    void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("In onSendDataFailure, callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
     
     const std::string& getAppContent() {return this->appContent;}

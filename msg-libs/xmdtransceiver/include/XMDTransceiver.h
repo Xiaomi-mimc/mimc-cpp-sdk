@@ -126,11 +126,11 @@ public:
     void join();
     void stop();
 
-    void setXMDLogLevel(XMDLogLevel level) {
+    void static setXMDLogLevel(XMDLogLevel level) {
         XMDLoggerWrapper::instance()->setXMDLogLevel(level);
     }
 
-    void setExternalLog(ExternalLog* externalLog) {
+    void static setExternalLog(ExternalLog* externalLog) {
         XMDLoggerWrapper::instance()->externalLog(externalLog);
     }
 

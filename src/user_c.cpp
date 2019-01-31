@@ -3,12 +3,13 @@
 
 class CTokenFetcher : public MIMCTokenFetcher {
 public:
-	CTokenFetcher(const token_fetcher_t& token_fetcher) : _token_fetcher(token_fetcher) {
+	CTokenFetcher(const token_fetcher_t& token_fetcher, std::string app_account)
+	 : _token_fetcher(token_fetcher), _app_account(app_account) {
 
 	}
 
 	std::string fetchToken() {
-		const char* tokenp = _token_fetcher.fetch_token();
+		const char* tokenp = _token_fetcher.fetch_token(_app_account.c_str());
 	    std::string token(tokenp);
 		free((char *)tokenp);
 	    return token;
@@ -16,6 +17,7 @@ public:
 
 private:
 	token_fetcher_t _token_fetcher;
+    std::string _app_account;
 };
 
 class COnlineStatusHandler : public OnlineStatusHandler {
@@ -55,7 +57,7 @@ public:
 		_rtscall_event_handler.on_closed(callId, desc.c_str());
 	}
 
-	void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+	void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
 		data_type_t data_type;
 		switch(dataType) {
 			case AUDIO:
@@ -83,15 +85,15 @@ public:
 				break;
 		}
 
-		_rtscall_event_handler.handle_data(callId, data.c_str(), data.length(), data_type, channel_type);
+		_rtscall_event_handler.on_data(callId, fromAccount.c_str(), resource.c_str(), data.c_str(), data.length(), data_type, channel_type);
 	}
 
-	void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
-		_rtscall_event_handler.handle_send_data_succ(callId, groupId, ctx.c_str(), ctx.length());
+	void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) {
+		_rtscall_event_handler.on_send_data_success(callId, dataId, ctx.c_str(), ctx.length());
 	}
 
-	void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
-		_rtscall_event_handler.handle_send_data_fail(callId, groupId, ctx.c_str(), ctx.length());
+	void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) {
+		_rtscall_event_handler.on_send_data_failure(callId, dataId, ctx.c_str(), ctx.length());
 	}
 
 private:
@@ -129,6 +131,15 @@ bool mimc_rtc_login(user_t* user) {
 bool mimc_rtc_logout(user_t* user) {
 	User* userObj = (User*)(user->value);
 	return userObj->logout();
+}
+
+bool mimc_rtc_isonline(user_t* user) {
+	User* userObj = (User*)(user->value);
+	return userObj->getOnlineStatus() == Online ? true : false;
+}
+
+int mimc_rtc_get_login_timeout() {
+	return LOGIN_TIMEOUT;
 }
 
 void mimc_rtc_set_max_callnum(user_t* user, unsigned int num) {
@@ -198,7 +209,14 @@ void mimc_rtc_clear_recvbuffer(user_t* user) {
 
 uint64_t mimc_rtc_dial_call(user_t* user, const char* to_appaccount, const char* appcontent, const int appcontent_len, const char* to_resource) {
 	User* userObj = (User*)(user->value);
-	return userObj->dialCall(to_appaccount, appcontent, to_resource);
+	std::string appContent;
+	if (appcontent != NULL && appcontent_len > 0) {
+		appContent.assign(appcontent, appcontent_len);
+	}
+	if (to_resource == NULL) {
+		to_resource = "";
+	}
+	return userObj->dialCall(to_appaccount, appContent, to_resource);
 }
 
 void mimc_rtc_close_call(user_t* user, uint64_t callid, const char* bye_reason) {
@@ -255,9 +273,9 @@ bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const i
 	return userObj->sendRtsData(callid, rtsData, dataType, channelType, rtsCtx, can_be_dropped, dataPriority, resend_count);
 }
 
-void mimc_rtc_register_token_fetcher(user_t* user, const token_fetcher_t* token_fetcher) {
+void mimc_rtc_register_token_fetcher(user_t* user, const token_fetcher_t* token_fetcher, const char* app_account) {
 	User* userObj = (User*)(user->value);
-	userObj->registerTokenFetcher(new CTokenFetcher(*token_fetcher));
+	userObj->registerTokenFetcher(new CTokenFetcher(*token_fetcher, app_account));
 }
 
 void mimc_rtc_register_online_status_handler(user_t* user, const online_status_handler_t* online_status_handler) {

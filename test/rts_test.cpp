@@ -341,7 +341,7 @@ protected:
         vector<string> sendDatas;
         for (int size = 0; size <= 500; size += 50) {
             string sendData = Utils::generateRandomString(size * 1024);
-            ASSERT_TRUE(from->sendRtsData(callId, sendData, AUDIO, channel_type));
+            ASSERT_NE(-1, from->sendRtsData(callId, sendData, AUDIO, channel_type));
             sendDatas.push_back(sendData);
             sleep(size / 200);
         }
@@ -360,15 +360,15 @@ protected:
         }
 
         string sendData0 = Utils::generateRandomString(RTS_MAX_PAYLOAD_SIZE + 1);
-        ASSERT_FALSE(from->sendRtsData(callId, sendData0, AUDIO, channel_type));
+        ASSERT_EQ(-1, from->sendRtsData(callId, sendData0, AUDIO, channel_type));
     }
 
     void sendDataToEachOther(uint64_t callId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
         string sendData1 = "hello to";
         string sendData2 = "hello from";
 
-        ASSERT_TRUE(from->sendRtsData(callId, sendData1, AUDIO, channel_type));
-        ASSERT_TRUE(to->sendRtsData(callId, sendData2, VIDEO, channel_type));
+        ASSERT_NE(-1, from->sendRtsData(callId, sendData1, AUDIO, channel_type));
+        ASSERT_NE(-1, to->sendRtsData(callId, sendData2, VIDEO, channel_type));
 
         RtsMessageData* recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(recvData == NULL);
@@ -398,7 +398,7 @@ protected:
         uint64_t callId = 0;
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         from->closeCall(callId);
-        ASSERT_FALSE(from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_EQ(-1, from->sendRtsData(callId, sendData, AUDIO));
         RtsMessageData* recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
 
@@ -414,7 +414,7 @@ protected:
 
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->closeCall(callId);
-        ASSERT_TRUE(from->sendRtsData(callId, sendData, VIDEO));
+        ASSERT_NE(-1, from->sendRtsData(callId, sendData, VIDEO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
 
@@ -428,7 +428,7 @@ protected:
         ASSERT_EQ(callId, byeResponse->getCallId());
         ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
 
-        ASSERT_FALSE(from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_EQ(-1, from->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
     }
@@ -443,16 +443,16 @@ protected:
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->setTestPacketLoss(100);
 
-        ASSERT_TRUE(to->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, to->sendRtsData(callId, sendData, AUDIO));
         RtsMessageData* recvData = callEventHandlerFrom->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
-        ASSERT_TRUE(from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, from->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
 
         to->setTestPacketLoss(0);
 
-        ASSERT_TRUE(to->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, to->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerFrom->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(recvData == NULL);
         ASSERT_EQ(callId, recvData->getCallId());
@@ -460,7 +460,7 @@ protected:
         ASSERT_EQ(RELAY, recvData->getChannelType());
         ASSERT_EQ(sendData, recvData->getRecvData());
 
-        ASSERT_TRUE(from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, from->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_FALSE(recvData == NULL);
         ASSERT_EQ(callId, recvData->getCallId());
@@ -481,10 +481,10 @@ protected:
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         to->setTestNetworkBlocked(true);
 
-        ASSERT_TRUE(to->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, to->sendRtsData(callId, sendData, AUDIO));
         RtsMessageData* recvData = callEventHandlerFrom->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
-        ASSERT_TRUE(from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_NE(-1, from->sendRtsData(callId, sendData, AUDIO));
         recvData = callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE);
         ASSERT_TRUE(recvData == NULL);
 

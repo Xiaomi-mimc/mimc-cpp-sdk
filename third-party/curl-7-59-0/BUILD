@@ -11,7 +11,6 @@ cc_library(
             "-fdata-sections",
             "-Wall",
         ],
-        linkstatic = 1,
         linkopts = [
             "-lrt",
         ],

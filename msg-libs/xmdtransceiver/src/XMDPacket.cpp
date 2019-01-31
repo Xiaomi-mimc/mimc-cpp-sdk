@@ -123,9 +123,6 @@ int XMDPacketManager::buildStreamClose(uint64_t connId, uint16_t streamId, bool 
             XMDLoggerWrapper::instance()->warn("buildStreamClose rc4 encrypt failed.");
             return -1;
         }
-
-        std::string decryptd;
-        CryptoRC4Util::Decrypt(encryptedData, decryptd, key);
     
         memcpy((char*)xmdPakcet_t + sizeof(XMDPacket) + CONN_LEN, 
                encryptedData.c_str(), 
@@ -288,9 +285,6 @@ int XMDPacketManager::buildXMDPing(uint64_t connId, bool isEncrypt, std::string 
             XMDLoggerWrapper::instance()->warn("buildXMDPing rc4 encrypt failed.");
             return -1;
         }
-
-        std::string decryptd;
-        CryptoRC4Util::Decrypt(encryptedData, decryptd, key);
     
         memcpy((char*)xmdPakcet_t + sizeof(XMDPacket) + CONN_LEN, 
                encryptedData.c_str(), 
@@ -331,9 +325,6 @@ int XMDPacketManager::buildXMDPong(XMDPong pongData, bool isEncrypt, std::string
             XMDLoggerWrapper::instance()->warn("buildXMDPong rc4 encrypt failed.");
             return -1;
         }
-
-        std::string decryptd;
-        CryptoRC4Util::Decrypt(encryptedData, decryptd, key);
     
         memcpy((char*)xmdPakcet_t + sizeof(XMDPacket) + CONN_LEN, 
                encryptedData.c_str(), 

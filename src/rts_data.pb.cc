@@ -164,6 +164,7 @@ const int UserPacket::kResourceFieldNumber;
 const int UserPacket::kCallIdFieldNumber;
 const int UserPacket::kPayloadFieldNumber;
 const int UserPacket::kRegionBucketFieldNumber;
+const int UserPacket::kFromAppAccountFieldNumber;
 #endif  // !_MSC_VER
 
 UserPacket::UserPacket()
@@ -189,6 +190,7 @@ void UserPacket::SharedCtor() {
   call_id_ = GOOGLE_ULONGLONG(0);
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   region_bucket_ = GOOGLE_LONGLONG(0);
+  from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -202,6 +204,9 @@ void UserPacket::SharedDtor() {
   }
   if (payload_ != &::google::protobuf::internal::kEmptyString) {
     delete payload_;
+  }
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    delete from_app_account_;
   }
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
@@ -248,6 +253,11 @@ void UserPacket::Clear() {
       }
     }
     region_bucket_ = GOOGLE_LONGLONG(0);
+    if (has_from_app_account()) {
+      if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+        from_app_account_->clear();
+      }
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -364,6 +374,20 @@ bool UserPacket::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(66)) goto parse_from_app_account;
+        break;
+      }
+
+      // optional string from_app_account = 8;
+      case 8: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_from_app_account:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_from_app_account()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -423,6 +447,12 @@ void UserPacket::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteInt64(7, this->region_bucket(), output);
   }
 
+  // optional string from_app_account = 8;
+  if (has_from_app_account()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      8, this->from_app_account(), output);
+  }
+
 }
 
 int UserPacket::ByteSize() const {
@@ -477,6 +507,13 @@ int UserPacket::ByteSize() const {
           this->region_bucket());
     }
 
+    // optional string from_app_account = 8;
+    if (has_from_app_account()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->from_app_account());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -513,6 +550,9 @@ void UserPacket::MergeFrom(const UserPacket& from) {
     if (from.has_region_bucket()) {
       set_region_bucket(from.region_bucket());
     }
+    if (from.has_from_app_account()) {
+      set_from_app_account(from.from_app_account());
+    }
   }
 }
 
@@ -537,6 +577,7 @@ void UserPacket::Swap(UserPacket* other) {
     std::swap(call_id_, other->call_id_);
     std::swap(payload_, other->payload_);
     std::swap(region_bucket_, other->region_bucket_);
+    std::swap(from_app_account_, other->from_app_account_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
@@ -2843,6 +2884,7 @@ const int RouterPacket::kToConnIdFieldNumber;
 const int RouterPacket::kStreamTypeFieldNumber;
 const int RouterPacket::kPayloadFieldNumber;
 const int RouterPacket::kRegionBucketFieldNumber;
+const int RouterPacket::kFromAppAccountFieldNumber;
 #endif  // !_MSC_VER
 
 RouterPacket::RouterPacket()
@@ -2870,6 +2912,7 @@ void RouterPacket::SharedCtor() {
   stream_type_ = 1;
   payload_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   region_bucket_ = GOOGLE_LONGLONG(0);
+  from_app_account_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -2886,6 +2929,9 @@ void RouterPacket::SharedDtor() {
   }
   if (payload_ != &::google::protobuf::internal::kEmptyString) {
     delete payload_;
+  }
+  if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+    delete from_app_account_;
   }
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
@@ -2940,6 +2986,11 @@ void RouterPacket::Clear() {
   }
   if (_has_bits_[8 / 32] & (0xffu << (8 % 32))) {
     region_bucket_ = GOOGLE_LONGLONG(0);
+    if (has_from_app_account()) {
+      if (from_app_account_ != &::google::protobuf::internal::kEmptyString) {
+        from_app_account_->clear();
+      }
+    }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -3086,6 +3137,20 @@ bool RouterPacket::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(82)) goto parse_from_app_account;
+        break;
+      }
+
+      // optional string from_app_account = 10;
+      case 10: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_from_app_account:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_from_app_account()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -3154,6 +3219,12 @@ void RouterPacket::SerializeWithCachedSizes(
   // optional int64 region_bucket = 9;
   if (has_region_bucket()) {
     ::google::protobuf::internal::WireFormatLite::WriteInt64(9, this->region_bucket(), output);
+  }
+
+  // optional string from_app_account = 10;
+  if (has_from_app_account()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      10, this->from_app_account(), output);
   }
 
 }
@@ -3226,6 +3297,13 @@ int RouterPacket::ByteSize() const {
           this->region_bucket());
     }
 
+    // optional string from_app_account = 10;
+    if (has_from_app_account()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->from_app_account());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -3270,6 +3348,9 @@ void RouterPacket::MergeFrom(const RouterPacket& from) {
     if (from.has_region_bucket()) {
       set_region_bucket(from.region_bucket());
     }
+    if (from.has_from_app_account()) {
+      set_from_app_account(from.from_app_account());
+    }
   }
 }
 
@@ -3296,6 +3377,7 @@ void RouterPacket::Swap(RouterPacket* other) {
     std::swap(stream_type_, other->stream_type_);
     std::swap(payload_, other->payload_);
     std::swap(region_bucket_, other->region_bucket_);
+    std::swap(from_app_account_, other->from_app_account_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }

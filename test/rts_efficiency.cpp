@@ -4,7 +4,7 @@
 #include <test/mimc_tokenfetcher.h>
 #include <test/mimc_onlinestatus_handler.h>
 #include <test/mimc_message_handler.h>
-#include <test/rts_performance_handler.h>
+#include <test/rts_efficiency_handler.h>
 #include <map>
 
 using namespace std;
@@ -35,9 +35,9 @@ protected:
 		msgHandler2 = new TestMessageHandler();
 		msgHandler3 = new TestMessageHandler();
 
-		callEventHandler1 = new RtsPerformanceHandler();
-		callEventHandler2 = new RtsPerformanceHandler();
-		callEventHandler3 = new RtsPerformanceHandler();
+		callEventHandler1 = new RtsEfficiencyHandler();
+		callEventHandler2 = new RtsEfficiencyHandler();
+		callEventHandler3 = new RtsEfficiencyHandler();
 
 		rtsUser1->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
 		rtsUser1->registerOnlineStatusHandler(new TestOnlineStatusHandler());
@@ -118,7 +118,7 @@ protected:
 		XMDLoggerWrapper::instance()->info("avgRecvDataTime: %dms", sumRecvDataTime/3/timeRecordsSize);
 	}
 
-	void testEfficiency(User* user1, RtsPerformanceHandler* callEventHandler1, User* user2, RtsPerformanceHandler* callEventHandler2, User* user3, RtsPerformanceHandler* callEventHandler3, int idx, int dataSize, map<int, RtsPerformanceData>& timeRecords) {
+	void testEfficiency(User* user1, RtsEfficiencyHandler* callEventHandler1, User* user2, RtsEfficiencyHandler* callEventHandler2, User* user3, RtsEfficiencyHandler* callEventHandler3, int idx, int dataSize, map<int, RtsPerformanceData>& timeRecords) {
 		long t0 = 0, t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0, t6 = 0, t7 = 0, t8 = 0, t9 = 0, t10 = 0, t11 = 0, t12 = 0, t13 = 0, t14 = 0, t15 = 0;
 
 		set<string> offlineUsers;
@@ -187,7 +187,7 @@ protected:
 
 		string sendData = Utils::generateRandomString(dataSize);
 		t6 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user1->sendRtsData(callId, sendData, AUDIO));
+		ASSERT_NE(-1, user1->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler2->getMsgSize(4) > 0) {
 				break;
@@ -218,7 +218,7 @@ protected:
 
 		sendData = Utils::generateRandomString(dataSize);
 		t10 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user1->sendRtsData(callId, sendData, AUDIO));
+		ASSERT_NE(-1, user1->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler3->getMsgSize(4) > 0) {
 				break;
@@ -249,7 +249,7 @@ protected:
 
 		sendData = Utils::generateRandomString(dataSize);
 		t14 = Utils::currentTimeMillis();
-		ASSERT_TRUE(user2->sendRtsData(callId, sendData, AUDIO));
+		ASSERT_NE(-1, user2->sendRtsData(callId, sendData, AUDIO));
 		for (int j = 0; j < TIME_OUT; j++) {
 			if (callEventHandler3->getMsgSize(4) > 0) {
 				break;
@@ -264,7 +264,7 @@ protected:
 		timeRecords.insert(pair<int, RtsPerformanceData>(idx, RtsPerformanceData((int)(t1-t0), (int)(t2-t0), (int)(t3-t0), (int)(t5-t4), (int)(t9-t8), (int)(t13-t12), (int)(t7-t6), (int)(t11-t10), (int)(t15-t14))));
 	}
 
-	void closeCall(uint64_t callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
+	void closeCall(uint64_t callId, User* from, RtsEfficiencyHandler* callEventHandlerFrom, RtsEfficiencyHandler* callEventHandlerTo) {
 		from->closeCall(callId);
 		sleep(1);
 
@@ -287,9 +287,9 @@ protected:
 	TestMessageHandler* msgHandler2;
 	TestMessageHandler* msgHandler3;
 
-	RtsPerformanceHandler* callEventHandler1;
-	RtsPerformanceHandler* callEventHandler2;
-	RtsPerformanceHandler* callEventHandler3;
+	RtsEfficiencyHandler* callEventHandler1;
+	RtsEfficiencyHandler* callEventHandler2;
+	RtsEfficiencyHandler* callEventHandler3;
 };
 
 TEST_F(RtsEfficiency, efficiencyTest) {

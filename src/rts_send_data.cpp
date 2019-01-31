@@ -148,14 +148,16 @@ bool RtsSendData::sendPingRelayRequest(User* user) {
 	return true;
 }
 
-bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t callId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+int RtsSendData::sendRtsDataByRelay(User* user, uint64_t callId, const std::string& data, const mimc::PKT_TYPE pktType, const void* ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+	int dataId = -1;
 	uint64_t relayConnId = user->getRelayConnId();
 	if (relayConnId == 0) {
 		
-		return false;
+		return dataId;
 	}
 	mimc::UserPacket userPacket;
 	userPacket.set_uuid(user->getUuid());
+	userPacket.set_from_app_account(user->getAppAccount());
 	userPacket.set_resource(user->getResource());
 	userPacket.set_pkt_type(pktType);
 	userPacket.set_payload(std::string(data));
@@ -178,13 +180,7 @@ bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t callId, const std::str
 			XMDLoggerWrapper::instance()->info("audio streamId is %d", user->getRelayAudioStreamId());
 		}
 		if (user->getRelayAudioStreamId() != 0) {
-			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayAudioStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx) < 0) {
-				
-				return false;
-			}
-		} else {
-			
-			return false;
+			dataId = xmdTransceiver->sendRTData(relayConnId, user->getRelayAudioStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx);
 		}
 	} else {
 		if (user->getRelayVideoStreamId() == 0) {
@@ -197,17 +193,11 @@ bool RtsSendData::sendRtsDataByRelay(User* user, uint64_t callId, const std::str
 			XMDLoggerWrapper::instance()->info("video streamId is %d", user->getRelayVideoStreamId());
 		}
 		if (user->getRelayVideoStreamId() != 0) {
-			if (xmdTransceiver->sendRTData(relayConnId, user->getRelayVideoStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx) < 0) {
-				
-				return false;
-			}
-		} else {
-			
-			return false;
+			dataId = xmdTransceiver->sendRTData(relayConnId, user->getRelayVideoStreamId(), messageBytes, message_size, canBeDropped, priority, resendCount, (void *)ctx);
 		}
 	}
 
-	return true;
+	return dataId;
 }
 
 bool RtsSendData::closeRelayConnWhenNoCall(User* user) {

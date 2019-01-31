@@ -101,7 +101,7 @@ public:
 
 	std::string sendMessage(const std::string& toAppAccount, const std::string& payload, const std::string& bizType = "", const bool isStore = true);
 	uint64_t dialCall(const std::string& toAppAccount, const std::string& appContent = "", const std::string& toResource = "");
-	bool sendRtsData(uint64_t callId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
+	int sendRtsData(uint64_t callId, const std::string& data, const RtsDataType dataType, const RtsChannelType channelType = RELAY, const std::string& ctx = "", const bool canBeDropped = false, const DataPriority priority = P1, const unsigned int resendCount = 2);
 	void closeCall(uint64_t callId, std::string byeReason = "");
 
 	void resetRelayLinkState();

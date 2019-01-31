@@ -909,10 +909,10 @@ uint64_t User::dialCall(const std::string & toAppAccount, const std::string & ap
 	//判断是否是同一个call
 	for (std::map<uint64_t, P2PCallSession>::const_iterator iter = currentCalls->begin(); iter != currentCalls->end(); iter++) {
 		const P2PCallSession& callSession = iter->second;
-		const mimc::UserInfo& session_toUser = callSession.getPeerUser();
-		if (toUser.appid() == session_toUser.appid() && toUser.appaccount() == session_toUser.appaccount() && toUser.resource() == session_toUser.resource()
+		const mimc::UserInfo& session_peerUser = callSession.getPeerUser();
+		if (toUser.appid() == session_peerUser.appid() && toUser.appaccount() == session_peerUser.appaccount() && toUser.resource() == session_peerUser.resource()
 		        && appContent == callSession.getAppContent()) {
-			XMDLoggerWrapper::instance()->warn("In dialCall, the dialCall is repeated!");
+			XMDLoggerWrapper::instance()->warn("In dialCall, the call has connected!");
 			pthread_rwlock_unlock(&mutex_0);
 			return 0;
 		}
@@ -957,14 +957,15 @@ uint64_t User::dialCall(const std::string & toAppAccount, const std::string & ap
 	}
 }
 
-bool User::sendRtsData(uint64_t callId, const std::string & data, const RtsDataType dataType, const RtsChannelType channelType, const std::string& ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+int User::sendRtsData(uint64_t callId, const std::string & data, const RtsDataType dataType, const RtsChannelType channelType, const std::string& ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
+	int dataId = -1;
 	if (data.size() > RTS_MAX_PAYLOAD_SIZE) {
 
-		return false;
+		return dataId;
 	}
 	if (dataType != AUDIO && dataType != VIDEO) {
 
-		return false;
+		return dataId;
 	}
 
 	mimc::PKT_TYPE pktType = mimc::USER_DATA_AUDIO;
@@ -974,29 +975,27 @@ bool User::sendRtsData(uint64_t callId, const std::string & data, const RtsDataT
 	pthread_rwlock_rdlock(&mutex_0);
 	if (currentCalls->count(callId) == 0) {
 		pthread_rwlock_unlock(&mutex_0);
-		return false;
+		return dataId;
 	}
 
 	const P2PCallSession& callSession = currentCalls->at(callId);
 	if (callSession.getCallState() != RUNNING) {
 		pthread_rwlock_unlock(&mutex_0);
-		return false;
+		return dataId;
 	}
 	if (onlineStatus == Offline) {
 		pthread_rwlock_unlock(&mutex_0);
-		return false;
+		return dataId;
 	}
 
 	RtsContext* rtsContext = new RtsContext(callId, ctx);
 
 	if (channelType == RELAY) {
 
-		bool result = RtsSendData::sendRtsDataByRelay(this, callId, data, pktType, (void *)rtsContext, canBeDropped, priority, resendCount);
-		pthread_rwlock_unlock(&mutex_0);
-		return result;
+		dataId = RtsSendData::sendRtsDataByRelay(this, callId, data, pktType, (void *)rtsContext, canBeDropped, priority, resendCount);
 	}
 	pthread_rwlock_unlock(&mutex_0);
-	return true;
+	return dataId;
 }
 
 void User::closeCall(uint64_t callId, std::string byeReason) {

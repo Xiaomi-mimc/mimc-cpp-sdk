@@ -79,30 +79,40 @@ public:
     }
 };
 
+class XMDLOG : public ExternalLog {
+public:
+    virtual void info(const char *msg) {
+        std::cout<<"xmdlog info:"<<msg<<std::endl;
+    }
+
+    virtual void debug(const char *msg) {
+        std::cout<<"xmdlog debug:"<<msg<<std::endl;
+    }
+
+    virtual void warn(const char *msg) {
+        std::cout<<"xmdlog warn:"<<msg<<std::endl;
+    }
+
+    virtual void error(const char *msg) {
+        std::cout<<"xmdlog error:"<<msg<<std::endl;
+    }
+};
+
+
 
 void* testrand(void* argc) {
-    int n = 3;
-        for (int i = 0; i < n; i++) {
-            std::cout<<"rand64="<<rand64()<<std::endl;
-            //usleep(1);
-        }
+        XMDTransceiver* transceiver = new XMDTransceiver(1, 0);
+        std::string ip = "127.0.0.1";
+        int port = 44564;
+        
+        uint64_t connId = transceiver->createConnection((char*)ip.c_str(), port, NULL, 0, 10, NULL);
+        std::cout<<"conn id="<<connId<<std::endl;
+        connId = transceiver->createConnection((char*)ip.c_str(), port, NULL, 0, 10, NULL);
+        std::cout<<"conn id="<<connId<<std::endl;
+        connId = transceiver->createConnection((char*)ip.c_str(), port, NULL, 0, 10, NULL);
+        connId = transceiver->createConnection((char*)ip.c_str(), port, NULL, 0, 10, NULL);
+        std::cout<<"conn id="<<connId<<std::endl;
 
-        std::cout<<"1"<<std::endl;
-
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        usleep(1);
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        std::cout<<"rand64="<<rand64()<<std::endl;
-        //std::cout<<t1<<","<<t2<<","<<t3<<std::endl;
 
         return NULL;
 
@@ -176,7 +186,13 @@ TEST(test_xmdtransceiver, test_send_delay) {
 
 */
 
+
+   /*
 TEST(test_xmdtransceiver, test_send_ackstreamData) {
+    XMDLOG xmdlog_;
+    XMDTransceiver::setExternalLog(&xmdlog_);
+    XMDTransceiver::setXMDLogLevel(XMD_DEBUG);
+
     XMDTransceiver* transceiver = new XMDTransceiver(1, 45699);
     transceiver->registerRecvDatagramHandler(new DataGramHandler());
     transceiver->registerConnHandler(new newConn());
@@ -187,8 +203,8 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     transceiver2->registerConnHandler(new newConn());
     transceiver2->registerStreamHandler(new stHandler());
 
-    transceiver->setXMDLogLevel(XMD_INFO);
-    transceiver2->setXMDLogLevel(XMD_INFO);
+    //transceiver->setXMDLogLevel(XMD_INFO);
+    //transceiver2->setXMDLogLevel(XMD_INFO);
 
     transceiver->run();
     transceiver2->run();
@@ -254,7 +270,10 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
 }
 
 
-/*
+
+
+
+ 
 
 TEST(test_xmdtransceiver, test_rand46) {
 
@@ -265,17 +284,17 @@ TEST(test_xmdtransceiver, test_rand46) {
     pthread_t tid3;
     pthread_create(&tid3, NULL, testrand, NULL);
     pthread_t tid4;
-    pthread_create(&tid4, NULL, testrand, NULL);
+    pthread_create(&tid4, NULL, createthread, NULL);
     pthread_t tid5;
     pthread_create(&tid5, NULL, testrand, NULL);
+    pthread_create(&tid5, NULL, testrand, NULL);
 
-    usleep(200000);
+    usleep(300000);
 }
 
 
 
-
-
+*/
 
 TEST(test_xmdtransceiver, test_send_fecstreamData) {
     XMDTransceiver* transceiver = new XMDTransceiver(1, 45688);
@@ -297,14 +316,14 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
     std::string message = "test_send_createconn";
     std::string message2 = "test_send_RTDATA";
     std::string message3 = "1234567890abcdefghijklmnopqrstuvwxyz1234567无法威风威风威风无法为违法未访问涉非法为二分ssfefefefefefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    std::string ip = "10.239.36.185";
+    std::string ip = "127.0.0.1";
     int port = 44234;
 
     int len = 10;
     char* data = new char[10];
     
     uint64_t connId = transceiver->createConnection((char*)ip.c_str(), port, 
-                                   (char*)message.c_str(), message.length(), 0, NULL, true);
+                                   (char*)message.c_str(), message.length(), 0, NULL);
                                    
     EXPECT_EQ(44234, port);
     usleep(200000);
@@ -317,13 +336,13 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
     usleep(200000);
-    uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 0);
+    uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 0, false);
     std::cout<<"stream id="<<streamId<<std::endl;
 
-    uint16_t streamId2 = transceiver->createStream(connId, FEC_STREAM, 0);
+    uint16_t streamId2 = transceiver->createStream(connId, FEC_STREAM, 0, false);
     std::cout<<"stream id="<<streamId2<<std::endl;
 
-    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0);
+    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false);
     usleep(200000);
     //transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length());
     usleep(200000);
@@ -345,7 +364,7 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
 
 
 
-
+/*
 
 
 TEST(test_xmdtransceiver, test_with_server) {
@@ -539,9 +558,9 @@ TEST(TESTIP, IP) {
 TEST(testras, rsa) {
     const int SESSION_KEY_LEN = 128;
     RSA* rsa = RSA_generate_key(1024, RSA_F4, NULL, NULL);
-    //unsigned char publickey[1024];
-    //unsigned char* tmpKey = publickey;
-    //int publickeyLen = i2d_RSAPublicKey(rsa, & tmpKey);
+    unsigned char publickey[1024];
+    unsigned char* tmpKey = publickey;
+    int publickeyLen = i2d_RSAPublicKey(rsa, & tmpKey);
     //std::cout<<"public key="<<publickey<<",key len="<<publickeyLen<<",rsa="<<rsa<<",rsa len="<<RSA_size(rsa)<<std::endl;
 
 
@@ -595,4 +614,5 @@ TEST(testras, rsa) {
     RSA_free(rsa);
     //RSA_free(encryptRsa);
     RSA_free(rsa2);
-}*/
+}
+*/

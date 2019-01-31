@@ -120,13 +120,15 @@ public:
 				return;
 			}
 			XMDLoggerWrapper::instance()->info("In USER_DATA_AUDIO");
+			const std::string& fromAccount = userPacket.from_app_account();
+			const std::string& resource = userPacket.resource();
 			const std::string& data = userPacket.payload();
 			if (conn_id == this->user->getRelayConnId()) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, AUDIO, RELAY);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, AUDIO, RELAY);
 			} else if (conn_id == this->user->getP2PIntranetConnId(callId)) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, AUDIO, P2P_INTRANET);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, AUDIO, P2P_INTRANET);
 			} else if (conn_id == this->user->getP2PInternetConnId(callId)) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, AUDIO, P2P_INTERNET);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, AUDIO, P2P_INTERNET);
 			} else {
 				
 			}
@@ -140,13 +142,15 @@ public:
 				return;
 			}
 			XMDLoggerWrapper::instance()->info("In USER_DATA_VIDEO");
+			const std::string& fromAccount = userPacket.from_app_account();
+			const std::string& resource = userPacket.resource();
 			const std::string& data = userPacket.payload();
 			if (conn_id == this->user->getRelayConnId()) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, VIDEO, RELAY);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, VIDEO, RELAY);
 			} else if (conn_id == this->user->getP2PIntranetConnId(callId)) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, VIDEO, P2P_INTRANET);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, VIDEO, P2P_INTRANET);
 			} else if (conn_id == this->user->getP2PInternetConnId(callId)) {
-				this->user->getRTSCallEventHandler()->handleData(callId, data, VIDEO, P2P_INTERNET);
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, VIDEO, P2P_INTERNET);
 			} else {
 				
 			}
@@ -158,7 +162,7 @@ public:
 		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataSucc, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 		if (ctx != NULL) {
 			RtsContext* rtsContext = (RtsContext*)ctx;
-			this->user->getRTSCallEventHandler()->handleSendDataSucc(rtsContext->getCallId(), groupId, rtsContext->getCtx());
+			this->user->getRTSCallEventHandler()->onSendDataSuccess(rtsContext->getCallId(), groupId, rtsContext->getCtx());
 			delete rtsContext;
 		}
 	}
@@ -167,7 +171,7 @@ public:
 		XMDLoggerWrapper::instance()->info("RtsStreamHandler::sendStreamDataFail, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 		if (ctx != NULL) {
 			RtsContext* rtsContext = (RtsContext*)ctx;
-			this->user->getRTSCallEventHandler()->handleSendDataFail(rtsContext->getCallId(), groupId, rtsContext->getCtx());
+			this->user->getRTSCallEventHandler()->onSendDataFailure(rtsContext->getCallId(), groupId, rtsContext->getCtx());
 			delete rtsContext;
 		}
 	}

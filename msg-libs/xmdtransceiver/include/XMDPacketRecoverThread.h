@@ -10,14 +10,17 @@ const int ACK_GROUP_DELETE_INTERVAL = 100000;  //100s
 
 
 struct SlicePacket {
-    unsigned char data[MAX_PACKET_SIZE + STREAM_LEN_SIZE];
+    unsigned char* data;
 
     SlicePacket(unsigned char* slice_data, int len) {
-        memset(data, 0, MAX_PACKET_SIZE + STREAM_LEN_SIZE);
+        data = new unsigned char[len];
         memcpy(data, slice_data, len);
     }
-    SlicePacket() {
-        memset(data, 0, MAX_PACKET_SIZE + STREAM_LEN_SIZE);
+    ~SlicePacket() {
+        if (data) {
+            delete[] data;
+            data = NULL;
+        }
     }
 };
 
@@ -25,8 +28,9 @@ struct PartitionPacket {
     bool isComplete;
     uint16_t FEC_OPN;
     uint16_t FEC_PN;
+    uint16_t slice_len;
     int len;
-    std::map<uint16_t, SlicePacket> sliceMap;
+    std::map<uint16_t, SlicePacket*> sliceMap;
 };
 
 struct GroupPacket {
@@ -42,15 +46,17 @@ struct GroupPacket {
 
 struct AckStreamSlice {
     int len;
-    unsigned char data[MAX_PACKET_SIZE];
+    unsigned char* data;
     AckStreamSlice(unsigned char* d, int l) {
         len = l;
-        memset(data, 0, MAX_PACKET_SIZE);
+        data = new  unsigned char[len];
         memcpy(data, d, len);
     }
-    AckStreamSlice() {
-        len = 0;
-        memset(data, 0, MAX_PACKET_SIZE);
+    ~AckStreamSlice() {
+        if (data) {
+            delete[] data;
+            data = NULL;
+        }
     }
 };
 
@@ -61,7 +67,7 @@ struct AckGroupPakcet {
     uint64_t groupId;
     uint64_t create_time;
     int len;
-    std::map<uint16_t, AckStreamSlice> sliceMap;
+    std::map<uint16_t, AckStreamSlice*> sliceMap;
 };
 
 

@@ -7,12 +7,17 @@
 #include <mimc/threadsafe_queue.h>
 #include <XMDLoggerWrapper.h>
 #include <test/rts_message_data.h>
+#include <test/rts_performance.h>
 #include <test/rts_performance_data.h>
 
 using namespace std;
 
 class RtsPerformanceHandler : public RTSCallEventHandler {
 public:
+    RtsPerformanceHandler(RtsPerformance* rtsPerformance) {
+        this->rtsPerformance = rtsPerformance;
+    }
+
     LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
         XMDLoggerWrapper::instance()->info("In onLaunched, callId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", callId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         inviteRequests.push(RtsMessageData(callId, fromAccount, appContent, fromResource));
@@ -29,18 +34,17 @@ public:
         byes.push(RtsMessageData(callId, desc));
     }
 
-    void handleData(uint64_t callId, const string data, RtsDataType dataType, RtsChannelType channelType) {
-        XMDLoggerWrapper::instance()->info("In handleData, callId is %llu, dataLen is %d, data is %s, dataType is %d", callId, data.length(), data.c_str(), dataType);
-        int dataId = char2int((unsigned char*)data.c_str(), 0);
-        recvDatas.insert(pair<int, RtsPerformanceData>(dataId, RtsPerformanceData(data, Utils::currentTimeMillis())));
+    void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const string data, RtsDataType dataType, RtsChannelType channelType) {
+        XMDLoggerWrapper::instance()->info("In onData, callId is %llu, fromAccount is %s, resource is %s, dataLen is %d, data is %s, dataType is %d", callId, fromAccount.c_str(), resource.c_str(), data.length(), data.c_str(), dataType);
+        rtsPerformance->checkRecvDataTime(data, Utils::currentTimeMillis());
     }
 
-    void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("In handleSendDataSucc, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+    void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("In onSendDataSuccess, callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
-    void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("In handleSendDataFail, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+    void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("In onSendDataFailure, callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
     RtsMessageData* pollInviteRequest(long timeout_s) {
@@ -61,45 +65,10 @@ public:
         return byePtr;
     }
 
-    const map<int, RtsPerformanceData>& pollDataInfo() {
-        return recvDatas;
-    }
-
-    int getMsgSize(int msgType) {
-        int size = 0;
-
-        switch (msgType) {
-        case 1:
-            size = inviteRequests.size();
-            break;
-        case 2:
-            size = createResponses.size();
-            break;
-        case 3:
-            size = byes.size();
-            break;
-        case 4:
-            size = recvDatas.size();
-            break;
-        }
-
-        return size;
-    }
-
     void clear() {
         inviteRequests.clear();
         createResponses.clear();
         byes.clear();
-        recvDatas.clear();
-    }
-private:
-    int char2int(const unsigned char* result, int index) {
-        unsigned char fourthByte = result[index];
-        unsigned char thirdByte = result[index + 1];
-        unsigned char secondByte = result[index + 2];
-        unsigned char firstByte = result[index + 3];
-        int ret = (fourthByte << 24) | (thirdByte << 16) | (secondByte << 8) | firstByte;
-        return ret;
     }
 public:
     const string LAUNCH_OK = "OK";
@@ -107,7 +76,7 @@ private:
     ThreadSafeQueue<RtsMessageData> inviteRequests;
     ThreadSafeQueue<RtsMessageData> createResponses;
     ThreadSafeQueue<RtsMessageData> byes;
-    map<int, RtsPerformanceData> recvDatas;
+    RtsPerformance* rtsPerformance;
 };
 
 #endif

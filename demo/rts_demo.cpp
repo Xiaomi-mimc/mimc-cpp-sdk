@@ -149,7 +149,7 @@ public:
 		}
 	}
 
-	virtual void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+	virtual void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
 		user->sendRtsData(callId, data, dataType, channelType);
 		if (callDataMap.count(callId) == 0) {
 			list<string> dataList;
@@ -161,12 +161,12 @@ public:
 		}
 	}
 
-	virtual void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->info("handleSendDataSucc: callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+	virtual void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->info("onSendDataSuccess: callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
-    virtual void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
-        XMDLoggerWrapper::instance()->warn("handleSendDataFail: callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
+    virtual void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) {
+        XMDLoggerWrapper::instance()->warn("onSendDataFailure: callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
 	string getChatData(uint64_t callId) {

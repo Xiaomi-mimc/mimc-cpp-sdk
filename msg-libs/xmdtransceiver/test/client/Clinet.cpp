@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
         usleep(1000000 / qps);
     }
 
-    usleep(2500000);
+    usleep(15000000);
     std::cout<<"close"<<std::endl;
 
     transceiver->closeStream(connId, streamId);
