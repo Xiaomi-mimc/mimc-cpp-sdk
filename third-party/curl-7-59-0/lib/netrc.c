@@ -26,6 +26,8 @@
 #include <pwd.h>
 #endif
 
+#undef HAVE_GETPWUID_R
+
 #include <curl/curl.h>
 #include "netrc.h"
 #include "strtok.h"

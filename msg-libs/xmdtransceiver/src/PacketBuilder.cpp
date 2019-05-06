@@ -167,7 +167,8 @@ void PacketBuilder::buildRedundancyPacket() {
     
     for (int i = 0; i < groupData_.partitionSize; i++) {        
         Fec f(groupData_.partitionVec[i].fec_opn, groupData_.partitionVec[i].fec_pn);
-        f.fec_encode(groupData_.partitionVec[i].origin_data, MAX_PACKET_SIZE + STREAM_LEN_SIZE, fecRedundancyData_);
+        unsigned char fecRedundancyData[groupData_.partitionVec[i].fec_pn * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
+        f.fec_encode(groupData_.partitionVec[i].origin_data, MAX_PACKET_SIZE + STREAM_LEN_SIZE, fecRedundancyData);
         uint16_t sliceId = groupData_.partitionVec[i].fec_opn;
         uint64_t currtenTime = current_ms();
         if (sendTime_ < currtenTime) {
@@ -187,7 +188,7 @@ void PacketBuilder::buildRedundancyPacket() {
             fecStreamData.flags = groupData_.flags;
             XMDPacketManager fecPacketMan;
             
-            fecPacketMan.buildFECStreamData(fecStreamData, fecRedundancyData_ + j * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), 
+            fecPacketMan.buildFECStreamData(fecStreamData, fecRedundancyData + j * (MAX_PACKET_SIZE + STREAM_LEN_SIZE), 
                                             MAX_PACKET_SIZE + STREAM_LEN_SIZE, 
                                             groupData_.isEncrypt,
                                             groupData_.sessionKey);
@@ -308,7 +309,7 @@ void PacketBuilder::buildAckStreamPacket(StreamQueueData* queueData, ConnInfo co
         resendData->packetId = streamData.packetId;
         resendData->ip = connInfo.ip;
         resendData->port = connInfo.port;
-        resendData->reSendTime = sendData->sendTime + getResendTimeInterval(1);
+        resendData->reSendTime = sendData->sendTime + commonData_->getResendTimeInterval();
         resendData->reSendCount= queueData->resendCount;
         commonData_->resendQueuePush(resendData);
     

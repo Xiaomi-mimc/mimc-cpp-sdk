@@ -1,22 +1,93 @@
 #include <mimc/user_c.h>
 #include <mimc/user.h>
+#include <XMDTransceiver.h>
+#include <curl/curl.h>
 
 class CTokenFetcher : public MIMCTokenFetcher {
 public:
-	CTokenFetcher(const token_fetcher_t& token_fetcher, std::string app_account)
-	 : _token_fetcher(token_fetcher), _app_account(app_account) {
+	CTokenFetcher(std::string app_account)
+	 : _app_account(app_account) {
+        #ifndef STAGING
+        _app_id = "2882303761517669588";
+        _app_key = "5111766983588";
+        _app_secret = "b0L3IOz/9Ob809v8H2FbVg==";
+        #else
+        _app_id = "2882303761517479657";
+        _app_key = "5221747911657";
+        _app_secret = "PtfBeZyC+H8SIM/UXhZx1w==";
+        #endif
 
 	}
-
+/*
 	std::string fetchToken() {
-		const char* tokenp = _token_fetcher.fetch_token(_app_account.c_str());
-	    std::string token(tokenp);
+        XMDLoggerWrapper::instance()->info("In %s, line %d", __FUNCTION__, __LINE__);
+		if (_app_account == "") {
+            XMDLoggerWrapper::instance()->info("In %s, line %d:_app_account is empty", __FUNCTION__, __LINE__);
+        } else {
+           XMDLoggerWrapper::instance()->info("In %s, line %d:_app_account is %s", __FUNCTION__, __LINE__, _app_account.c_str()); 
+        }
+        XMDLoggerWrapper::instance()->info("In %s, line %d:_token_fetcher.fetch_token is %p", __FUNCTION__, __LINE__, _token_fetcher.fetch_token);
+        const char* tokenp = _token_fetcher.fetch_token(_app_account.c_str());
+        XMDLoggerWrapper::instance()->info("In %s, line %d", __FUNCTION__, __LINE__);	    
+        std::string token(tokenp);
 		free((char *)tokenp);
 	    return token;
 	}
+*/
+    std::string fetchToken() {
+        CURL *curl = curl_easy_init();
+        CURLcode res;
+#ifndef STAGING
+        const std::string url = "https://mimc.chat.xiaomi.net/api/account/token";
+#else
+        const std::string url = "http://10.38.162.149/api/account/token";
+#endif
+        const std::string body = "{\"appId\":\"" + _app_id + "\",\"appKey\":\"" + _app_key + "\",\"appSecret\":\"" + _app_secret + "\",\"appAccount\":\"" + _app_account + "\"}";
+        std::string result;
+        if (curl) {
+            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
+            struct curl_slist *headers = NULL;
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, body.size());
+
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)(&result));
+
+            char errbuf[CURL_ERROR_SIZE];
+            curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
+             errbuf[0] = 0;
+
+
+
+            res = curl_easy_perform(curl);
+            if (res != CURLE_OK) {
+                XMDLoggerWrapper::instance()->error("curl perform error, error code is %d, error msg is %s", res, errbuf);
+                
+            }
+            curl_slist_free_all(headers);
+            curl_easy_cleanup(curl);
+        }
+
+        return result;
+    }
+
+    static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+        std::string *bodyp = (std::string *)userp;
+        bodyp->append((const char *)contents, size * nmemb);
+
+        return size * nmemb;
+    }
 private:
-	token_fetcher_t _token_fetcher;
+    std::string _app_id;
+    std::string _app_key;
+    std::string _app_secret;
     std::string _app_account;
 };
 
@@ -66,6 +137,8 @@ public:
 			case VIDEO:
 				data_type = VID;
 				break;
+			case FILEDATA:
+				data_type = FILED;
 			default:
 				break;
 		}
@@ -101,6 +174,7 @@ private:
 };
 
 void mimc_rtc_init(user_t* user, int64_t appid, const char* appaccount, const char* resource, const char* cachepath) {
+	curl_global_init(CURL_GLOBAL_ALL);
 	std::string appaccountStr(appaccount);
 	std::string resourceStr;
 	if (resource == NULL) {
@@ -115,12 +189,35 @@ void mimc_rtc_init(user_t* user, int64_t appid, const char* appaccount, const ch
 		cachepathStr = cachepath;
 	}
 	user->value = new User(appid, appaccountStr, resourceStr, cachepathStr);
+	user->token_fetcher = NULL;
+	user->online_status_handler = NULL;
+	user->rtscall_event_handler = NULL;
 }
 
 void mimc_rtc_fini(user_t* user) {
 	User* userObj = (User*)(user->value);
 	delete userObj;
 	user->value = NULL;
+	MIMCTokenFetcher* tokenFetcher = (MIMCTokenFetcher*)(user->token_fetcher);
+	delete tokenFetcher;
+	user->token_fetcher = NULL;
+	OnlineStatusHandler* onlineStatusHandler = (OnlineStatusHandler*)(user->online_status_handler);
+	delete onlineStatusHandler;
+	user->online_status_handler = NULL;
+	RTSCallEventHandler* rtsCallEventHandler = (RTSCallEventHandler*)(user->rtscall_event_handler);
+	delete rtsCallEventHandler;
+	user->rtscall_event_handler = NULL;
+	curl_global_cleanup();
+}
+
+bool mimc_rtc_get_token_fetch_succeed(user_t* user) {
+	User* userObj = (User*)(user->value);
+	return userObj->getTokenFetchSucceed();
+}
+
+short mimc_rtc_get_token_request_status(user_t* user) {
+	User* userObj = (User*)(user->value);
+	return userObj->getTokenRequestStatus();
 }
 
 bool mimc_rtc_login(user_t* user) {
@@ -138,6 +235,11 @@ bool mimc_rtc_isonline(user_t* user) {
 	return userObj->getOnlineStatus() == Online ? true : false;
 }
 
+bool mimc_rtc_channel_connected(user_t* user) {
+	User* userObj = (User*)(user->value);
+	return userObj->getRelayLinkState() == SUCC_CREATED ? true : false;
+}
+
 int mimc_rtc_get_login_timeout() {
 	return LOGIN_TIMEOUT;
 }
@@ -145,6 +247,11 @@ int mimc_rtc_get_login_timeout() {
 void mimc_rtc_set_max_callnum(user_t* user, unsigned int num) {
 	User* userObj = (User*)(user->value);
 	userObj->setMaxCallNum(num);
+}
+
+unsigned int mimc_rtc_get_max_callnum(user_t* user) {
+	User* userObj = (User*)(user->value);
+	return userObj->getMaxCallNum();
 }
 
 void mimc_rtc_init_audiostream_config(user_t* user, const stream_config_t* stream_config) {
@@ -224,7 +331,7 @@ void mimc_rtc_close_call(user_t* user, uint64_t callid, const char* bye_reason) 
 	userObj->closeCall(callid, bye_reason);
 }
 
-bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count) {
+int mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count) {
 	User* userObj = (User*)(user->value);
 	RtsDataType dataType;
 	switch(data_type) {
@@ -233,6 +340,9 @@ bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const i
 			break;
 		case VID:
 			dataType = VIDEO;
+			break;
+		case FILED:
+			dataType = FILEDATA;
 			break;
 		default:
 			break;
@@ -273,17 +383,23 @@ bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const i
 	return userObj->sendRtsData(callid, rtsData, dataType, channelType, rtsCtx, can_be_dropped, dataPriority, resend_count);
 }
 
-void mimc_rtc_register_token_fetcher(user_t* user, const token_fetcher_t* token_fetcher, const char* app_account) {
+void mimc_rtc_register_token_fetcher(user_t* user, const char* app_account) {
 	User* userObj = (User*)(user->value);
-	userObj->registerTokenFetcher(new CTokenFetcher(*token_fetcher, app_account));
+	MIMCTokenFetcher* tokenFetcher = new CTokenFetcher(app_account);
+	userObj->registerTokenFetcher(tokenFetcher);
+	user->token_fetcher = tokenFetcher;
 }
 
 void mimc_rtc_register_online_status_handler(user_t* user, const online_status_handler_t* online_status_handler) {
 	User* userObj = (User*)(user->value);
-	userObj->registerOnlineStatusHandler(new COnlineStatusHandler(*online_status_handler));
+	OnlineStatusHandler* onlineStatusHandler = new COnlineStatusHandler(*online_status_handler);
+	userObj->registerOnlineStatusHandler(onlineStatusHandler);
+	user->online_status_handler = onlineStatusHandler;
 }
 
 void mimc_rtc_register_rtscall_event_handler(user_t* user, const rtscall_event_handler_t* rtscall_event_handler) {
 	User* userObj = (User*)(user->value);
-	userObj->registerRTSCallEventHandler(new CRTSCallEventHandler(*rtscall_event_handler));
+	RTSCallEventHandler* rtsCallEventHandler = new CRTSCallEventHandler(*rtscall_event_handler);
+	userObj->registerRTSCallEventHandler(rtsCallEventHandler);
+	user->rtscall_event_handler = rtsCallEventHandler;
 }

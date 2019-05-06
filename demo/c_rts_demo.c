@@ -19,68 +19,6 @@ const char* username2 = "mimc_rtc_user2";
 static const int appcontent_1_len = 3;
 static const char appcontent_1[3] = {0xF0,0xF0,0xF0};
 
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
-
-const char* fetch_token(const char* appaccount) {
-	curl_global_init(CURL_GLOBAL_ALL);
-        CURL *curl = curl_easy_init();
-        CURLcode res;
-#ifndef STAGING
-        const char* url = "https://mimc.chat.xiaomi.net/api/account/token";
-#else
-        const char* url = "http://10.38.162.149/api/account/token";
-#endif
-        char body[130];
-        memset(body, 0, 130);
-        strcat(body, "{\"appId\":\""); 
-        strcat(body, app_id);
-        strcat(body, "\",\"appKey\":\"");
-        strcat(body, app_key);
-        strcat(body, "\",\"appSecret\":\"");
-        strcat(body, app_secret);
-        strcat(body, "\",\"appAccount\":\"");
-        strcat(body, appaccount);
-        strcat(body, "\"}");
-
-        printf("In fetch_token, body is %s, body.size is %d\n", body, strlen(body));
-        char* result = (char *)calloc(1000, 1);
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_POST, 1);
-            curl_easy_setopt(curl, CURLOPT_URL, url);
-            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-
-            struct curl_slist *headers = NULL;
-            headers = curl_slist_append(headers, "Content-Type: application/json");
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(body));
-
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)result);
-
-            res = curl_easy_perform(curl);
-            if (res != CURLE_OK) {
-                printf("curl perform error, error code is %d\n", res);
-            }
-            curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
-        }
-
-        curl_global_cleanup();
-
-        printf("In fetch_token, result is %s\n", result);
-
-        return result;
-}
-
-size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
-    char* bodyp = (char *)(userp);
-    memmove(bodyp + strlen(bodyp), (char *)contents, size * nmemb);
-
-    return size * nmemb;
-}
-
 void status_change(online_status_t online_status, const char* type, const char* reason, const char* desc) {
     printf("In statusChange, status is %d, type is %s, reason is %s, desc is %s\n", online_status, type, reason, desc);
 }
@@ -126,10 +64,6 @@ void on_send_data_failure(uint64_t callid, int dataid, const char* ctx, const in
     printf("In handle_send_data_fail, callid is %llu, dataid is %d, ctx_len is %d\n", callid, dataid, ctx_len);
 }
 
-static token_fetcher_t token_fetcher = {
-    .fetch_token = fetch_token
-};
-
 static online_status_handler_t online_status_handler = {
     .status_change = status_change
 };
@@ -147,7 +81,7 @@ int main() {
     user_t user1_obj;
 	user_t* user1 = &user1_obj;
 	mimc_rtc_init(user1, atoll(app_id), username1, "camera01", NULL);
-    mimc_rtc_register_token_fetcher(user1, &token_fetcher, username1);
+    mimc_rtc_register_token_fetcher(user1, username1);
     mimc_rtc_register_online_status_handler(user1, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user1, &rtscall_event_handler);
     mimc_rtc_login(user1);
@@ -155,7 +89,7 @@ int main() {
     user_t user2_obj;
     user_t* user2 = &user2_obj;
     mimc_rtc_init(user2, atoll(app_id), username2, "camera02", NULL);
-    mimc_rtc_register_token_fetcher(user2, &token_fetcher, username2);
+    mimc_rtc_register_token_fetcher(user2, username2);
     mimc_rtc_register_online_status_handler(user2, &online_status_handler);
     mimc_rtc_register_rtscall_event_handler(user2, &rtscall_event_handler);
     mimc_rtc_login(user2);
@@ -184,7 +118,7 @@ int main() {
     uint64_t callid = mimc_rtc_dial_call(user1, username2, appcontent_1, appcontent_1_len, "camera02");
     printf("user1 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user1));
 
-    sleep(2);
+    sleep(3);
     printf("user2 sendbuffer size is %d\n", mimc_rtc_get_sendbuffer_size(user2));
     const char* data = "12323131323";
     const char* ctx = "dasda";

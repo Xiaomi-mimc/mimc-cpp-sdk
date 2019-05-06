@@ -95,6 +95,7 @@ bool PKT_TYPE_IsValid(int value) {
     case 9:
     case 10:
     case 11:
+    case 12:
       return true;
     default:
       return false;
@@ -125,6 +126,7 @@ bool STREAM_TYPE_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+    case 4:
       return true;
     default:
       return false;
@@ -598,6 +600,7 @@ const int BindRelayRequest::kIntranetPortFieldNumber;
 const int BindRelayRequest::kTokenFieldNumber;
 const int BindRelayRequest::kAudioStreamDefaultConfigFieldNumber;
 const int BindRelayRequest::kVideoStreamDefaultConfigFieldNumber;
+const int BindRelayRequest::kFileStreamDefaultConfigFieldNumber;
 #endif  // !_MSC_VER
 
 BindRelayRequest::BindRelayRequest()
@@ -618,6 +621,12 @@ void BindRelayRequest::InitAsDefaultInstance() {
 #else
   video_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(&::mimc::StreamConfig::default_instance());
 #endif
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  file_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(
+      ::mimc::StreamConfig::internal_default_instance());
+#else
+  file_stream_default_config_ = const_cast< ::mimc::StreamConfig*>(&::mimc::StreamConfig::default_instance());
+#endif
 }
 
 BindRelayRequest::BindRelayRequest(const BindRelayRequest& from)
@@ -635,6 +644,7 @@ void BindRelayRequest::SharedCtor() {
   token_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   audio_stream_default_config_ = NULL;
   video_stream_default_config_ = NULL;
+  file_stream_default_config_ = NULL;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -659,6 +669,7 @@ void BindRelayRequest::SharedDtor() {
   #endif
     delete audio_stream_default_config_;
     delete video_stream_default_config_;
+    delete file_stream_default_config_;
   }
 }
 
@@ -706,6 +717,9 @@ void BindRelayRequest::Clear() {
     }
     if (has_video_stream_default_config()) {
       if (video_stream_default_config_ != NULL) video_stream_default_config_->::mimc::StreamConfig::Clear();
+    }
+    if (has_file_stream_default_config()) {
+      if (file_stream_default_config_ != NULL) file_stream_default_config_->::mimc::StreamConfig::Clear();
     }
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -814,6 +828,20 @@ bool BindRelayRequest::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(66)) goto parse_file_stream_default_config;
+        break;
+      }
+
+      // optional .mimc.StreamConfig file_stream_default_config = 8;
+      case 8: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_file_stream_default_config:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_file_stream_default_config()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -875,6 +903,12 @@ void BindRelayRequest::SerializeWithCachedSizes(
       7, this->video_stream_default_config(), output);
   }
 
+  // optional .mimc.StreamConfig file_stream_default_config = 8;
+  if (has_file_stream_default_config()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      8, this->file_stream_default_config(), output);
+  }
+
 }
 
 int BindRelayRequest::ByteSize() const {
@@ -930,6 +964,13 @@ int BindRelayRequest::ByteSize() const {
           this->video_stream_default_config());
     }
 
+    // optional .mimc.StreamConfig file_stream_default_config = 8;
+    if (has_file_stream_default_config()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->file_stream_default_config());
+    }
+
   }
   GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
   _cached_size_ = total_size;
@@ -966,6 +1007,9 @@ void BindRelayRequest::MergeFrom(const BindRelayRequest& from) {
     if (from.has_video_stream_default_config()) {
       mutable_video_stream_default_config()->::mimc::StreamConfig::MergeFrom(from.video_stream_default_config());
     }
+    if (from.has_file_stream_default_config()) {
+      mutable_file_stream_default_config()->::mimc::StreamConfig::MergeFrom(from.file_stream_default_config());
+    }
   }
 }
 
@@ -984,6 +1028,9 @@ bool BindRelayRequest::IsInitialized() const {
   if (has_video_stream_default_config()) {
     if (!this->video_stream_default_config().IsInitialized()) return false;
   }
+  if (has_file_stream_default_config()) {
+    if (!this->file_stream_default_config().IsInitialized()) return false;
+  }
   return true;
 }
 
@@ -996,6 +1043,7 @@ void BindRelayRequest::Swap(BindRelayRequest* other) {
     std::swap(token_, other->token_);
     std::swap(audio_stream_default_config_, other->audio_stream_default_config_);
     std::swap(video_stream_default_config_, other->video_stream_default_config_);
+    std::swap(file_stream_default_config_, other->file_stream_default_config_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
@@ -1011,7 +1059,7 @@ void BindRelayRequest::Swap(BindRelayRequest* other) {
 #ifndef _MSC_VER
 const int StreamConfig::kStreamStrategyFieldNumber;
 const int StreamConfig::kAckStreamWaitTimeMsFieldNumber;
-const int StreamConfig::kStreamTimeoutSFieldNumber;
+const int StreamConfig::kResendCountFieldNumber;
 const int StreamConfig::kStreamIsEncryptFieldNumber;
 #endif  // !_MSC_VER
 
@@ -1033,7 +1081,7 @@ void StreamConfig::SharedCtor() {
   _cached_size_ = 0;
   stream_strategy_ = 1;
   ack_stream_wait_time_ms_ = 0u;
-  stream_timeout_s_ = 0u;
+  resend_count_ = 0u;
   stream_is_encrypt_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -1075,7 +1123,7 @@ void StreamConfig::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
     stream_strategy_ = 1;
     ack_stream_wait_time_ms_ = 0u;
-    stream_timeout_s_ = 0u;
+    resend_count_ = 0u;
     stream_is_encrypt_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -1117,19 +1165,19 @@ bool StreamConfig::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(24)) goto parse_stream_timeout_s;
+        if (input->ExpectTag(24)) goto parse_resend_count;
         break;
       }
 
-      // optional uint32 stream_timeout_s = 3;
+      // optional uint32 resend_count = 3;
       case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
-         parse_stream_timeout_s:
+         parse_resend_count:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    ::google::protobuf::uint32, ::google::protobuf::internal::WireFormatLite::TYPE_UINT32>(
-                 input, &stream_timeout_s_)));
-          set_has_stream_timeout_s();
+                 input, &resend_count_)));
+          set_has_resend_count();
         } else {
           goto handle_uninterpreted;
         }
@@ -1181,9 +1229,9 @@ void StreamConfig::SerializeWithCachedSizes(
     ::google::protobuf::internal::WireFormatLite::WriteUInt32(2, this->ack_stream_wait_time_ms(), output);
   }
 
-  // optional uint32 stream_timeout_s = 3;
-  if (has_stream_timeout_s()) {
-    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->stream_timeout_s(), output);
+  // optional uint32 resend_count = 3;
+  if (has_resend_count()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt32(3, this->resend_count(), output);
   }
 
   // optional bool stream_is_encrypt = 4;
@@ -1210,11 +1258,11 @@ int StreamConfig::ByteSize() const {
           this->ack_stream_wait_time_ms());
     }
 
-    // optional uint32 stream_timeout_s = 3;
-    if (has_stream_timeout_s()) {
+    // optional uint32 resend_count = 3;
+    if (has_resend_count()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::UInt32Size(
-          this->stream_timeout_s());
+          this->resend_count());
     }
 
     // optional bool stream_is_encrypt = 4;
@@ -1243,8 +1291,8 @@ void StreamConfig::MergeFrom(const StreamConfig& from) {
     if (from.has_ack_stream_wait_time_ms()) {
       set_ack_stream_wait_time_ms(from.ack_stream_wait_time_ms());
     }
-    if (from.has_stream_timeout_s()) {
-      set_stream_timeout_s(from.stream_timeout_s());
+    if (from.has_resend_count()) {
+      set_resend_count(from.resend_count());
     }
     if (from.has_stream_is_encrypt()) {
       set_stream_is_encrypt(from.stream_is_encrypt());
@@ -1268,7 +1316,7 @@ void StreamConfig::Swap(StreamConfig* other) {
   if (other != this) {
     std::swap(stream_strategy_, other->stream_strategy_);
     std::swap(ack_stream_wait_time_ms_, other->ack_stream_wait_time_ms_);
-    std::swap(stream_timeout_s_, other->stream_timeout_s_);
+    std::swap(resend_count_, other->resend_count_);
     std::swap(stream_is_encrypt_, other->stream_is_encrypt_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);

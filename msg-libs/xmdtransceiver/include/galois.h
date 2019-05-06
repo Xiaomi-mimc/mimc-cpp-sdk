@@ -2,7 +2,7 @@
 #define GALOIS_H
 
 #include <math.h>
-#include <pthread.h>
+#include <mutex>
 #include <stdint.h>
 
 class Galois {
@@ -14,7 +14,7 @@ private:
     uint32_t * logs;
 
     static Galois* instance_;
-    static pthread_mutex_t mutex_;
+	static std::mutex mutex_;
 
     class DestructLogger {
         public:

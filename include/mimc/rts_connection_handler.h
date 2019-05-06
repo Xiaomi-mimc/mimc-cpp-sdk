@@ -2,6 +2,8 @@
 #define MIMC_CPP_SDK_RTS_CONNECTIONHANDLER_H
 
 #include <ConnectionHandler.h>
+#include <XMDTransceiver.h>
+#include <mimc/rts_send_data.h>
 #include <mimc/rts_connection_info.h>
 #include <mimc/user.h>
 #include <mimc/error.h>
@@ -33,7 +35,6 @@ public:
 				this->user->resetRelayLinkState();
 			}
 		} else if (rtsConnectionInfo->getConnType() == INTRANET_CONN) {
-			
 			uint64_t callId = rtsConnectionInfo->getCallId();
 			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 			P2PCallSession& p2pCallSession = this->user->getCurrentCalls()->at(callId);
@@ -57,12 +58,12 @@ public:
 		RtsConnectionInfo* rtsConnectionInfo = (RtsConnectionInfo*)ctx;
 		if (rtsConnectionInfo->getConnType() == RELAY_CONN) {
 			XMDLoggerWrapper::instance()->error("Relay connection create failed");
-
 			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 			this->user->getCurrentCalls()->clear();
 			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 			this->user->resetRelayLinkState();
 			pthread_mutex_lock(&user->getAddressMutex());
+//			user->getAddressMutex().lock();
 			std::vector<std::string>::iterator it;
 			it = find(this->user->getRelayAddresses().begin(), this->user->getRelayAddresses().end(), rtsConnectionInfo->getAddress());
 			if (it != this->user->getRelayAddresses().end()) {
@@ -72,6 +73,7 @@ public:
 				this->user->setAddressInvalid(true);
 			}
 			pthread_mutex_unlock(&user->getAddressMutex());
+//			user->getAddressMutex().unlock();
 		}
 		delete rtsConnectionInfo;
 	}
@@ -81,7 +83,7 @@ public:
 			XMDLoggerWrapper::instance()->info("XMDConnection is closed normally, connId is %llu, ConnCloseType is %d", connId, type);
 			return;
 		}
-		//连接被关闭时，重置本地XMD连接及处理会话状态
+		//连接被非正常关闭时，重置本地XMD连接及处理会话状态
 		this->user->handleXMDConnClosed(connId, type);
 	}
 private:

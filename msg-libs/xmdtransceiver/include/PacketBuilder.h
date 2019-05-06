@@ -44,9 +44,11 @@ struct groupData {
         flags = flag;
         partitionVec = new partitionData[partitionSize];
     }
+    
     ~groupData() {
         if (partitionVec) {
             delete[] partitionVec;
+            partitionVec = NULL;
         }
     }
 };
@@ -65,7 +67,7 @@ public:
 private:
     XMDCommonData* commonData_;
     PacketDispatcher* dispatcher_;
-    unsigned char fecRedundancyData_[MAX_ORIGIN_PACKET_NUM_IN_PARTITION * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
+    //unsigned char fecRedundancyData_[MAX_ORIGIN_PACKET_NUM_IN_PARTITION * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
     int partition_size_;
     groupData groupData_;
     bool isBigPacket_;

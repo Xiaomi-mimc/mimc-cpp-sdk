@@ -1,7 +1,7 @@
 #ifndef ENCODETHREAD_H
 #define ENCODETHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "PacketDecoder.h"
 
 const int GROUPMAP_CHECK_INTERVAL = 1;  //1ms

@@ -36,6 +36,11 @@
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/stl_util.h>
 
+#ifdef _WIN32
+#include <algorithm>
+#endif // _WIN32
+
+
 namespace google {
 namespace protobuf {
 namespace io {

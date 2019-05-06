@@ -2,8 +2,11 @@
 #define MIMC_CPP_SDK_RTS_STREAM_HANDLER_H
 
 #include <StreamHandler.h>
+#include <XMDTransceiver.h>
 #include <mimc/user.h>
 #include <mimc/rts_context.h>
+#include <mimc/rts_send_signal.h>
+#include <mimc/rts_data.pb.h>
 
 class RtsStreamHandler : public StreamHandler {
 public:
@@ -17,23 +20,23 @@ public:
 		
 	}
 	virtual void RecvStreamData(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, char* data, int len) {
-		
 		mimc::UserPacket userPacket;
 		if (!userPacket.ParseFromArray(data, len)) {
-			
+			XMDLoggerWrapper::instance()->error("In RecvStreamData, parse failed");
 			return;
 		}
 		if (!userPacket.has_uuid() || !userPacket.has_pkt_type() || !userPacket.has_resource()) {
-			
+			XMDLoggerWrapper::instance()->error("In RecvStreamData, missing field");
 			return;
 		}
-		
+
+		XMDLoggerWrapper::instance()->info("In RecvStreamData, conn_id is %llu, stream_id is %d, groupId is %d", conn_id, stream_id, groupId);
 
 		if (userPacket.pkt_type() == mimc::BIND_RELAY_RESPONSE) {
 			this->user->setLatestLegalRelayLinkStateTs(time(NULL));
 			mimc::BindRelayResponse bindRelayResponse;
 			if (!bindRelayResponse.ParseFromString(userPacket.payload())) {
-				
+				XMDLoggerWrapper::instance()->error("In BIND_RELAY_RESPONSE, parse failed");
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
 				pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 				this->user->getCurrentCalls()->clear();
@@ -42,7 +45,7 @@ public:
 				return;
 			}
 			if (!bindRelayResponse.has_result() || !bindRelayResponse.has_internet_ip() || !bindRelayResponse.has_relay_ip() || !bindRelayResponse.has_internet_port() || !bindRelayResponse.has_relay_port()) {
-				
+				XMDLoggerWrapper::instance()->error("In BIND_RELAY_RESPONSE, missing field");
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
 				pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 				this->user->getCurrentCalls()->clear();
@@ -51,7 +54,7 @@ public:
 				return;
 			}
 			if (!bindRelayResponse.result()) {
-				
+				XMDLoggerWrapper::instance()->error("In BIND_RELAY_RESPONSE, result is not true");
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
 				pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 				this->user->getCurrentCalls()->clear();
@@ -59,16 +62,17 @@ public:
 				this->user->resetRelayLinkState();
 				return;
 			}
-			this->user->setBindRelayResponse(bindRelayResponse);
+			mimc::BindRelayResponse* userBindRelayResponse = new mimc::BindRelayResponse(bindRelayResponse);
+			this->user->setBindRelayResponse(userBindRelayResponse);
 			this->user->setRelayLinkState(SUCC_CREATED);
+
 			pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 			std::map<uint64_t, P2PCallSession>* currentCalls = this->user->getCurrentCalls();
 			for (std::map<uint64_t, P2PCallSession>::iterator iter = currentCalls->begin(); iter != currentCalls->end(); iter++) {
 				const uint64_t& callId = iter->first;
-				XMDLoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, relay bind succeed, callId is %llu", callId);
+				XMDLoggerWrapper::instance()->info("In BIND_RELAY_RESPONSE, relay bind succeed, relayIp is %s, callId is %llu", bindRelayResponse.relay_ip().c_str(), callId);
 				P2PCallSession& p2pCallSession = iter->second;
 				if (p2pCallSession.getCallState() == WAIT_SEND_CREATE_REQUEST && p2pCallSession.isCreator()) {
-					
 					RtsSendSignal::sendCreateRequest(this->user, callId);
 				} else if (p2pCallSession.getCallState() == WAIT_CALL_ONLAUNCHED && !p2pCallSession.isCreator()) {
 					p2pCallSession.setCallState(WAIT_INVITEE_RESPONSE);
@@ -83,25 +87,28 @@ public:
 					this->user->getOnlaunchCalls()->insert(std::pair<uint64_t, pthread_t>(callId, onLaunchedThread));
 					pthread_attr_destroy(&attr);
 				} else if (p2pCallSession.getCallState() == WAIT_SEND_UPDATE_REQUEST) {
-
+					RtsSendSignal::sendUpdateRequest(this->user, callId);
 				}
 			}
+
 			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 		} else if (userPacket.pkt_type() == mimc::PING_RELAY_RESPONSE) {
+			const mimc::BindRelayResponse* bindRelayResponse = this->user->getBindRelayResponse();
+			if (!bindRelayResponse) {
+				return;
+			}
 			mimc::PingRelayResponse pingRelayResponse;
 			if (!pingRelayResponse.ParseFromString(userPacket.payload())) {
-				
 				return;
 			}
 			if (!pingRelayResponse.has_result() || !pingRelayResponse.has_internet_ip() || !pingRelayResponse.has_internet_port()) {
-				
 				return;
 			}
-			const mimc::BindRelayResponse& bindRelayResponse = this->user->getBindRelayResponse();
-			if (bindRelayResponse.internet_ip() != pingRelayResponse.internet_ip() || bindRelayResponse.internet_port() != pingRelayResponse.internet_port()) {
+			if (bindRelayResponse->internet_ip() != pingRelayResponse.internet_ip() || bindRelayResponse->internet_port() != pingRelayResponse.internet_port()) {
 				this->user->getXmdTransceiver()->closeConnection(conn_id);
 				this->user->resetRelayLinkState();
 				RtsSendData::createRelayConn(this->user);
+
 				pthread_rwlock_wrlock(&this->user->getCallsRwlock());
 				std::map<uint64_t, P2PCallSession>* currentCalls = this->user->getCurrentCalls();
 				for (std::map<uint64_t, P2PCallSession>::iterator iter = currentCalls->begin(); iter != currentCalls->end(); iter++) {
@@ -113,7 +120,6 @@ public:
 			}
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_AUDIO) {
 			uint64_t callId = userPacket.call_id();
-			
 			pthread_rwlock_rdlock(&this->user->getCallsRwlock());
 			if (this->user->getCurrentCalls()->count(callId) == 0) {
 				pthread_rwlock_unlock(&this->user->getCallsRwlock());
@@ -135,7 +141,6 @@ public:
 			pthread_rwlock_unlock(&this->user->getCallsRwlock());
 		} else if (userPacket.pkt_type() == mimc::USER_DATA_VIDEO) {
 			uint64_t callId = userPacket.call_id();
-			
 			pthread_rwlock_rdlock(&this->user->getCallsRwlock());
 			if (this->user->getCurrentCalls()->count(callId) == 0) {
 				pthread_rwlock_unlock(&this->user->getCallsRwlock());
@@ -151,6 +156,27 @@ public:
 				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, VIDEO, P2P_INTRANET);
 			} else if (conn_id == this->user->getP2PInternetConnId(callId)) {
 				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, VIDEO, P2P_INTERNET);
+			} else {
+				
+			}
+			pthread_rwlock_unlock(&this->user->getCallsRwlock());
+		} else if (userPacket.pkt_type() == mimc::USER_DATA_FILE) {
+			uint64_t callId = userPacket.call_id();
+			pthread_rwlock_rdlock(&this->user->getCallsRwlock());
+			if (this->user->getCurrentCalls()->count(callId) == 0) {
+				pthread_rwlock_unlock(&this->user->getCallsRwlock());
+				return;
+			}
+			XMDLoggerWrapper::instance()->info("In USER_DATA_FILE");
+			const std::string& fromAccount = userPacket.from_app_account();
+			const std::string& resource = userPacket.resource();
+			const std::string& data = userPacket.payload();
+			if (conn_id == this->user->getRelayConnId()) {
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, FILEDATA, RELAY);
+			} else if (conn_id == this->user->getP2PIntranetConnId(callId)) {
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, FILEDATA, P2P_INTRANET);
+			} else if (conn_id == this->user->getP2PInternetConnId(callId)) {
+				this->user->getRTSCallEventHandler()->onData(callId, fromAccount, resource, data, FILEDATA, P2P_INTERNET);
 			} else {
 				
 			}

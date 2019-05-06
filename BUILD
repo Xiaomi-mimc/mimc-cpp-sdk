@@ -8,6 +8,8 @@ cc_library(
         "-ffunction-sections",
         "-fdata-sections",
         "-pthread",
+        "-fPIC",
+        "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -35,6 +37,7 @@ cc_binary(
          "-fno-rtti",
          "-ffunction-sections",
          "-fdata-sections",
+         "-D_GLIBCXX_USE_NANOSLEEP",
 #         "-DSTAGING",
     ],
     linkopts = [
@@ -58,6 +61,7 @@ cc_binary(
          "-fno-rtti",
          "-ffunction-sections",
          "-fdata-sections",
+         "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -103,6 +107,7 @@ cc_test(
         "-ffunction-sections",
         "-fdata-sections", 
         "-I.",
+        "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -114,6 +119,7 @@ cc_test(
     srcs = glob([
         "test/mimc_test.cpp",
         "test/**/*.h",
+		"test/mimc_tokenfetcher.cpp",
     ]),
     deps = [
         "//third-party/gtest-170",
@@ -131,6 +137,7 @@ cc_test(
         "-ffunction-sections",
         "-fdata-sections",
         "-I.",
+        "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -142,6 +149,7 @@ cc_test(
     srcs = glob([
        "test/rts_test.cpp",
        "test/**/*.h",
+	   "test/mimc_tokenfetcher.cpp",
     ]),
     deps = [
         "//third-party/gtest-170",
@@ -159,6 +167,7 @@ cc_test(
         "-ffunction-sections",
         "-fdata-sections",
         "-I.",
+        "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -170,6 +179,7 @@ cc_test(
     srcs = glob([
        "test/rts_performance.cpp",
        "test/**/*.h",
+	   "test/mimc_tokenfetcher.cpp",
     ]),
     deps = [
         "//third-party/gtest-170",
@@ -187,6 +197,7 @@ cc_test(
         "-ffunction-sections",
         "-fdata-sections",
         "-I.",
+        "-D_GLIBCXX_USE_NANOSLEEP",
 #        "-DSTAGING",
     ],
     linkopts = [
@@ -198,6 +209,7 @@ cc_test(
     srcs = glob([
        "test/rts_efficiency.cpp",
        "test/**/*.h",
+	   "test/mimc_tokenfetcher.cpp",
     ]),
     deps = [
         "//third-party/gtest-170",

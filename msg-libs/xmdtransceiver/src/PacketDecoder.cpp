@@ -1,9 +1,15 @@
 #include "PacketDecoder.h"
 #include "XMDLoggerWrapper.h"
 #include <sstream>
-#include <openssl/rsa.h>
-#include <openssl/aes.h>
 
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#include <stdlib.h>
+#include <stdio.h>
+//#pragma comment( lib, "lib/libeay32.lib")
+//#pragma comment( lib, "lib/ssleay32.lib" )
+#else
+#endif // _WIN32
 
 PacketDecoder::PacketDecoder(PacketDispatcher* dispatcher, XMDCommonData* commonData) {
     dispatcher_ = dispatcher;
@@ -28,17 +34,27 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
         const int IP_STR_LEN = 32;
         char ipStr[IP_STR_LEN];
         memset(ipStr, 0, IP_STR_LEN);
-        inet_ntop(AF_INET, &ip, ipStr, IP_STR_LEN);
+
+#ifdef _WIN32
+		inet_ntop(AF_INET, &ip, (PSTR)ipStr, IP_STR_LEN);
+#else
+		inet_ntop(AF_INET, &ip, ipStr, IP_STR_LEN);
+#endif // _WIN32
+        
         dispatcher_->handleRecvDatagram(ipStr, port, (char*)xmdPacket->data, packetLen);
     } else if (xmdType == STREAM) {
         PacketType packetType = (PacketType)xmdPacket->getPacketType();
         uint64_t connId = 0;
         if (packetType == CONN_BEGIN) {
-            uint64_t* tmpId = (uint64_t*)(xmdPacket->data + 2);  //VERSION len
-            connId = xmd_ntohll(*tmpId);
+            //uint64_t* tmpId = (uint64_t*)(xmdPacket->data + 2);  //VERSION len
+            uint64_t tmpId = 0;
+            trans_uint64_t(tmpId, (char*)(xmdPacket->data + 2));
+            connId = xmd_ntohll(tmpId);
         } else {
-            uint64_t* tmpId = (uint64_t*)xmdPacket->data;
-            connId = xmd_ntohll(*tmpId);
+            //uint64_t* tmpId = (uint64_t*)xmdPacket->data;
+            uint64_t tmpId = 0;
+            trans_uint64_t(tmpId, (char*)xmdPacket->data);
+            connId = xmd_ntohll(tmpId);
         }
         
     
@@ -53,7 +69,11 @@ void PacketDecoder::decode(uint32_t ip, int port, char* data, int len) {
                 const int IP_STR_LEN = 32;
                 char tmpip[IP_STR_LEN];
                 memset(tmpip, 0, IP_STR_LEN);
-                inet_ntop(AF_INET, &ip, tmpip, IP_STR_LEN);
+#ifdef _WIN32
+				inet_ntop(AF_INET, &ip, (PSTR)tmpip, IP_STR_LEN);
+#else
+				inet_ntop(AF_INET, &ip, tmpip, IP_STR_LEN);
+#endif // _WIN32
                 int ipLen = 0;
                 for (; ipLen < 16; ipLen++) {
                     if (tmpip[ipLen] == '\0');
@@ -147,29 +167,19 @@ void PacketDecoder::handleNewConn(uint32_t ip, int port, unsigned char* data, in
         }
     }
 
-
-    RSA* encryptRsa = RSA_new();
-    encryptRsa->n = BN_bin2bn(conn->GetRSAN(), conn->GetNLen(), encryptRsa->n);
-    encryptRsa->e = BN_bin2bn(conn->GetRSAE(), conn->GetELen(), encryptRsa->e);
-
-    std::string sessionKey = std::to_string(rand64());
-    unsigned char keyOut[SESSION_KEY_LEN];
-    int encryptedKeyLen = RSA_public_encrypt(sessionKey.length(), (const unsigned char*)sessionKey.c_str(), keyOut, encryptRsa, RSA_PKCS1_PADDING);
-
     
     ConnInfo connInfo;
     connInfo.ip = ip;
     connInfo.port = port;
     connInfo.timeout = conn->GetTimeout();
     connInfo.connState = CONNECTED;
-    connInfo.rsa = encryptRsa;
     connInfo.created_stream_id = -1;
     connInfo.max_stream_id = 0;
-    connInfo.sessionKey = sessionKey;
+    connInfo.sessionKey = "";
     commonData_->insertConn(conn->GetConnId(), connInfo);
     
     
-    packetMan.buildConnResp(conn->GetConnId(), keyOut, encryptedKeyLen);
+    packetMan.buildConnResp(conn->GetConnId(), NULL, 0);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
@@ -207,15 +217,7 @@ void PacketDecoder::handleConnResp(uint32_t ip, int port, unsigned char* data, i
     }
     
     connInfo.connState = CONNECTED;
-
-    unsigned char keyOut[SESSION_KEY_LEN];
-    int encryptedKeyLen = len - sizeof(XMDConnResp);
-    XMDLoggerWrapper::instance()->debug("encrypt session key len=%d", encryptedKeyLen);
-    int keyLen = RSA_private_decrypt(encryptedKeyLen, connResp->GetSessionkey(), keyOut, connInfo.rsa, RSA_PKCS1_PADDING);    
-
-    std::string tmpStr((char*)keyOut, keyLen);
-    connInfo.sessionKey = tmpStr;
-    XMDLoggerWrapper::instance()->debug("session key len=%d, key=%s", keyLen, connInfo.sessionKey.c_str());
+    connInfo.sessionKey = "";
     commonData_->updateConn(connResp->GetConnId(), connInfo);
     if (!isconnected) {
         dispatcher_->handleConnCreateSucc(connResp->GetConnId(), connInfo.ctx);
@@ -227,6 +229,9 @@ void PacketDecoder::handleConnResp(uint32_t ip, int port, unsigned char* data, i
     commonData_->updateIsPacketRecvAckMap(connKey, true);
 
     commonData_->insertPacketLossInfoMap(connResp->GetConnId());
+
+    PacketCallbackInfo packetCallbackInfo;
+    commonData_->getDeletePacketCallbackInfo(connKey, packetCallbackInfo);
 }
 
 void PacketDecoder::handleConnClose(unsigned char* data, int len) {
@@ -265,6 +270,7 @@ void PacketDecoder::handleFECStreamData(ConnInfo connInfo, uint32_t ip, int port
         streamInfo.isEncrypt = isEncrypt;
         commonData_->insertStream(streamData->GetConnId(), streamData->GetStreamId(), streamInfo);
     } 
+
 
     XMDLoggerWrapper::instance()->debug("stream timeout=%d", streamData->GetTimeout());
 
@@ -388,7 +394,7 @@ void PacketDecoder::handlePong(ConnInfo connInfo, uint32_t ip, int port, unsigne
         status.packetLossRate = 0;
     }
     PingPacket pingPakcet;
-    if (commonData_->getPingPacket(pong->GetConnId(), pingPakcet)) {
+    if (commonData_->getPingPacket(pong->GetConnId(), pingPakcet)) {
         status.ttl = (currentTime - pingPakcet.sendTime - (pong->GetTimestamp2() - pong->GetTimestamp1())) / 2;
     }
     
@@ -464,4 +470,3 @@ void PacketDecoder::sendConnReset(uint32_t ip, int port, uint64_t conn_id, ConnR
     commonData_->socketSendQueuePush(sendData);
     XMDLoggerWrapper::instance()->warn("send conn(%ld) reset.type=%d", conn_id, type);
 }
-

@@ -11,9 +11,9 @@
 using namespace std;
 
 #ifndef STAGING
-string appId = "2882303761517669588";
-string appKey = "5111766983588";
-string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
+string appId = "2882303761517613988";
+string appKey = "5361761377988";
+string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
 #else
 string appId = "2882303761517479657";
 string appKey = "5221747911657";
@@ -85,6 +85,12 @@ public:
 protected:
 	User* rtsUser1;
 	User* rtsUser2;
+
+	TestTokenFetcher* tokenFetcher1;
+	TestTokenFetcher* tokenFetcher2;
+
+	TestOnlineStatusHandler* onlineStatusHandler1;
+	TestOnlineStatusHandler* onlineStatusHandler2;
 
 	TestMessageHandler* msgHandler1;
 	TestMessageHandler* msgHandler2;

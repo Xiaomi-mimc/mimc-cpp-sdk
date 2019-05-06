@@ -1,7 +1,7 @@
 #ifndef PONGTHREAD_H
 #define PONGTHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "XMDCommonData.h"
 
 

@@ -1,7 +1,7 @@
 #ifndef PACKETDECODETHREAD_H
 #define PACKETDECODETHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "XMDCommonData.h"
 #include "PacketDispatcher.h"
 #include "PacketDecoder.h"

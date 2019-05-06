@@ -15,7 +15,8 @@ typedef enum {
 
 typedef enum {
 	AUD,
-	VID
+	VID,
+	FILED
 } data_type_t;
 
 typedef enum {
@@ -37,6 +38,9 @@ typedef enum {
 
 typedef struct {
 	void* value;
+	void* token_fetcher;
+	void* online_status_handler;
+	void* rtscall_event_handler;
 } user_t;
 
 typedef struct {
@@ -49,10 +53,6 @@ typedef struct {
 	bool accepted;
 	const char* desc;
 } launched_response_t;
-
-typedef struct {
-	const char* (*fetch_token)(const char* appaccount);
-} token_fetcher_t;
 
 typedef struct {
 	void (*status_change)(online_status_t online_status, const char* type, const char* reason, const char* desc);
@@ -71,10 +71,14 @@ int mimc_rtc_get_login_timeout();
 
 void mimc_rtc_init(user_t* user, int64_t appid, const char* appaccount, const char* resource, const char* cachepath);
 void mimc_rtc_fini(user_t* user);
+bool mimc_rtc_get_token_fetch_succeed(user_t* user);
+short mimc_rtc_get_token_request_status(user_t* user);
 bool mimc_rtc_login(user_t* user);
 bool mimc_rtc_logout(user_t* user);
 bool mimc_rtc_isonline(user_t* user);
+bool mimc_rtc_channel_connected(user_t* user);
 void mimc_rtc_set_max_callnum(user_t* user, unsigned int num);
+unsigned int mimc_rtc_get_max_callnum(user_t* user);
 void mimc_rtc_init_audiostream_config(user_t* user, const stream_config_t* stream_config);
 void mimc_rtc_init_videostream_config(user_t* user, const stream_config_t* stream_config);
 void mimc_rtc_set_sendbuffer_size(user_t* user, int size);
@@ -87,9 +91,9 @@ void mimc_rtc_clear_sendbuffer(user_t* user);
 void mimc_rtc_clear_recvbuffer(user_t* user);
 uint64_t mimc_rtc_dial_call(user_t* user, const char* to_appaccount, const char* appcontent, const int appcontent_len, const char* to_resource);
 void mimc_rtc_close_call(user_t* user, uint64_t callid, const char* bye_reason);
-bool mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count);
+int mimc_rtc_send_data(user_t* user, uint64_t callid, const char* data, const int data_len, const data_type_t data_type, const channel_type_t channel_type, const char* ctx, const int ctx_len, const bool can_be_dropped, const data_priority_t data_priority, const unsigned int resend_count);
 
-void mimc_rtc_register_token_fetcher(user_t* user, const token_fetcher_t* token_fetcher, const char* app_account);
+void mimc_rtc_register_token_fetcher(user_t* user, const char* app_account);
 void mimc_rtc_register_online_status_handler(user_t* user, const online_status_handler_t* online_status_handler);
 void mimc_rtc_register_rtscall_event_handler(user_t* user, const rtscall_event_handler_t* rtscall_event_handler);
 

@@ -1,23 +1,30 @@
 #include <gtest/gtest.h>
 #include <test/rts_performance.h>
 #include <test/rts_performance_handler.h>
+#include <thread>
+#include <chrono>
 
 void RtsPerformance::SetUp() {
+	curl_global_init(CURL_GLOBAL_ALL);
 	rtsUser1 = new User(atoll(appId.c_str()), appAccount1);
 	msgHandler1 = new TestMessageHandler();
+	tokenFetcher1 = new TestTokenFetcher(appId, appKey, appSecret, appAccount1);
+	onlineStatusHandler1 = new TestOnlineStatusHandler();
 	callEventHandler1 = new RtsPerformanceHandler(this);
 
 	rtsUser2 = new User(atoll(appId.c_str()), appAccount2);
 	msgHandler2 = new TestMessageHandler();
+	tokenFetcher2 = new TestTokenFetcher(appId, appKey, appSecret, appAccount2);
+	onlineStatusHandler2 = new TestOnlineStatusHandler();
 	callEventHandler2 = new RtsPerformanceHandler(this);
 
-	rtsUser1->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
-	rtsUser1->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+	rtsUser1->registerTokenFetcher(tokenFetcher1);
+	rtsUser1->registerOnlineStatusHandler(onlineStatusHandler1);
 	rtsUser1->registerMessageHandler(msgHandler1);
 	rtsUser1->registerRTSCallEventHandler(callEventHandler1);
 
-	rtsUser2->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
-	rtsUser2->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+	rtsUser2->registerTokenFetcher(tokenFetcher2);
+	rtsUser2->registerOnlineStatusHandler(onlineStatusHandler2);
 	rtsUser2->registerMessageHandler(msgHandler2);
 	rtsUser2->registerRTSCallEventHandler(callEventHandler2);
 }
@@ -26,13 +33,33 @@ void RtsPerformance::TearDown() {
 	rtsUser1->logout();
 	rtsUser2->logout();
 
-	usleep(100);
+	//usleep(100);
+	this_thread::sleep_for(std::chrono::microseconds(100));
 
 	delete rtsUser1;
 	rtsUser1 = NULL;
 
 	delete rtsUser2;
 	rtsUser2 = NULL;
+
+	delete msgHandler1;
+	msgHandler1 = NULL;
+	delete tokenFetcher1;
+	tokenFetcher1 = NULL;
+	delete onlineStatusHandler1;
+	onlineStatusHandler1 = NULL;
+	delete callEventHandler1;
+	callEventHandler1 = NULL;
+
+	delete msgHandler2;
+	msgHandler2 = NULL;
+	delete tokenFetcher2;
+	tokenFetcher2 = NULL;
+	delete onlineStatusHandler2;
+	onlineStatusHandler2 = NULL;
+	delete callEventHandler2;
+	callEventHandler2 = NULL;
+	curl_global_cleanup();
 }
 
 void RtsPerformance::performanceTest() {
@@ -41,6 +68,7 @@ void RtsPerformance::performanceTest() {
 	const int durationSec = 100;
 	testPerformance(rtsUser1, callEventHandler1, rtsUser2, callEventHandler2, dataSizeKB, speedKB, durationSec);
 }
+
 
 void RtsPerformance::testPerformance(User* user1, RtsPerformanceHandler* callEventHandler1, User* user2, RtsPerformanceHandler* callEventHandler2, int dataSizeKB, int dataSpeedKB, int durationSec) {
 	sendFailed = 0;
@@ -73,9 +101,12 @@ void RtsPerformance::testPerformance(User* user1, RtsPerformanceHandler* callEve
 			XMDLoggerWrapper::instance()->warn("DATA_ID:%d, SEND FAILED", i);
 			sendFailed++;
 		}
-		usleep(TIMEVAL_US);
+		//usleep(TIMEVAL_US);
+		this_thread::sleep_for(std::chrono::microseconds(TIMEVAL_US));
 	}
-	sleep(5);
+	//sleep(5);
+	this_thread::sleep_for(std::chrono::seconds(5));
+
 	closeCall(callId, user1, callEventHandler1, callEventHandler2);
 
 	lost = COUNT - sendFailed - time0To50 - time51To100 - time101To150 - time151To200 - time201To300 - time301To400 - time401To500 - time501To1000 - time1001More;
@@ -96,12 +127,14 @@ void RtsPerformance::testPerformance(User* user1, RtsPerformanceHandler* callEve
 	XMDLoggerWrapper::instance()->warn("RECV_TIME 1000+ms: %d", time1001More);
 }
 
+
 void RtsPerformance::logIn(User* user, RtsPerformanceHandler* callEventHandler) {
 	time_t loginTs = time(NULL);
 	user->login();
 	XMDLoggerWrapper::instance()->info("user %s called login", user->getAppAccount().c_str());
 	while (time(NULL) - loginTs < LOGIN_TIMEOUT && user->getOnlineStatus() == Offline) {
-		usleep(50000);
+		//usleep(50000);
+		this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
 	ASSERT_EQ(Online, user->getOnlineStatus());
 	if (callEventHandler != NULL) {
@@ -113,39 +146,38 @@ void RtsPerformance::logIn(User* user, RtsPerformanceHandler* callEventHandler) 
 void RtsPerformance::createCall(uint64_t& callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, User* to, RtsPerformanceHandler* callEventHandlerTo, const string& appContent) {
 	callId = from->dialCall(to->getAppAccount(), appContent);
 	ASSERT_NE(callId, 0);
-	sleep(1);
+	//sleep(1);
+	this_thread::sleep_for(std::chrono::seconds(1));
 
-	RtsMessageData* inviteRequest = callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE);
-	ASSERT_FALSE(inviteRequest == NULL);
-	if (inviteRequest != NULL) {
-		ASSERT_EQ(callId, inviteRequest->getCallId());
-		ASSERT_EQ(from->getAppAccount(), inviteRequest->getFromAccount());
-		ASSERT_EQ(from->getResource(), inviteRequest->getFromResource());
-		ASSERT_EQ(appContent, inviteRequest->getAppContent());
-	}
+	RtsMessageData inviteRequest;
+	ASSERT_TRUE(callEventHandlerTo->pollInviteRequest(WAIT_TIME_FOR_MESSAGE, inviteRequest));
+	ASSERT_EQ(callId, inviteRequest.getCallId());
+	ASSERT_EQ(from->getAppAccount(), inviteRequest.getFromAccount());
+	ASSERT_EQ(from->getResource(), inviteRequest.getFromResource());
+	ASSERT_EQ(appContent, inviteRequest.getAppContent());
 
-	RtsMessageData* createResponse = callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-	ASSERT_FALSE(createResponse == NULL);
-	if (createResponse != NULL) {
-		ASSERT_EQ(callId, createResponse->getCallId());
-		ASSERT_EQ(true, createResponse->isAccepted());
-		ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse->getDesc());
-	}
+	RtsMessageData createResponse;
+	ASSERT_TRUE(callEventHandlerFrom->pollCreateResponse(WAIT_TIME_FOR_MESSAGE, createResponse));
+	ASSERT_EQ(callId, createResponse.getCallId());
+	ASSERT_EQ(true, createResponse.isAccepted());
+	ASSERT_EQ(callEventHandlerFrom->LAUNCH_OK, createResponse.getDesc());
+
 }
 
 void RtsPerformance::closeCall(uint64_t callId, User* from, RtsPerformanceHandler* callEventHandlerFrom, RtsPerformanceHandler* callEventHandlerTo) {
 	from->closeCall(callId);
-	sleep(1);
+	//sleep(1);
+	this_thread::sleep_for(std::chrono::seconds(1));
 
-	RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
-	ASSERT_FALSE(byeRequest == NULL);
-	ASSERT_EQ(callId, byeRequest->getCallId());
-	ASSERT_EQ("", byeRequest->getDesc());
+	RtsMessageData byeRequest;
+	ASSERT_TRUE(callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE, byeRequest));
+	ASSERT_EQ(callId, byeRequest.getCallId());
+	ASSERT_EQ("", byeRequest.getDesc());
 
-	RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
-	ASSERT_FALSE(byeResponse == NULL);
-	ASSERT_EQ(callId, byeResponse->getCallId());
-	ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
+	RtsMessageData byeResponse;
+	ASSERT_TRUE(callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE, byeResponse));
+	ASSERT_EQ(callId, byeResponse.getCallId());
+	ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse.getDesc());
 }
 
 TEST_F(RtsPerformance, performanceTest) {

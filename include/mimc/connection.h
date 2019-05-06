@@ -45,8 +45,15 @@ private:
     unsigned int version;
     int sdk;
     int andver;
-    int socketfd;
-    time_t nextResetSockTimestamp;
+
+#ifdef _WIN32
+	SOCKET socketfd;
+#else
+	int socketfd;
+#endif // _WIN32
+
+	time_t nextResetSockTimestamp;
+
     std::string model;
     std::string os;
     std::string udid;

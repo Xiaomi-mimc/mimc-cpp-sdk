@@ -1,6 +1,12 @@
 #ifndef RTSTREAM_H
 #define RTSTREAM_H
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include "pthread.h"
+#pragma comment(lib, "Ws2_32.lib")
+#endif // _WIN32
+
 #include "XMDSendThread.h"
 #include "XMDRecvThread.h"
 #include "XMDCommonData.h"
@@ -32,21 +38,15 @@ private:
     PongThread* pongThread_;
     int port_;
     static pthread_mutex_t create_conn_mutex_;
+    std::mutex reset_socket_mutex_;
+    int decodeThreadSize_;
     
 public:
     XMDTransceiver(int decodeThreadSize, int port = 0) {
         port_ = port;
-        commonData_ = new XMDCommonData(decodeThreadSize);
-        packetDispatcher_ = new PacketDispatcher();
-        recvThread_ = new XMDRecvThread(port, commonData_);
-        sendThread_ = new XMDSendThread(recvThread_->listenfd(), port, commonData_, packetDispatcher_);
-        packetbuildThreadPool_ = new XMDPacketBuildThreadPool(1, commonData_, packetDispatcher_);
-        packetRecoverThreadPool_ = new XMDPacketRecoverThreadPool(decodeThreadSize, commonData_);
-        packetDecodeThreadPool_ = new XMDPacketDecodeThreadPool(1, commonData_, packetDispatcher_);
-        callbackThread_ = new XMDCallbackThread(packetDispatcher_, commonData_);
-        pingThread_ = new PingThread(packetDispatcher_, commonData_);
-        pongThread_ = new PongThread(commonData_);
+        decodeThreadSize_ = decodeThreadSize;
     }
+
     ~XMDTransceiver() {
         if (commonData_) {
             delete commonData_;
@@ -89,6 +89,10 @@ public:
             packetDecodeThreadPool_ = NULL;
         }
     }
+
+    int start();
+
+    int resetSocket();
     
     int sendDatagram(char* ip, uint16_t port, char* data, int len, uint64_t delay_ms);
 
@@ -109,6 +113,9 @@ public:
     }
     void registerNetStatusChangeHandler(NetStatusChangeHandler* handler) {
         packetDispatcher_->registerNetStatusChangeHandler(handler);
+    }
+    void registerSocketErrHandler(XMDSocketErrHandler* handler) {
+        packetDispatcher_->registerXMDSocketErrHandler(handler);
     }
 
     int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, void* ctx = NULL);
@@ -149,6 +156,10 @@ public:
     void clearRecvBuffer();
 
     ConnectionState getConnState(uint64_t connId);
+
+    void SetPingTimeIntervalSecond(unsigned int value) { commonData_->SetPingTimeInterval(value); }
+
+    void SetAckPacketResendIntervalMicroSecond(unsigned int value) { commonData_->SetResendTimeInterval(value); }
     
 };
 

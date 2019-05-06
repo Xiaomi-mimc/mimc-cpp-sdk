@@ -1,0 +1,53 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(mimc_sdk)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_SYSTEM_VERSION 19)
+set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
+set(CMAKE_CXX_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-g++)
+set(CMAKE_AR ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ar)
+set(CMAKE_ASM_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-as)
+set(CMAKE_RANLIB ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ranlib)
+set(CMAKE_STRIP ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-strip)
+set(CMAKE_FIND_ROOT_PATH ${NDK_STANDALONE_TOOLCHAIN})
+
+add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -D_GLIBCXX_USE_NANOSLEEP -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -pthread")
+
+file(GLOB MIMC_FILES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.cc)
+file(GLOB JSONC_FILES ${PROJECT_SOURCE_DIR}/third-party/json-c/json-c/*.c)
+file(GLOB XMDTRANSCEIVER_FILES ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/src/*.cpp)
+set(PROTOBUF_FILES ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_gcc.cc 
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc  
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/common.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/once.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/stringprintf.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/extension_set.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/generated_message_util.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/message_lite.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/repeated_field.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/wire_format_lite.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/io/coded_stream.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/io/zero_copy_stream.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/io/zero_copy_stream_impl_lite.cc
+				   )
+
+set(
+        SOURCE_FILES
+        ${MIMC_FILES}
+        ${XMDTRANSCEIVER_FILES}
+        ${JSONC_FILES}
+        ${PROTOBUF_FILES}
+)
+
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c 
+${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0 ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src 
+${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include /home/work/codes/openssl/android-19/include)
+
+link_directories(/home/work/codes/streaming-sdk/third-party/MIMC/lib/android)
+
+add_library(mimc_sdk SHARED ${SOURCE_FILES})
+target_link_libraries(mimc_sdk crypto ssl curl-7-59-0)

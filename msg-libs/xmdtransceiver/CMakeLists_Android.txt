@@ -1,0 +1,22 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(xmdtransceiver)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_SYSTEM_VERSION 19)
+set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
+set(CMAKE_CXX_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-g++)
+set(CMAKE_AR ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ar)
+set(CMAKE_ASM_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-as)
+set(CMAKE_RANLIB ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ranlib)
+set(CMAKE_STRIP ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-strip)
+set(CMAKE_FIND_ROOT_PATH ${NDK_STANDALONE_TOOLCHAIN})
+
+add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -Wall -D_GLIBCXX_USE_NANOSLEEP -D_REENTRANT -Wno-deprecated")
+
+include_directories(${PROJECT_SOURCE_DIR}/include /home/work/codes/openssl/android-19/include)
+aux_source_directory(${PROJECT_SOURCE_DIR}/src LIB_SRC)
+add_library(xmdtransceiver SHARED ${LIB_SRC})

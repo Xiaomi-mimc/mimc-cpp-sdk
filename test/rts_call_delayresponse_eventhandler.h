@@ -5,13 +5,16 @@
 #include <mimc/threadsafe_queue.h>
 #include <XMDLoggerWrapper.h>
 #include <test/rts_message_data.h>
+#include <thread>
+#include <chrono>
 
 class TestRTSCallDelayResponseEventHandler : public RTSCallEventHandler {
 public:
     LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
         XMDLoggerWrapper::instance()->info("In onLaunched, callId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", callId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         inviteRequests.push(RtsMessageData(callId, fromAccount, appContent, fromResource));
-        sleep(4);
+        //sleep(4);
+		std::this_thread::sleep_for(std::chrono::seconds(4));
         if (this->appContent != "" && appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALAPPCONTENT);
         }
@@ -46,22 +49,16 @@ public:
 
     const std::string& getAvData() {return this->avdata;}
 
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
+    bool pollInviteRequest(long timeout_s, RtsMessageData& inviteRequest) {
+        return inviteRequests.pop(timeout_s, inviteRequest);
     }
 
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
+    bool pollCreateResponse(long timeout_s, RtsMessageData& createResponse) {
+        return createResponses.pop(timeout_s, createResponse);
     }
 
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
+    bool pollBye(long timeout_s, RtsMessageData& bye) {
+        return byes.pop(timeout_s, bye);
     }
 
     void clear() {

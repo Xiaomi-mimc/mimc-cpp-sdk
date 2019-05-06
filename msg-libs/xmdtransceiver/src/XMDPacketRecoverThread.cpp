@@ -1,6 +1,8 @@
 #include "XMDPacketRecoverThread.h"
-#include <unistd.h>
-#include <sstream> 
+#include <thread>
+#include <chrono>
+#include <sstream>
+#include <vector>
 
 XMDPacketRecoverThread::XMDPacketRecoverThread(int id, XMDCommonData* commonData) {
     commonData_ = commonData;
@@ -26,7 +28,8 @@ void* XMDPacketRecoverThread::process() {
         groupManager_->checkGroupMap();
         StreamData* streamData = commonData_->packetRecoverQueuePop(thread_id_);
         if (streamData == NULL) {
-            usleep(100);
+            //usleep(100);
+			std::this_thread::sleep_for(std::chrono::microseconds(100));
             continue;
         }
 
@@ -41,6 +44,15 @@ void* XMDPacketRecoverThread::process() {
         }
         delete streamData;
     }
+    while(!commonData_->packetRecoverQueueEmpty(thread_id_)) {
+        StreamData* data = commonData_->packetRecoverQueuePop(thread_id_);
+        if (NULL == data) {
+            break;
+        }
+        delete data;
+    }
+
+    groupManager_->deleteBufferData();
     
     return NULL;
 }
@@ -247,8 +259,10 @@ int GroupManager::getCompletePacket(GroupPacket& gPakcet, unsigned char* &data, 
 
     for (int i = 0; i < gPakcet.partitionSize; i++) {
         for (int j = 0; j < gPakcet.partitionMap[i].FEC_OPN; j++) {
-            uint16_t* tmpLen = (uint16_t*)gPakcet.partitionMap[i].sliceMap[j]->data;
-            uint16_t sliceLen = ntohs(*tmpLen);
+            //uint16_t* tmpLen = (uint16_t*)gPakcet.partitionMap[i].sliceMap[j]->data;
+            uint16_t tmpLen = 0;
+            trans_uint16_t(tmpLen, (char*)gPakcet.partitionMap[i].sliceMap[j]->data);
+            uint16_t sliceLen = ntohs(tmpLen);
             if (sliceLen > gPakcet.partitionMap[i].slice_len) {
                 XMDLoggerWrapper::instance()->debug("invalid slice len=%d", sliceLen);
                 return -1;
@@ -284,7 +298,7 @@ void GroupManager::checkGroupMap() {
                 std::map<uint16_t, SlicePacket*>::iterator it3 = it2->second.sliceMap.begin();
                 for (; it3 != it2->second.sliceMap.end(); it3++) {
                     if (it3->second) {
-                        XMDLoggerWrapper::instance()->warn("DELETE SLICE PACKET");
+                        XMDLoggerWrapper::instance()->debug("DELETE SLICE PACKET");
                         delete it3->second;
                     }
                 }
@@ -351,10 +365,46 @@ void GroupManager::checkGroupMap() {
     last_check_time_ = currentTime;
 }
 
+void GroupManager::deleteBufferData() {
+    std::unordered_map<std::string, GroupPacket>::iterator it = groupMap_.begin();
+    for(; it != groupMap_.end(); ) {
+        std::map<uint8_t, PartitionPacket>::iterator it2 = it->second.partitionMap.begin();
+        for (; it2 != it->second.partitionMap.end(); it2++) {
+            std::map<uint16_t, SlicePacket*>::iterator it3 = it2->second.sliceMap.begin();
+            for (; it3 != it2->second.sliceMap.end(); it3++) {
+                if (it3->second) {
+                    delete it3->second;
+                }
+            }
+        }
+        groupMap_.erase(it++);
+    }
+
+    std::unordered_map<std::string, AckGroupPakcet>::iterator iter = ackGroupMap_.begin();
+    for (; iter != ackGroupMap_.end(); ) {
+        std::map<uint16_t, AckStreamSlice*>::iterator sliceIt = iter->second.sliceMap.begin();
+        for (; sliceIt != iter->second.sliceMap.end(); sliceIt++) {
+            delete sliceIt->second;
+        }
+        ackGroupMap_.erase(iter++);
+    }
+}
+
+
 bool GroupManager::doFecRecover(PartitionPacket& pPacket) {
     if (pPacket.isComplete) {
         return true;
     }
+
+    if (pPacket.FEC_PN == 0) {
+        if (pPacket.FEC_OPN == pPacket.sliceMap.size()) {
+            pPacket.isComplete = true;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     pPacket.isComplete = true;
     int fec_len = pPacket.slice_len;
     
@@ -420,12 +470,12 @@ bool GroupManager::doFecRecover(PartitionPacket& pPacket) {
         if (isSliceExist[i]) {
             memcpy(pPacket.sliceMap[i]->data, output + i * fec_len, fec_len);
         } else {
-            unsigned char* tmpChar = new unsigned char[fec_len];
-            memcpy(tmpChar, output + i * fec_len, fec_len);
-            SlicePacket *slicePacket = new SlicePacket(tmpChar, fec_len);
+            SlicePacket *slicePacket = new SlicePacket(output + i * fec_len, fec_len);
             pPacket.sliceMap[i] = slicePacket;
-            uint16_t* tmpLen = (uint16_t*)(output + i * fec_len);
-            uint16_t sliceLen = ntohs(*tmpLen);
+            //uint16_t* tmpLen = (uint16_t*)(output + i * fec_len);
+            uint16_t tmpLen = 0;
+            trans_uint16_t(tmpLen, (char*)(output + i * fec_len));
+            uint16_t sliceLen = ntohs(tmpLen);
             XMDLoggerWrapper::instance()->debug("do fec recover %d len =%d.", i, sliceLen);
             pPacket.len += sliceLen;
         }

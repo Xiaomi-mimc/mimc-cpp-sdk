@@ -1,9 +1,15 @@
 #ifndef MIMC_CPP_SDK_SAFEQUEUE_H
 #define MIMC_CPP_SDK_SAFEQUEUE_H
 
+#ifdef _WIN32
+#else
 #include <unistd.h>
+#endif // _WIN32
+
 #include <pthread.h>
 #include <time.h>
+#include <thread>
+#include <chrono>
 
 const int QUEUE_SIZE = 100;
 
@@ -12,9 +18,9 @@ class ThreadSafeQueue
 {
 public:
 	ThreadSafeQueue(unsigned int capacity = QUEUE_SIZE);
-	void push(T new_data);
-	void pop(long timeout, T** result);
-	void pop(T** result);
+	void push(const T& new_data);
+	bool pop(long timeout, T& result);
+	bool pop(T& result);
 	bool empty();
 	void clear();
 	unsigned int size();
@@ -29,9 +35,10 @@ private:
 };
 
 template<class T>
-void ThreadSafeQueue<T>::push(T new_data) {
+void ThreadSafeQueue<T>::push(const T& new_data) {
 	while ((tail + 1) % capacity_ == head) {
-		usleep(10000);
+		//usleep(10000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	pthread_mutex_lock(&mutex);
 	queue[tail] = new_data;
@@ -40,30 +47,31 @@ void ThreadSafeQueue<T>::push(T new_data) {
 }
 
 template <class T>
-void ThreadSafeQueue<T>::pop(long timeout, T** result) {
+bool ThreadSafeQueue<T>::pop(long timeout, T& result) {
 	time_t start = time(NULL);
 	while (empty()) {
 		if (time(NULL) - start >= timeout) {
-			*result = NULL;
-			return;
+			return false;
 		} else {
-			usleep(100000);
+			//usleep(100000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 	int pos = head;
 	head = (head + 1) % capacity_;
-	*result = &(queue[pos]);
+	result = queue[pos];
+	return true;
 }
 
 template <class T>
-void ThreadSafeQueue<T>::pop(T** result) {
+bool ThreadSafeQueue<T>::pop(T& result) {
 	if (empty()) {
-		*result = NULL;
-		return;
+		return false;
 	}
 	int pos = head;
 	head = (head + 1) % capacity_;
-	*result = &(queue[pos]);
+	result = queue[pos];
+	return true;
 }
 
 template <class T>

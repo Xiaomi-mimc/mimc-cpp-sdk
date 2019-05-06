@@ -10,9 +10,9 @@
 using namespace std;
 
 #ifndef STAGING
-string appId = "2882303761517669588";
-string appKey = "5111766983588";
-string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
+string appId = "2882303761517613988";
+string appKey = "5361761377988";
+string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
 #else
 string appId = "2882303761517479657";
 string appKey = "5221747911657";
@@ -31,6 +31,14 @@ protected:
 		rtsUser2 = new User(atoll(appId.c_str()), appAccount2);
 		rtsUser3 = new User(atoll(appId.c_str()), appAccount3);
 
+		tokenFetcher1 = new TestTokenFetcher(appId, appKey, appSecret, appAccount1);
+		tokenFetcher2 = new TestTokenFetcher(appId, appKey, appSecret, appAccount2);
+		tokenFetcher3 = new TestTokenFetcher(appId, appKey, appSecret, appAccount3);
+
+		onlineStatusHandler1 = new TestOnlineStatusHandler();
+		onlineStatusHandler2 = new TestOnlineStatusHandler();
+		onlineStatusHandler3 = new TestOnlineStatusHandler();
+
 		msgHandler1 = new TestMessageHandler();
 		msgHandler2 = new TestMessageHandler();
 		msgHandler3 = new TestMessageHandler();
@@ -39,18 +47,18 @@ protected:
 		callEventHandler2 = new RtsEfficiencyHandler();
 		callEventHandler3 = new RtsEfficiencyHandler();
 
-		rtsUser1->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
-		rtsUser1->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+		rtsUser1->registerTokenFetcher(tokenFetcher1);
+		rtsUser1->registerOnlineStatusHandler(onlineStatusHandler1);
 		rtsUser1->registerMessageHandler(msgHandler1);
 		rtsUser1->registerRTSCallEventHandler(callEventHandler1);
 
-		rtsUser2->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
-		rtsUser2->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+		rtsUser2->registerTokenFetcher(tokenFetcher2);
+		rtsUser2->registerOnlineStatusHandler(onlineStatusHandler2);
 		rtsUser2->registerMessageHandler(msgHandler2);
 		rtsUser2->registerRTSCallEventHandler(callEventHandler2);
 
-		rtsUser3->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount3));
-		rtsUser3->registerOnlineStatusHandler(new TestOnlineStatusHandler());
+		rtsUser3->registerTokenFetcher(tokenFetcher3);
+		rtsUser3->registerOnlineStatusHandler(onlineStatusHandler3);
 		rtsUser3->registerMessageHandler(msgHandler3);
 		rtsUser3->registerRTSCallEventHandler(callEventHandler3);
 	}
@@ -70,10 +78,47 @@ protected:
 
 		delete rtsUser3;
 		rtsUser3 = NULL;
+
+		delete tokenFetcher1;
+		tokenFetcher1 = NULL;
+
+		delete tokenFetcher2;
+		tokenFetcher2 = NULL;
+
+		delete tokenFetcher3;
+		tokenFetcher3 = NULL;
+
+		delete onlineStatusHandler1;
+		onlineStatusHandler1 = NULL;
+
+		delete onlineStatusHandler2;
+		onlineStatusHandler2 = NULL;
+
+		delete onlineStatusHandler3;
+		onlineStatusHandler3 = NULL;
+
+		delete msgHandler1;
+		msgHandler1 = NULL;
+
+		delete msgHandler2;
+		msgHandler2 = NULL;
+
+		delete msgHandler3;
+		msgHandler3 = NULL;
+
+		delete callEventHandler1;
+		callEventHandler1 = NULL;
+
+		delete callEventHandler2;
+		callEventHandler2 = NULL;
+
+		delete callEventHandler3;
+		callEventHandler3 = NULL;
 	}
 
 	//@test
 	void efficiencyTest() {
+		curl_global_init(CURL_GLOBAL_ALL);
 		const int runCount = 5;
 		const int dataSize = 100*1024;
 		map<int, RtsPerformanceData> timeRecords;
@@ -116,6 +161,7 @@ protected:
 		XMDLoggerWrapper::instance()->info("avgLoginTime3: %dms", sumLoginTime3/timeRecordsSize);
 		XMDLoggerWrapper::instance()->info("avgDiaCallTime: %dms", sumDialCallTime/3/timeRecordsSize);
 		XMDLoggerWrapper::instance()->info("avgRecvDataTime: %dms", sumRecvDataTime/3/timeRecordsSize);
+		curl_global_cleanup();
 	}
 
 	void testEfficiency(User* user1, RtsEfficiencyHandler* callEventHandler1, User* user2, RtsEfficiencyHandler* callEventHandler2, User* user3, RtsEfficiencyHandler* callEventHandler3, int idx, int dataSize, map<int, RtsPerformanceData>& timeRecords) {
@@ -181,9 +227,9 @@ protected:
 			usleep(1000);
 		}
 		t5 = Utils::currentTimeMillis();
-		RtsMessageData* createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getDesc());
+		RtsMessageData createResponse;
+		ASSERT_TRUE(callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE, createResponse));
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse.getDesc());
 
 		string sendData = Utils::generateRandomString(dataSize);
 		t6 = Utils::currentTimeMillis();
@@ -212,9 +258,8 @@ protected:
 			usleep(1000);
 		}
 		t9 = Utils::currentTimeMillis();
-		createResponse = callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse->getDesc());
+		ASSERT_TRUE(callEventHandler1->pollCreateResponse(WAIT_TIME_FOR_MESSAGE, createResponse));
+		ASSERT_EQ(callEventHandler1->LAUNCH_OK, createResponse.getDesc());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t10 = Utils::currentTimeMillis();
@@ -243,9 +288,8 @@ protected:
 			usleep(1000);
 		}
 		t13 = Utils::currentTimeMillis();
-		createResponse = callEventHandler2->pollCreateResponse(WAIT_TIME_FOR_MESSAGE);
-		ASSERT_TRUE(createResponse != NULL);
-		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse->getDesc());
+		ASSERT_TRUE(callEventHandler2->pollCreateResponse(WAIT_TIME_FOR_MESSAGE, createResponse));
+		ASSERT_EQ(callEventHandler2->LAUNCH_OK, createResponse.getDesc());
 
 		sendData = Utils::generateRandomString(dataSize);
 		t14 = Utils::currentTimeMillis();
@@ -268,20 +312,28 @@ protected:
 		from->closeCall(callId);
 		sleep(1);
 
-		RtsMessageData* byeRequest = callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE);
-		ASSERT_FALSE(byeRequest == NULL);
-		ASSERT_EQ(callId, byeRequest->getCallId());
-		ASSERT_EQ("", byeRequest->getDesc());
+		RtsMessageData byeRequest;
+		ASSERT_TRUE(callEventHandlerTo->pollBye(WAIT_TIME_FOR_MESSAGE, byeRequest));
+		ASSERT_EQ(callId, byeRequest.getCallId());
+		ASSERT_EQ("", byeRequest.getDesc());
 
-		RtsMessageData* byeResponse = callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE);
-		ASSERT_FALSE(byeResponse == NULL);
-		ASSERT_EQ(callId, byeResponse->getCallId());
-		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse->getDesc());
+		RtsMessageData byeResponse;
+		ASSERT_TRUE(callEventHandlerFrom->pollBye(WAIT_TIME_FOR_MESSAGE, byeResponse));
+		ASSERT_EQ(callId, byeResponse.getCallId());
+		ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse.getDesc());
 	}
 protected:
 	User* rtsUser1;
 	User* rtsUser2;
 	User* rtsUser3;
+
+	TestTokenFetcher* tokenFetcher1;
+	TestTokenFetcher* tokenFetcher2;
+	TestTokenFetcher* tokenFetcher3;
+
+	TestOnlineStatusHandler* onlineStatusHandler1;
+	TestOnlineStatusHandler* onlineStatusHandler2;
+	TestOnlineStatusHandler* onlineStatusHandler3;
 
 	TestMessageHandler* msgHandler1;
 	TestMessageHandler* msgHandler2;

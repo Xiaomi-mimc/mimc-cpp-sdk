@@ -2,7 +2,8 @@
 #include "XMDLoggerWrapper.h"
 #include "XMDPacket.h"
 #include <sstream>
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 
 PongThread::PongThread(XMDCommonData* commonData) {
@@ -15,7 +16,8 @@ PongThread::~PongThread() {}
 
 void* PongThread::process() {
     while(!stopFlag_) {
-        usleep(1000);
+		//usleep(1000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
         PongThreadData data;
         if (commonData_->pongThreadQueuePop(data)) {
             PacketLossInfo packetLossInfo;
@@ -31,7 +33,7 @@ void* PongThread::process() {
 
                 ConnInfo connInfo;
                 if(commonData_->getConnInfo(data.connId, connInfo)) {
-                    packetMan.buildXMDPong(pong, true, connInfo.sessionKey);
+                    packetMan.buildXMDPong(pong, false, connInfo.sessionKey);
                     XMDPacket *xmddata = NULL;
                     int packetLen = 0;
                     if (packetMan.encode(xmddata, packetLen) != 0) {

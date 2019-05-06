@@ -2,7 +2,8 @@
 #include "XMDLoggerWrapper.h"
 #include "XMDPacket.h"
 #include <sstream>
-
+#include <chrono>
+#include <thread>
 
 PingThread::PingThread(PacketDispatcher* dispatcher, XMDCommonData* commonData) {
     dispatcher_ = dispatcher;
@@ -17,7 +18,7 @@ void* PingThread::process() {
     bool isPing = false;
     while(!stopFlag_) {
         uint64_t currentTime = current_ms();
-        if (currentTime - pingTime >= PING_INTERVAL) {
+        if (currentTime - pingTime >= (commonData_->GetPingTimeInterval() * 1000)) {
             isPing = true;
         }
         std::vector<uint64_t> connVec = commonData_->getConnVec();
@@ -43,8 +44,8 @@ void* PingThread::process() {
             pingTime = currentTime;
         }
         isPing = false;
-        
-        usleep(1000000);
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+        //usleep(1000000);
     }
 
     return NULL;
@@ -53,7 +54,7 @@ void* PingThread::process() {
 int PingThread::sendPing(uint64_t connId, ConnInfo connInfo) {
     XMDPacketManager packetMan;
     uint64_t packetId = commonData_->getPakcetId(connId);
-    packetMan.buildXMDPing(connId, true, connInfo.sessionKey, packetId);
+    packetMan.buildXMDPing(connId, false, connInfo.sessionKey, packetId);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {

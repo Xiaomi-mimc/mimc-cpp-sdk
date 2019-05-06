@@ -1,8 +1,6 @@
 #ifndef MIMC_CPP_SDK_CONSTANT_H
 #define MIMC_CPP_SDK_CONSTANT_H
 
-#include <google/protobuf/message.h>
-#include <mimc/mimc.pb.h>
 #include <stdint.h>
 
 enum PacketPayloadType {
@@ -29,7 +27,8 @@ enum RelayLinkState {
 
 enum RtsDataType {
 	AUDIO,
-	VIDEO
+	VIDEO,
+	FILEDATA
 };
 
 enum RtsStreamType {
@@ -41,13 +40,6 @@ enum RtsChannelType {
 	RELAY,
 	P2P_INTRANET,
     P2P_INTERNET
-};
-
-struct waitToSendContent
-{
-	std::string cmd;
-	MessageDirection type;
-	google::protobuf::MessageLite * message;
 };
 
 const int16_t HEADER_MAGIC = 0xc2fe;
@@ -64,17 +56,16 @@ const char* const FE_IP = "10.38.162.154";
 #endif
 const int FE_PORT = 5222;
 const int LOGIN_TIMEOUT = 10;
-const int CONNECT_TIMEOUT = 5;
+const int CONNECT_TIMEOUT = 10;
 const int RESETSOCK_TIMEOUT = 5;
 const int HTTP_TIMEOUT = CONNECT_TIMEOUT;
 const int SEND_TIMEOUT = CONNECT_TIMEOUT * 2;
 const int PING_TIMEINTERVAL = 15;
-const int XMD_TRAN_TIMEOUT = 5;
-const int RELAY_CONN_TIMEOUT = 5;
-const int RTS_CHECK_TIMEOUT = 5;
+const int XMD_TRAN_TIMEOUT = 60;
+const int RELAY_CONN_TIMEOUT = 30;
+const int RTS_CHECK_TIMEOUT = 10;
 const int RTS_CALL_TIMEOUT = 33;
-const int ACK_STREAM_WAIT_TIME_MS = 200;
-const int STREAM_TIMEOUT = 21600;
+const int ACK_STREAM_WAIT_TIME_MS = 10000;
 
 const char* const BODY_CLIENTHEADER_CMD_CONN = "CONN";
 const char* const BODY_CLIENTHEADER_CMD_BIND = "BIND";

@@ -16,6 +16,8 @@ private:
     ConnectionHandler* connectionHandler_;
     StreamHandler* streamHandler_;
     NetStatusChangeHandler* netStatusChangeHandler_;
+    XMDSocketErrHandler* socketErrorHander_;
+    bool is_callback_socket_err;
 
 public:
     PacketDispatcher() {
@@ -23,6 +25,8 @@ public:
         connectionHandler_ = NULL;
         streamHandler_ = NULL;
         netStatusChangeHandler_ = NULL;
+        is_callback_socket_err = true;
+        socketErrorHander_ = NULL;
     }
     void registerRecvDatagramHandler(DatagramRecvHandler* handler) { datagramRecvHandler_ = handler; }
     void handleRecvDatagram(char * ip, int port, char * data, uint32_t len) {
@@ -90,6 +94,18 @@ public:
     void registerNetStatusChangeHandler(NetStatusChangeHandler* handler) { netStatusChangeHandler_ = handler; }
     void handleNetStatusChange(uint64_t conn_id, short delay_ms, float packet_loss) {
         netStatusChangeHandler_->handle(conn_id, delay_ms, packet_loss);
+    }
+    void registerXMDSocketErrHandler(XMDSocketErrHandler* handler) { socketErrorHander_ = handler; }
+    void handleSocketError(int err_no, std::string err_reson) {
+        if (is_callback_socket_err) {
+            if (socketErrorHander_) {
+                socketErrorHander_->handle(err_no, err_reson);
+            }
+            is_callback_socket_err = false;
+        }
+    }
+    void setIsCallBackSocketErr(bool result) {
+        is_callback_socket_err = result;
     }
 };
 

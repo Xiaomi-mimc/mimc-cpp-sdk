@@ -34,18 +34,18 @@ Galois::~Galois() {
 
 
 Galois* Galois::instance_;
-pthread_mutex_t Galois::mutex_ = PTHREAD_MUTEX_INITIALIZER;
+std::mutex Galois::mutex_;
 
 Galois* Galois::get_instance() {
-    if (!instance_) {
-        pthread_mutex_lock(&mutex_);
-        if (!instance_) {
-            instance_ = new Galois();
-        }
-        pthread_mutex_unlock(&mutex_);
-    }
-    return instance_;
+	if (!instance_) {
+		std::lock_guard<std::mutex> lock(mutex_);
+		if (!instance_) {
+			instance_ = new Galois();
+		}
+	}
+	return instance_;
 }
+
 
 
 

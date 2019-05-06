@@ -1,0 +1,24 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(curl-7-59-0)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_SYSTEM_VERSION 19)
+set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
+set(CMAKE_CXX_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-g++)
+set(CMAKE_AR ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ar)
+set(CMAKE_ASM_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-as)
+set(CMAKE_RANLIB ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ranlib)
+set(CMAKE_STRIP ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-strip)
+set(CMAKE_FIND_ROOT_PATH ${NDK_STANDALONE_TOOLCHAIN})
+
+add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -D_GLIBCXX_USE_NANOSLEEP -DHAVE_CONFIG_H -DBUILDING_LIBCURL -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -pthread")
+
+file(GLOB CURL_FILES ${PROJECT_SOURCE_DIR}/lib/*.c ${PROJECT_SOURCE_DIR}/lib/vauth/*.c ${PROJECT_SOURCE_DIR}/lib/vtls/*.c ${PROJECT_SOURCE_DIR}/src/*.c)
+
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/lib /home/work/codes/openssl/android-19/include)
+
+add_library(curl-7-59-0 SHARED ${CURL_FILES})

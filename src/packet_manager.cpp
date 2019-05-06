@@ -1,6 +1,9 @@
 #include <mimc/packet_manager.h>
 #include <mimc/user.h>
 #include <mimc/constant.h>
+#include <mimc/p2p_callsession.h>
+#include <mimc/rts_send_data.h>
+#include <mimc/rts_send_signal.h>
 #include <string.h>
 #include <crypto/rc4_crypto.h>
 #include <zlib/zlib.h>
@@ -44,7 +47,6 @@ int PacketManager::encodeBindPacket(unsigned char * &packet, const Connection * 
 	payload->set_client_attrs(user->getClientAttrs());
 	payload->set_cloud_attrs(user->getCloudAttrs());
 	payload->set_sig(generateSig(header, payload, connection));
-
 	std::string body_key = connection->getBodyKey();
 	return encodePacket(packet, header, payload, body_key);
 }
@@ -279,6 +281,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 				}
 				pthread_mutex_lock(&packetsTimeoutMutex);
 				(this->packetsWaitToTimeout).erase(mimcPacketAck.packetid());
+				(this->groupPacketWaitToTimeout).erase(mimcPacketAck.packetid());
 				pthread_mutex_unlock(&packetsTimeoutMutex);
 				
 			}
@@ -321,6 +324,7 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 				int packetNum = mimcPacketList.packets_size();
 				
 				std::vector<MIMCMessage> p2pMimcMessages;
+				std::vector<MIMCGroupMessage> p2tMimcMessages;
 				for (int i = 0; i < packetNum; i++) {
 					mimc::MIMCPacket mimcMessagePacket = mimcPacketList.packets(i);
 					if ((this->sequencesReceived).count(mimcMessagePacket.sequence()) != 0) {
@@ -340,11 +344,26 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						p2pMimcMessages.push_back(MIMCMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2pMessage.from().appaccount(), p2pMessage.from().resource(), p2pMessage.to().appaccount(), p2pMessage.to().resource(), p2pMessage.payload(), p2pMessage.biztype(), mimcMessagePacket.timestamp()));
 					}
+					else if (mimcMessagePacket.type() == mimc::P2T_MESSAGE){
+						mimc::MIMCP2TMessage p2tMessage;
+						if (!p2tMessage.ParseFromString(mimcMessagePacket.payload())) {
+							continue;
+						}
+						p2tMimcMessages.push_back(MIMCGroupMessage(mimcMessagePacket.packetid(), mimcMessagePacket.sequence(), p2tMessage.from().appaccount(), p2tMessage.from().resource(), p2tMessage.to().topicid(), p2tMessage.payload(), p2tMessage.biztype(), mimcMessagePacket.timestamp()));
+					}
 				}
+
 				if (p2pMimcMessages.size() > 0) {
 					std::sort(p2pMimcMessages.begin(), p2pMimcMessages.end(), MIMCMessage::sortBySequence);
 					if (user->getMessageHandler() != NULL) {
 						user->getMessageHandler()->handleMessage(p2pMimcMessages);
+					}
+				}
+
+				if (p2tMimcMessages.size() > 0) {
+					std::sort(p2tMimcMessages.begin(), p2tMimcMessages.end(), MIMCGroupMessage::sortBySequence);
+					if (user->getMessageHandler() != NULL) {
+						user->getMessageHandler()->handleGroupMessage(p2tMimcMessages);
 					}
 				}
 			}
@@ -446,7 +465,6 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							return -1;
 						}
 						if (!createResponse.has_result() || !createResponse.has_errmsg() || createResponse.members_size() == 0) {
-							
 							user->getCurrentCalls()->erase(callId);
 							RtsSendData::closeRelayConnWhenNoCall(user);
 							user->getRTSCallEventHandler()->onAnswered(callId, false, "param is abnormal");
@@ -454,7 +472,6 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 							return 0;
 						}
 						if (rtsMessage.calltype() == mimc::SINGLE_CALL && createResponse.members_size() != 2) {
-							
 							user->getCurrentCalls()->erase(callId);
 							RtsSendData::closeRelayConnWhenNoCall(user);
 							user->getRTSCallEventHandler()->onAnswered(callId, false, "SINGLE_CALL MEMBER SIZE IS NOT 2");
@@ -499,17 +516,22 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						mimc::ByeRequest byeRequest;
 						if (!byeRequest.ParseFromString(rtsMessage.payload())) {
-							
 							RtsSendSignal::sendByeResponse(user, callId, mimc::INTERNAL_ERROR1);
 							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
 						}
 						if (user->getOnlaunchCalls()->count(callId) > 0) {
 							pthread_t onlaunchCallThread = user->getOnlaunchCalls()->at(callId);
+						#ifndef __ANDROID__
 							pthread_cancel(onlaunchCallThread);
+						#else
+							if(pthread_kill(onlaunchCallThread, 0) != ESRCH)
+    						{
+        						pthread_kill(onlaunchCallThread, SIGTERM);
+    						}
+    					#endif
 							user->getOnlaunchCalls()->erase(callId);
 						}
-						
 						RtsSendSignal::sendByeResponse(user, callId, mimc::SUCC);
 						user->getCurrentCalls()->erase(callId);
 						RtsSendData::closeRelayConnWhenNoCall(user);
@@ -550,7 +572,6 @@ int PacketManager::decodePacketAndHandle(unsigned char * packet, Connection * co
 						}
 						mimc::UpdateRequest updateRequest;
 						if (!updateRequest.ParseFromString(rtsMessage.payload())) {
-							
 							RtsSendSignal::sendUpdateResponse(user, callId, mimc::INTERNAL_ERROR1);
 							pthread_rwlock_unlock(&user->getCallsRwlock());
 							return -1;
@@ -698,7 +719,6 @@ std::string PacketManager::generateSig(const ims::ClientHeader * header, const i
 		oss << paramKey << "=" << paramValue << "&";
 	}
 	oss << connection->getUser()->getSecurityKey();
-
 	return Utils::hash4SHA1AndBase64(oss.str());
 }
 

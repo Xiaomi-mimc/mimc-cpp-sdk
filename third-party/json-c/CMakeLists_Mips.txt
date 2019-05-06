@@ -1,0 +1,29 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(json-c)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(TOOL_CHAIN_GCC_ROOT /home/work/codes/mijia_camera_v3/toolchain/mips-gcc472-glibc216-64bit)
+add_definitions("-Os -fPIC -fno-exceptions -ffunction-sections -fdata-sections -Wall -Werror -D_GNU_SOURCE -D_REENTRANT -Wno-error=deprecated-declarations -Wextra -Wwrite-strings -Wno-implicit-fallthrough -Wno-unused-parameter")
+
+set(CMAKE_SYSTEM_NAME Linux)
+#set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_AR             ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-ar)
+set(CMAKE_ASM_COMPILER   ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-as)
+set(CMAKE_RANLIB         ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-ranlib)
+set(CMAKE_C_COMPILER     ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-gcc)
+set(CMAKE_CXX_COMPILER   ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-g++)
+set(CMAKE_STRIP          ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-strip)
+
+set(CMAKE_FIND_ROOT_PATH ${TOOL_CHAIN_GCC_ROOT})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+file(GLOB C_FILES_IN_JSONC "${PROJECT_SOURCE_DIR}/json-c/*.c")
+set(
+        SOURCE_FILES
+        ${C_FILES_IN_JSONC}
+)
+include_directories(${PROJECT_SOURCE_DIR})
+add_library(json-c SHARED ${SOURCE_FILES})

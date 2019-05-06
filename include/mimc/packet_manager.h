@@ -12,6 +12,13 @@
 #include <crypto/base64.h>
 #include <pthread.h>
 
+struct waitToSendContent
+{
+	std::string cmd;
+	MessageDirection type;
+	google::protobuf::MessageLite * message;
+};
+
 class User;
 
 class PacketManager {
@@ -43,6 +50,7 @@ private:
 public:
 	ThreadSafeQueue<struct waitToSendContent> packetsWaitToSend;
 	std::map<std::string, MIMCMessage> packetsWaitToTimeout;
+	std::map<std::string, MIMCGroupMessage> groupPacketWaitToTimeout;
 	std::set<int64_t> sequencesReceived;
 };
 

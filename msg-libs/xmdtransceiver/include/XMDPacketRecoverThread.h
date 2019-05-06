@@ -1,7 +1,7 @@
 #ifndef RECOVERTHREAD_H
 #define RECOVERTHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "PacketDecoder.h"
 
 const int GROUPMAP_CHECK_INTERVAL = 1;  //1ms
@@ -87,6 +87,7 @@ public:
     int getCompletePacket(GroupPacket& gPakcet, unsigned char* &data, int& len);
     void checkGroupMap();
     bool doFecRecover(PartitionPacket& pPacket);
+    void deleteBufferData();
 };
 
 

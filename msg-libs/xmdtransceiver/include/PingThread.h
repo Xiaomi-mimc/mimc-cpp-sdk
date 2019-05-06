@@ -1,11 +1,14 @@
 #ifndef PINGTHREAD_H
 #define PINGTHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "PacketDispatcher.h"
 #include "XMDCommonData.h"
-#include <unistd.h>
 
+#ifdef _WIN32
+#else
+#include <unistd.h>
+#endif // _WIN32
 
 class PingThread : public XMDThread {
 public:

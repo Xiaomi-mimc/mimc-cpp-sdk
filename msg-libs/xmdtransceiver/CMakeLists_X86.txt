@@ -1,0 +1,11 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(xmdtransceiver)
+set(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
+set(CMAKE_VERBOSE_MAKEFILE ON)
+add_definitions("-Os -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -Wall -D_GLIBCXX_USE_NANOSLEEP -D_REENTRANT -Wno-deprecated")
+
+include_directories(${PROJECT_SOURCE_DIR}/include)
+aux_source_directory(${PROJECT_SOURCE_DIR}/src LIB_SRC)
+add_library(xmdtransceiver SHARED ${LIB_SRC})

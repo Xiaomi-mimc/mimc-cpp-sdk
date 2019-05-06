@@ -43,28 +43,20 @@ public:
 
     const std::string& getAppContent() {return this->appContent;}
 
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
+    bool pollInviteRequest(long timeout_s, RtsMessageData& inviteRequest) {
+        return inviteRequests.pop(timeout_s, inviteRequest);
     }
 
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
+    bool pollCreateResponse(long timeout_s, RtsMessageData& createResponse) {
+        return createResponses.pop(timeout_s, createResponse);
     }
 
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
+    bool pollBye(long timeout_s, RtsMessageData& bye) {
+        return byes.pop(timeout_s, bye);
     }
 
-    RtsMessageData* pollData(long timeout_s) {
-        RtsMessageData* recvDataPtr;
-        recvDatas.pop(timeout_s, &recvDataPtr);
-        return recvDataPtr;
+    bool pollData(long timeout_s, RtsMessageData& recvData) {
+        return recvDatas.pop(timeout_s, recvData);
     }
 
     int getDataSize() {

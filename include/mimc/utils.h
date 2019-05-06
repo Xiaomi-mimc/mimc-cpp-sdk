@@ -10,6 +10,12 @@
 #include <openssl/crypto.h>
 #include <string.h>
 #include <crypto/base64.h>
+
+#ifdef _WIN32
+#include <pthread.h>
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -17,6 +23,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <net/if.h>
+#endif
 
 #ifdef __linux
 #include <sys/types.h>
@@ -52,5 +59,6 @@ public:
     static void getCwd(char* currentPath, int maxLen);
     static bool createDirIfNotExist(const std::string& pDir);
     static char* ltoa(int64_t value, char* str);
+
 };
 #endif //MIMC_CPP_SDK_UTILS_H

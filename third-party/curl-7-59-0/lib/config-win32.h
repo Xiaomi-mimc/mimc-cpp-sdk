@@ -30,6 +30,38 @@
 /*                          HEADER FILES                            */
 /* ---------------------------------------------------------------- */
 
+//Add by nbb.
+#ifndef ALLOW_MSVC6_WITHOUT_PSDK
+#define ALLOW_MSVC6_WITHOUT_PSDK
+#endif // !ALLOW_MSVC6_WITHOUT_PSDK
+
+/* Define to 1 if you have the <openssl/crypto.h> header file. */
+#define HAVE_OPENSSL_CRYPTO_H 1
+
+/* Define to 1 if you have the <openssl/engine.h> header file. */
+#define HAVE_OPENSSL_ENGINE_H 1
+
+/* Define to 1 if you have the <openssl/err.h> header file. */
+#define HAVE_OPENSSL_ERR_H 1
+
+/* Define to 1 if you have the <openssl/pem.h> header file. */
+#define HAVE_OPENSSL_PEM_H 1
+
+/* Define to 1 if you have the <openssl/rsa.h> header file. */
+#define HAVE_OPENSSL_RSA_H 1
+
+/* if you have the function SRP_Calc_client_key */
+/* #undef HAVE_OPENSSL_SRP */
+
+/* Define to 1 if you have the <openssl/ssl.h> header file. */
+#define HAVE_OPENSSL_SSL_H 1
+
+/* Define to 1 if you have the <openssl/x509.h> header file. */
+#define HAVE_OPENSSL_X509_H 1
+
+
+//end by nbb
+
 /* Define if you have the <arpa/inet.h> header file. */
 /* #define HAVE_ARPA_INET_H 1 */
 

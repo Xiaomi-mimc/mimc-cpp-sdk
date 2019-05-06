@@ -1,6 +1,7 @@
 #include "XMDCallbackThread.h"
 #include "XMDLoggerWrapper.h"
-#include <unistd.h>
+#include <thread>
+#include <chrono>
 #include <sstream> 
 #include "common.h"
 
@@ -72,8 +73,16 @@ void* XMDCallbackThread::process() {
         }
 
         if (isSleep) {
-            usleep(1000);
+            //usleep(1000);			std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+    }
+	
+	while(!commonData_->callbackQueueEmpty()) {
+        CallbackQueueData* data = commonData_->callbackQueuePop();
+        if (NULL == data) {
+            break;
+        }
+        delete data;
     }
 
     return NULL;

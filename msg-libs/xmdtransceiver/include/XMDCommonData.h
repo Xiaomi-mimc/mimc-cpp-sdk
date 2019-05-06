@@ -2,7 +2,6 @@
 #define UDPSENDQUEUE_H
 
 #include <queue>
-#include <pthread.h>
 #include <stdint.h>
 #include <vector>
 #include <functional>
@@ -10,9 +9,17 @@
 #include <map>
 #include <string>
 #include <unordered_map>
-#include <openssl/rsa.h>
+
+#include <mutex>
 #include "queue.h"
 #include "map.h"
+#include "block_queue.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <pthread.h>
+#endif // _WIN32
 
 
 const int SESSION_KEY_LEN = 128;
@@ -30,7 +37,7 @@ const int DEFAULT_RESEND_QUEUE_LEN = 10000;
 const float QUEUE_USAGERAGE_80 = 0.8;
 const float QUEUE_USAGERAGE_90 = 0.9;
 const float QUEUE_USAGERAGE_FULL = 0.999999;
-
+const int CONN_RESEND_TIME = 10;
 
 
 enum StreamType {
@@ -72,7 +79,6 @@ struct ConnInfo {
     uint32_t created_stream_id;
     uint32_t max_stream_id;
     ConnectionState connState;
-    RSA* rsa;
     std::string sessionKey;
     void* ctx;
     std::unordered_map<uint16_t, StreamInfo> streamMap;
@@ -306,7 +312,7 @@ private:
     DatagramQueue datagramQueue_;
     ResendQueue resendQueue_;
     STLSafeQueue<StreamQueueData*> streamQueue_;
-    STLSafeQueue<SendQueueData*> socketSendQueue_;
+    std::queue<SendQueueData*> socketSendQueue_;
     STLSafeQueue<SocketData*> socketRecvQueue_;
     std::vector<STLSafeQueue<StreamData*>> packetRecoverQueueVec_;
     STLSafeQueue<CallbackQueueData*> callbackQueue_;
@@ -327,46 +333,60 @@ private:
     STLSafeHashMap<std::string, bool> isPacketRecvAckMap_;
     STLSafeHashMap<uint64_t, PingPacket>  pingMap_;
     
-    static pthread_mutex_t resend_queue_mutex_;
-    static pthread_mutex_t datagram_queue_mutex_;
-    static pthread_mutex_t packetId_mutex_;
-    static pthread_mutex_t callback_data_map_mutex_;
-    static pthread_mutex_t stream_data_send_callback_map_mutex_;
-    static pthread_mutex_t packet_loss_map_mutex_;
-    pthread_rwlock_t conn_mutex_;
-    pthread_rwlock_t group_id_mutex_;
+
+    static std::mutex resend_queue_mutex_;
+    static std::mutex datagram_queue_mutex_;
+    static std::mutex packetId_mutex_;
+    static std::mutex callback_data_map_mutex_;
+    static std::mutex stream_data_send_callback_map_mutex_;
+    static std::mutex packet_loss_map_mutex_;
+    static std::mutex conn_mutex_;
+    static std::mutex group_id_mutex_;
+    static std::mutex socket_send_queue_mutex_;
+
 
     unsigned int decodeThreadSize_;
     unsigned int datagramQueueMaxLen_;
     unsigned int callbackQueueMaxLen_;
     unsigned int resendQueueMaxLen_;
+    unsigned int ping_interval_;
+    unsigned int resend_interval_;
     
 public:
     XMDCommonData(int decodeThreadSize);
     ~XMDCommonData();
     void streamQueuePush(StreamQueueData* data);
     StreamQueueData* streamQueuePop();
+    bool streamQueueEmpty();
 
     void socketSendQueuePush(SendQueueData* data);
     SendQueueData* socketSendQueuePop();
+    bool socketSendQueueEmpty() { return socketSendQueue_.empty(); }
 
     void socketRecvQueuePush(SocketData* data);
     SocketData* socketRecvQueuePop();
+    bool socketRecvQueueEmpty();
 
     void packetRecoverQueuePush(StreamData* data, int id);
     StreamData* packetRecoverQueuePop(int id);
+    bool packetRecoverQueueEmpty(int id);
 
     bool callbackQueuePush(CallbackQueueData* data);
     CallbackQueueData* callbackQueuePop();
+    bool callbackQueueEmpty();
     
 
     bool datagramQueuePush(SendQueueData* data);
     SendQueueData* datagramQueuePop();
+    SendQueueData* datagramQueuePriorityPop();
+    bool datagramQueueEmpty() { return datagramQueue_.empty(); }
 
 
     bool resendQueuePush(ResendData* data);
     ResendData* resendQueuePop();
+    ResendData* resendQueuePriorityPop();
     bool resendQueueEmpty() { return resendQueue_.empty(); }
+    
     void updateIsPacketRecvAckMap(std::string key, bool value);
     bool getIsPacketRecvAckMapValue(std::string key);
 	void insertIsPacketRecvAckMap(std::string key, bool value);
@@ -443,9 +463,15 @@ public:
 
     void pongThreadQueuePush(PongThreadData data);
     bool pongThreadQueuePop(PongThreadData& data);
+
+    void NotifyBlockQueue();
+
+    void SetPingTimeInterval(unsigned int value) { ping_interval_ = value; }
+    unsigned int GetPingTimeInterval() { return ping_interval_; }
+    int getResendTimeInterval() { return resend_interval_; }
+    void SetResendTimeInterval(unsigned int value) { resend_interval_ = value; }
 };
 
-int getResendTimeInterval(int sendcount);
 
 
 #endif //UDPSENDQUEUE_H

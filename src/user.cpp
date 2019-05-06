@@ -1,15 +1,28 @@
 #include <mimc/user.h>
 #include <mimc/connection.h>
 #include <mimc/packet_manager.h>
+#include <mimc/serverfetcher.h>
+#include <mimc/p2p_callsession.h>
 #include <mimc/utils.h>
 #include <mimc/threadsafe_queue.h>
 #include <mimc/rts_connection_handler.h>
 #include <mimc/rts_stream_handler.h>
+#include <mimc/rts_send_data.h>
+#include <mimc/rts_send_signal.h>
 #include <mimc/ims_push_service.pb.h>
+#include <mimc/rts_signal.pb.h>
 #include <mimc/rts_context.h>
+#include <XMDTransceiver.h>
+#include <json-c/json.h>
 #include <fstream>
 #include <stdlib.h>
+#include <thread>
+#include <chrono>
+
+#ifdef _WIN32
+#else
 #include <unistd.h>
+#endif // _WIN32
 
 User::User(int64_t appId, std::string appAccount, std::string resource, std::string cachePath) 
 	:audioStreamConfig(ACK_TYPE, ACK_STREAM_WAIT_TIME_MS, false), videoStreamConfig(FEC_TYPE, ACK_STREAM_WAIT_TIME_MS, false) {
@@ -21,9 +34,12 @@ User::User(int64_t appId, std::string appAccount, std::string resource, std::str
 	this->onlineStatus = Offline;
 	this->tokenInvalid = false;
 	this->addressInvalid = false;
+	this->tokenRequestStatus = -1;
 	this->tokenFetchSucceed = false;
 	this->serverFetchSucceed = false;
+	this->bindRelayResponse = NULL;
 	this->resetRelayLinkState();
+
 	if (resource == "") {
 		resource = "cpp_default";
 	}
@@ -62,26 +78,57 @@ User::User(int64_t appId, std::string appAccount, std::string resource, std::str
 
 	this->currentCalls = new std::map<uint64_t, P2PCallSession>();
 	this->onlaunchCalls = new std::map<uint64_t, pthread_t>();
+
 	this->xmdTranseiver = NULL;
 	this->maxCallNum = 1;
+
 	this->mutex_0 = PTHREAD_RWLOCK_INITIALIZER;
 	this->mutex_1 = PTHREAD_MUTEX_INITIALIZER;
 
 	this->conn = new Connection();
 	this->conn->setUser(this);
 
-	pthread_create(&sendThread, NULL, sendPacket, (void *)(this->conn));
-	pthread_create(&receiveThread, NULL, receivePacket, (void *)(this->conn));
-	pthread_create(&checkThread, NULL, checkTimeout, (void *)(this->conn));
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	pthread_attr_setdetachstate(&attr1, PTHREAD_CREATE_DETACHED);
+	pthread_create(&sendThread, &attr1, sendPacket, (void *)(this->conn));
+	pthread_attr_destroy(&attr1);
+
+	pthread_attr_t attr2;
+	pthread_attr_init(&attr2);
+	pthread_attr_setdetachstate(&attr2, PTHREAD_CREATE_DETACHED);
+	pthread_create(&receiveThread, &attr2, receivePacket, (void *)(this->conn));
+	pthread_attr_destroy(&attr2);
+
+	pthread_attr_t attr3;
+	pthread_attr_init(&attr3);
+	pthread_attr_setdetachstate(&attr3, PTHREAD_CREATE_DETACHED);
+	pthread_create(&checkThread, &attr3, checkTimeout, (void *)(this->conn));
+	pthread_attr_destroy(&attr3);
+
 }
 
 User::~User() {
+#ifndef __ANDROID__
 	pthread_cancel(sendThread);
-	pthread_join(sendThread, NULL);
 	pthread_cancel(receiveThread);
-	pthread_join(receiveThread, NULL);
 	pthread_cancel(checkThread);
-	pthread_join(checkThread, NULL);
+#else
+	if(pthread_kill(sendThread, 0) != ESRCH)
+    {
+        pthread_kill(sendThread, SIGTERM);
+    }
+
+	if(pthread_kill(receiveThread, 0) != ESRCH)
+    {
+        pthread_kill(receiveThread, SIGTERM);
+    }
+
+	if(pthread_kill(checkThread, 0) != ESRCH)
+    {
+        pthread_kill(checkThread, SIGTERM);
+    }
+#endif
 
 	if (this->xmdTranseiver) {
 		this->xmdTranseiver->stop();
@@ -94,44 +141,60 @@ User::~User() {
 	delete this->xmdTranseiver;
 	this->conn->resetSock();
 	delete this->conn;
-	delete this->tokenFetcher;
-	delete this->statusHandler;
-	delete this->messageHandler;
-	delete this->rtsCallEventHandler;
 	delete this->rtsConnectionHandler;
 	delete this->rtsStreamHandler;
 }
 
+#ifdef __ANDROID__
+void User::handle_quit(int signo)
+{
+    pthread_exit(NULL);   
+}
+#endif
+
 void* User::sendPacket(void *arg) {
+#ifndef __ANDROID__
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#else
+	signal(SIGTERM, handle_quit);
+#endif
+
 	XMDLoggerWrapper::instance()->info("sendThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
 	unsigned char * packetBuffer = NULL;
 	int packet_size = 0;
 	MessageDirection msgType;
-	while (true) {
+
+	while (true)
+	 {
 		msgType = C2S_DOUBLE_DIRECTION;
 		if (conn->getState() == NOT_CONNECTED) {
 
 			time_t now = time(NULL);
 			if (now - user->lastCreateConnTimestamp <= CONNECT_TIMEOUT) {
-				usleep(10000);
+				//usleep(10000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				continue;
 			}
 			if (user->getTestPacketLoss() >= 100) {
-				usleep(10000);
+				//usleep(10000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 				continue;
 			}
 			if (!fetchToken(user) || !fetchServerAddr(user)) {
-				usleep(1000);
+				//usleep(1000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				continue;
 			}
 			user->lastCreateConnTimestamp = time(NULL);
+			XMDLoggerWrapper::instance()->info("Prepare to connect");
 			if (!conn->connect()) {
 				XMDLoggerWrapper::instance()->error("In sendPacket, socket connect failed, user is %s", user->getAppAccount().c_str());
 				continue;
 			}
-
+			XMDLoggerWrapper::instance()->info("Socket connected");
 			conn->setState(SOCK_CONNECTED);
 
 			packet_size = user->getPacketManager()->encodeConnectionPacket(packetBuffer, conn);
@@ -141,7 +204,8 @@ void* User::sendPacket(void *arg) {
 			}
 		}
 		if (conn->getState() == SOCK_CONNECTED) {
-			usleep(5000);
+			//usleep(5000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 		if (conn->getState() == HANDSHAKE_CONNECTED) {
 			time_t now = time(NULL);
@@ -150,25 +214,23 @@ void* User::sendPacket(void *arg) {
 					if (user->permitLogin && fetchToken(user)) {
 						packet_size = user->getPacketManager()->encodeBindPacket(packetBuffer, conn);
 						if (packet_size < 0) {
-
 							continue;
 						}
 						user->lastLoginTimestamp = time(NULL);
 					}
 				}
 			} else {
-				struct waitToSendContent *obj;
-				user->getPacketManager()->packetsWaitToSend.pop(&obj);
-				if (obj != NULL) {
-					msgType = obj->type;
-					if (obj->cmd == BODY_CLIENTHEADER_CMD_SECMSG) {
-						packet_size = user->getPacketManager()->encodeSecMsgPacket(packetBuffer, conn, obj->message);
+				struct waitToSendContent obj;
+				if (user->getPacketManager()->packetsWaitToSend.pop(obj)) {
+					msgType = obj.type;
+					if (obj.cmd == BODY_CLIENTHEADER_CMD_SECMSG) {
+						packet_size = user->getPacketManager()->encodeSecMsgPacket(packetBuffer, conn, obj.message);
 						if (packet_size < 0) {
 
 							continue;
 						}
 					}
-					else if (obj->cmd == BODY_CLIENTHEADER_CMD_UNBIND) {
+					else if (obj.cmd == BODY_CLIENTHEADER_CMD_UNBIND) {
 						packet_size = user->getPacketManager()->encodeUnBindPacket(packetBuffer, conn);
 						if (packet_size < 0) {
 
@@ -189,7 +251,8 @@ void* User::sendPacket(void *arg) {
 		}
 
 		if (packetBuffer == NULL) {
-			usleep(10000);
+			//usleep(10000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
 
@@ -213,15 +276,27 @@ void* User::sendPacket(void *arg) {
 		delete[] packetBuffer;
 		packetBuffer = NULL;
 	}
+
+	return NULL;
 }
 
 void* User::receivePacket(void *arg) {
+#ifndef __ANDROID__
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#else
+	signal(SIGTERM, handle_quit);
+#endif
+
 	XMDLoggerWrapper::instance()->info("receiveThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
-	while (true) {
+	
+	while (true)
+	{
 		if (conn->getState() == NOT_CONNECTED) {
-			usleep(20000);
+			//usleep(20000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
 			continue;
 		}
 
@@ -284,13 +359,24 @@ void* User::receivePacket(void *arg) {
 			}
 		}
 	}
+
+	return NULL;
 }
 
 void* User::checkTimeout(void *arg) {
+#ifndef __ANDROID__
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#else
+	signal(SIGTERM, handle_quit);
+#endif
+
 	XMDLoggerWrapper::instance()->info("checkThread start to run");
 	Connection *conn = (Connection *)arg;
 	User * user = conn->getUser();
-	while (true) {
+	
+	while (true)
+	 {
 		if ((conn->getNextResetSockTs() > 0) && (time(NULL) - conn->getNextResetSockTs() > 0)) {
 			XMDLoggerWrapper::instance()->info("In checkTimeout, packet recv timeout");
 			conn->resetSock();
@@ -299,8 +385,11 @@ void* User::checkTimeout(void *arg) {
 		user->rtsScanAndCallBack();
 		user->relayConnScanAndCallBack();
 		RtsSendData::sendPingRelayRequest(user);
-		sleep(1);
+		//sleep(1);
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
+
+	return NULL;
 }
 
 void User::relayConnScanAndCallBack() {
@@ -325,7 +414,6 @@ void User::relayConnScanAndCallBack() {
 	}
 	this->currentCalls->clear();
 	pthread_rwlock_unlock(&mutex_0);
-
 	this->resetRelayLinkState();
 }
 
@@ -365,7 +453,14 @@ void User::rtsScanAndCallBack() {
 				XMDLoggerWrapper::instance()->info("In rtsScanAndCallBack, callId %llu state WAIT_INVITEE_RESPONSE is timeout, user is %s", callId, appAccount.c_str());
 				if (this->onlaunchCalls->count(callId) > 0) {
 					pthread_t onlaunchCallThread = this->onlaunchCalls->at(callId);
+				#ifndef __ANDROID__
 					pthread_cancel(onlaunchCallThread);
+				#else
+					if(pthread_kill(onlaunchCallThread, 0) != ESRCH)
+    				{
+        				pthread_kill(onlaunchCallThread, SIGTERM);
+    				}
+    			#endif
 					this->onlaunchCalls->erase(callId);
 				}
 				this->currentCalls->erase(iter++);
@@ -388,17 +483,23 @@ void User::rtsScanAndCallBack() {
 }
 
 void* User::onLaunched(void *arg) {
+#ifndef __ANDROID__
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+#else
+	signal(SIGTERM, handle_quit);
+#endif
 	onLaunchedParam* param = (onLaunchedParam*)arg;
 	User* user = param->user;
 	uint64_t callId = param->callId;
 	mimc::UserInfo fromUser;
 	std::string appContent;
+
 	pthread_cleanup_push(cleanup, (void*)(&user->getCallsRwlock()));
 	pthread_rwlock_rdlock(&user->getCallsRwlock());
-	const P2PCallSession& P2PCallSession = user->getCurrentCalls()->at(callId);
-	fromUser = P2PCallSession.getPeerUser();
-	appContent = P2PCallSession.getAppContent();
+	const P2PCallSession& p2pCallSession = user->getCurrentCalls()->at(callId);
+	fromUser = p2pCallSession.getPeerUser();
+	appContent = p2pCallSession.getAppContent();
 	pthread_rwlock_unlock(&user->getCallsRwlock());
 	pthread_cleanup_pop(0);
 
@@ -410,18 +511,18 @@ void* User::onLaunched(void *arg) {
 		pthread_rwlock_unlock(&user->getCallsRwlock());
 		return 0;
 	}
-	P2PCallSession& P2PCallSession = user->getCurrentCalls()->at(callId);
+	P2PCallSession& p2pCallSession = user->getCurrentCalls()->at(callId);
 	if (!userResponse.isAccepted()) {
-		RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::PEER_REFUSE, userResponse.getDesc());
+		RtsSendSignal::sendInviteResponse(user, callId, p2pCallSession.getCallType(), mimc::PEER_REFUSE, userResponse.getDesc());
 		user->getCurrentCalls()->erase(callId);
 		RtsSendData::closeRelayConnWhenNoCall(user);
 		user->getOnlaunchCalls()->erase(callId);
 		pthread_rwlock_unlock(&user->getCallsRwlock());
 		return 0;
 	}
-	RtsSendSignal::sendInviteResponse(user, callId, P2PCallSession.getCallType(), mimc::SUCC, userResponse.getDesc());
-	P2PCallSession.setCallState(RUNNING);
-	P2PCallSession.setLatestLegalCallStateTs(time(NULL));
+	RtsSendSignal::sendInviteResponse(user, callId, p2pCallSession.getCallType(), mimc::SUCC, userResponse.getDesc());
+	p2pCallSession.setCallState(RUNNING);
+	p2pCallSession.setLatestLegalCallStateTs(time(NULL));
 	pthread_rwlock_unlock(&user->getCallsRwlock());
 	pthread_cleanup_pop(0);
 
@@ -470,19 +571,24 @@ bool User::fetchToken(User * user) {
 		std::ifstream file(user->getCacheFile(), std::ios::in | std::ios::ate);
 		long size = file.tellg();
 		file.seekg(0, std::ios::beg);
-		char localStr[size];
+		user->tokenRequestStatus = -1;
+		char* localStr = new char[size];
 		file.read(localStr, size);
 		file.close();
-		json_object* pobj_local;
-		if (user->parseToken(localStr, pobj_local) && !user->tokenInvalid) {
+		json_object* pobj_local = NULL;
+		if (!user->tokenInvalid && size>0 && user->parseToken(localStr, pobj_local)) {
 			json_object_put(pobj_local);
+			delete[] localStr;
 			return true;
 		} else {
 			if (user->getTokenFetcher() == NULL) {
 				json_object_put(pobj_local);
+				delete[] localStr;
 				return false;
 			}
+			user->tokenRequestStatus = 0;
 			std::string remoteStr = user->getTokenFetcher()->fetchToken();
+			user->tokenRequestStatus = 1;
 			json_object* pobj_remote;
 			if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
 				user->tokenInvalid = false;
@@ -515,10 +621,12 @@ bool User::fetchToken(User * user) {
 				}
 				json_object_put(pobj_local);
 				json_object_put(pobj_remote);
+				delete[] localStr;
 				return true;
 			} else {
 				json_object_put(pobj_local);
 				json_object_put(pobj_remote);
+				delete[] localStr;
 				return false;
 			}
 		}
@@ -526,7 +634,9 @@ bool User::fetchToken(User * user) {
 		if (user->getTokenFetcher() == NULL) {
 			return false;
 		}
+		user->tokenRequestStatus = 0;
 		std::string remoteStr = user->getTokenFetcher()->fetchToken();
+		user->tokenRequestStatus = 1;
 		json_object* pobj_remote;
 		if (user->parseToken(remoteStr.c_str(), pobj_remote)) {
 			user->tokenInvalid = false;
@@ -566,13 +676,14 @@ bool User::fetchServerAddr(User* user) {
 		std::ifstream file(user->getCacheFile(), std::ios::in | std::ios::ate);
 		long size = file.tellg();
 		file.seekg(0, std::ios::beg);
-		char localStr[size];
+		char* localStr = new char[size];
 		file.read(localStr, size);
 		file.close();
 		json_object* pobj_local;
 		if (user->parseServerAddr(localStr, pobj_local) && !user->addressInvalid) {
 			json_object_put(pobj_local);
 			pthread_mutex_unlock(&user->mutex_1);
+			delete[] localStr;
 			return true;
 		} else {
 			std::string remoteStr = ServerFetcher::fetchServerAddr(RESOLVER_URL, user->feDomain + "," + user->relayDomain);
@@ -608,11 +719,15 @@ bool User::fetchServerAddr(User* user) {
 				json_object_put(pobj_local);
 				json_object_put(pobj_remote);
 				pthread_mutex_unlock(&user->mutex_1);
+
+				delete[] localStr;
 				return true;
 			} else {
 				json_object_put(pobj_local);
 				json_object_put(pobj_remote);
 				pthread_mutex_unlock(&user->mutex_1);
+
+				delete[] localStr;
 				return false;
 			}
 		}
@@ -633,10 +748,12 @@ bool User::fetchServerAddr(User* user) {
 			}
 			json_object_put(pobj_remote);
 			pthread_mutex_unlock(&user->mutex_1);
+
 			return true;
 		} else {
 			json_object_put(pobj_remote);
 			pthread_mutex_unlock(&user->mutex_1);
+
 			return false;
 		}
 	}
@@ -644,7 +761,6 @@ bool User::fetchServerAddr(User* user) {
 
 bool User::parseToken(const char* str, json_object*& pobj) {
 	tokenFetchSucceed = false;
-
 	pobj = json_tokener_parse(str);
 
 	if (pobj == NULL) {
@@ -655,8 +771,9 @@ bool User::parseToken(const char* str, json_object*& pobj) {
 	json_object* retobj = NULL;
 	json_object_object_get_ex(pobj, "code", &retobj);
 	int retCode = json_object_get_int(retobj);
+
 	if (retCode != 200) {
-		XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is false, retCode is %d, user is %s", retCode, appAccount.c_str());
+		XMDLoggerWrapper::instance()->info("User::parseToken, parse failed, retCode is %d, user is %s", retCode, appAccount.c_str());
 		return tokenFetchSucceed;
 	}
 
@@ -740,7 +857,7 @@ bool User::parseToken(const char* str, json_object*& pobj) {
 	
 	tokenFetchSucceed = true;
 
-	XMDLoggerWrapper::instance()->info("User::parseToken, tokenFetchSucceed is true, user is %s", appAccount.c_str());
+	XMDLoggerWrapper::instance()->info("User::parseToken, parse succeed, user is %s", appAccount.c_str());
 	
 	return tokenFetchSucceed;
 }
@@ -876,6 +993,67 @@ std::string User::sendMessage(const std::string & toAppAccount, const std::strin
 	return packetId;
 }
 
+std::string User::sendGroupMessage(const int64_t topicId, const std::string & payload, const std::string & bizType, const bool isStore) {
+	if (this->messageHandler == NULL) {
+		XMDLoggerWrapper::instance()->error("In sendGroupMessage, messageHandler is not registered!");
+		return "";
+	}
+
+	if (this->onlineStatus == Offline || payload == "" || payload.size() > MIMC_MAX_PAYLOAD_SIZE) {
+		return "";
+	}
+
+	mimc::MIMCUser *from;
+	from = new mimc::MIMCUser();
+	from->set_appid(this->appId);
+	from->set_appaccount(this->appAccount);
+	from->set_uuid(this->uuid);
+	from->set_resource(this->resource);
+
+	mimc::MIMCGroup* to = new mimc::MIMCGroup();
+	to->set_appid(this->appId);
+	to->set_topicid(topicId);
+
+	mimc::MIMCP2TMessage* message = new mimc::MIMCP2TMessage();
+	message->set_allocated_from(from);
+	message->set_allocated_to(to);
+	message->set_payload(std::string(payload));
+	message->set_isstore(isStore);
+	message->set_biztype(bizType);
+
+	int message_size = message->ByteSize();
+	char * messageBytes = new char[message_size];
+	memset(messageBytes, 0, message_size);
+	message->SerializeToArray(messageBytes, message_size);
+	std::string messageBytesStr(messageBytes, message_size);
+
+	delete message;
+	message = NULL;
+
+	std::string packetId = this->packetManager->createPacketId();
+	mimc::MIMCPacket * packet = new mimc::MIMCPacket();
+	packet->set_packetid(packetId);
+	packet->set_package(this->appPackage);
+	packet->set_type(mimc::P2T_MESSAGE);
+	packet->set_payload(messageBytesStr);
+	packet->set_timestamp(time(NULL));
+
+	delete[] messageBytes;
+	messageBytes = NULL;
+
+	MIMCGroupMessage mimcGroupMessage(packetId, packet->sequence(), this->appAccount, this->resource,topicId, payload, bizType, packet->timestamp());
+	(this->packetManager->groupPacketWaitToTimeout).insert(std::pair<std::string, MIMCGroupMessage>(packetId, mimcGroupMessage));
+
+	struct waitToSendContent mimc_obj;
+	mimc_obj.cmd = BODY_CLIENTHEADER_CMD_SECMSG;
+	mimc_obj.type = C2S_DOUBLE_DIRECTION;
+	mimc_obj.message = packet;
+	(this->packetManager->packetsWaitToSend).push(mimc_obj);
+
+	return packetId;
+}
+
+
 uint64_t User::dialCall(const std::string & toAppAccount, const std::string & appContent, const std::string & toResource) {
 	if (this->rtsCallEventHandler == NULL) {
 		XMDLoggerWrapper::instance()->error("In dialCall, rtsCallEventHandler is not registered!");
@@ -930,48 +1108,48 @@ uint64_t User::dialCall(const std::string & toAppAccount, const std::string & ap
 		XMDLoggerWrapper::instance()->info("In dialCall, relayConnId is %llu", relayConnId);
 		if (relayConnId == 0) {
 			XMDLoggerWrapper::instance()->error("In dialCall, launch create relay conn failed!");
+
 			pthread_rwlock_unlock(&mutex_0);
 			return 0;
+
 		}
 		currentCalls->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, toUser, mimc::SINGLE_CALL, WAIT_SEND_CREATE_REQUEST, time(NULL), true, appContent)));
-
 		pthread_rwlock_unlock(&mutex_0);
 		return callId;
 	} else if (this->relayLinkState == BEING_CREATED) {
 
 		currentCalls->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, toUser, mimc::SINGLE_CALL, WAIT_SEND_CREATE_REQUEST, time(NULL), true, appContent)));
-
 		pthread_rwlock_unlock(&mutex_0);
 		return callId;
 	} else if (this->relayLinkState == SUCC_CREATED) {
 
 		currentCalls->insert(std::pair<uint64_t, P2PCallSession>(callId, P2PCallSession(callId, toUser, mimc::SINGLE_CALL, WAIT_CREATE_RESPONSE, time(NULL), true, appContent)));
-
 		RtsSendSignal::sendCreateRequest(this, callId);
 		pthread_rwlock_unlock(&mutex_0);
 		return callId;
 	} else {
-
 		pthread_rwlock_unlock(&mutex_0);
 		return 0;
+
 	}
 }
 
 int User::sendRtsData(uint64_t callId, const std::string & data, const RtsDataType dataType, const RtsChannelType channelType, const std::string& ctx, const bool canBeDropped, const DataPriority priority, const unsigned int resendCount) {
 	int dataId = -1;
 	if (data.size() > RTS_MAX_PAYLOAD_SIZE) {
-
 		return dataId;
 	}
-	if (dataType != AUDIO && dataType != VIDEO) {
-
+	if (dataType != AUDIO && dataType != VIDEO && dataType != FILEDATA) {
 		return dataId;
 	}
 
 	mimc::PKT_TYPE pktType = mimc::USER_DATA_AUDIO;
 	if (dataType == VIDEO) {
 		pktType = mimc::USER_DATA_VIDEO;
+	} else if (dataType == FILEDATA) {
+		pktType = mimc::USER_DATA_FILE;
 	}
+
 	pthread_rwlock_rdlock(&mutex_0);
 	if (currentCalls->count(callId) == 0) {
 		pthread_rwlock_unlock(&mutex_0);
@@ -991,7 +1169,6 @@ int User::sendRtsData(uint64_t callId, const std::string & data, const RtsDataTy
 	RtsContext* rtsContext = new RtsContext(callId, ctx);
 
 	if (channelType == RELAY) {
-
 		dataId = RtsSendData::sendRtsDataByRelay(this, callId, data, pktType, (void *)rtsContext, canBeDropped, priority, resendCount);
 	}
 	pthread_rwlock_unlock(&mutex_0);
@@ -1009,10 +1186,15 @@ void User::closeCall(uint64_t callId, std::string byeReason) {
 	RtsSendSignal::sendByeRequest(this, callId, byeReason);
 	if (onlaunchCalls->count(callId) > 0) {
 		pthread_t onlaunchCallThread = onlaunchCalls->at(callId);
-		if (onlaunchCallThread != pthread_self()) {
-			pthread_cancel(onlaunchCallThread);
-			onlaunchCalls->erase(callId);
-		}
+	#ifndef __ANDROID__
+		pthread_cancel(onlaunchCallThread);
+	#else
+		if(pthread_kill(onlaunchCallThread, 0) != ESRCH)
+    	{
+        	pthread_kill(onlaunchCallThread, SIGTERM);
+    	}
+    #endif
+		onlaunchCalls->erase(callId);
 	}
 	currentCalls->erase(callId);
 	RtsSendData::closeRelayConnWhenNoCall(this);
@@ -1040,17 +1222,27 @@ bool User::logout() {
 	if (onlineStatus == Offline) {
 		return true;
 	}
+
 	pthread_rwlock_wrlock(&mutex_0);
 	for (std::map<uint64_t, P2PCallSession>::const_iterator iter = currentCalls->begin(); iter != currentCalls->end(); iter++) {
 		uint64_t callId = iter->first;
+		const P2PCallSession& callSession = iter->second;
 		if (onlaunchCalls->count(callId) > 0) {
 			pthread_t onlaunchCallThread = onlaunchCalls->at(callId);
-			if (onlaunchCallThread != pthread_self()) {
-				pthread_cancel(onlaunchCallThread);
-				onlaunchCalls->erase(callId);
-			}
+		#ifndef __ANDROID__
+			pthread_cancel(onlaunchCallThread);
+		#else
+			if(pthread_kill(onlaunchCallThread, 0) != ESRCH)
+    		{
+        		pthread_kill(onlaunchCallThread, SIGTERM);
+    		}
+    	#endif
+			onlaunchCalls->erase(callId);
 		}
-		RtsSendSignal::sendByeRequest(this, callId, "LOGOUT");
+		if (callSession.getCallState() >= RUNNING) {
+			RtsSendSignal::sendByeRequest(this, callId, "CLIENT LOGOUT");
+			rtsCallEventHandler->onClosed(callId, "CLIENT LOGOUT");
+		}
 	}
 
 	struct waitToSendContent logout_obj;
@@ -1074,8 +1266,11 @@ void User::resetRelayLinkState() {
 	this->relayControlStreamId = 0;
 	this->relayAudioStreamId = 0;
 	this->relayVideoStreamId = 0;
+	this->relayFileStreamId = 0;
 	this->relayLinkState = NOT_CREATED;
 	this->latestLegalRelayLinkStateTs = time(NULL);
+	delete this->bindRelayResponse;
+	this->bindRelayResponse = NULL;
 }
 
 void User::handleXMDConnClosed(uint64_t connId, ConnCloseType type) {
@@ -1111,16 +1306,23 @@ void User::checkAndCloseCalls() {
 		uint64_t callId = iter->first;
 		const P2PCallSession& callSession = currentCalls->at(callId);
 		if (callSession.getP2PIntranetConnId() == 0 && callSession.getP2PInternetConnId() == 0) {
-			RtsSendSignal::sendByeRequest(this, callId, ALL_DATA_CHANNELS_CLOSED);
 			if (onlaunchCalls->count(callId) > 0) {
 				pthread_t onlaunchCallThread = onlaunchCalls->at(callId);
-				if (onlaunchCallThread != pthread_self()) {
-					pthread_cancel(onlaunchCallThread);
-					onlaunchCalls->erase(callId);
-				}
+			#ifndef __ANDROID__
+				pthread_cancel(onlaunchCallThread);
+			#else
+				if(pthread_kill(onlaunchCallThread, 0) != ESRCH)
+    			{
+        			pthread_kill(onlaunchCallThread, SIGTERM);
+    			}
+    		#endif
+				onlaunchCalls->erase(callId);
+			}
+			if (callSession.getCallState() >= RUNNING) {
+				RtsSendSignal::sendByeRequest(this, callId, ALL_DATA_CHANNELS_CLOSED);
+				rtsCallEventHandler->onClosed(callId, ALL_DATA_CHANNELS_CLOSED);
 			}
 			currentCalls->erase(iter++);
-			rtsCallEventHandler->onClosed(callId, ALL_DATA_CHANNELS_CLOSED);
 		} else {
 			iter++;
 		}
@@ -1150,45 +1352,15 @@ uint64_t User::getP2PInternetConnId(uint64_t callId) {
 	return callSession.getP2PInternetConnId();
 }
 
-void User::registerTokenFetcher(MIMCTokenFetcher * tokenFetcher) {
-	this->tokenFetcher = tokenFetcher;
-}
-
-MIMCTokenFetcher* User::getTokenFetcher() const {
-	return this->tokenFetcher;
-}
-
-void User::registerOnlineStatusHandler(OnlineStatusHandler * handler) {
-	this->statusHandler = handler;
-}
-
-OnlineStatusHandler* User::getStatusHandler() const {
-	return this->statusHandler;
-}
-
-void User::registerMessageHandler(MessageHandler * handler) {
-	this->messageHandler = handler;
-}
-
-MessageHandler* User::getMessageHandler() const {
-	return this->messageHandler;
-}
-
-void User::registerRTSCallEventHandler(RTSCallEventHandler * handler) {
-	this->rtsCallEventHandler = handler;
-}
-
-RTSCallEventHandler* User::getRTSCallEventHandler() const {
-	return this->rtsCallEventHandler;
-}
-
 void User::checkToRunXmdTranseiver() {
 	if (!this->xmdTranseiver) {
 		this->xmdTranseiver = new XMDTransceiver(1);
+		this->xmdTranseiver->start();
 		this->rtsConnectionHandler = new RtsConnectionHandler(this);
 		this->rtsStreamHandler = new RtsStreamHandler(this);
 		this->xmdTranseiver->registerConnHandler(this->rtsConnectionHandler);
 		this->xmdTranseiver->registerStreamHandler(this->rtsStreamHandler);
+		this->xmdTranseiver->SetAckPacketResendIntervalMicroSecond(500);
 		this->xmdTranseiver->setTestPacketLoss(this->testPacketLoss);
 		if (this->xmdSendBufferSize > 0) {
 			this->xmdTranseiver->setSendBufferSize(this->xmdSendBufferSize);
@@ -1197,6 +1369,70 @@ void User::checkToRunXmdTranseiver() {
 			this->xmdTranseiver->setRecvBufferSize(this->xmdRecvBufferSize);
 		}
 		this->xmdTranseiver->run();
-		usleep(100000);
+		//usleep(100000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+void User::initAudioStreamConfig(const RtsStreamConfig& audioStreamConfig) {
+	this->audioStreamConfig = audioStreamConfig;
+}
+
+void User::initVideoStreamConfig(const RtsStreamConfig& videoStreamConfig) {
+	this->videoStreamConfig = videoStreamConfig;
+}
+
+void User::setSendBufferSize(int size) {
+	if (size > 0) {
+		if(this->xmdTranseiver) {
+			this->xmdTranseiver->setSendBufferSize(size);
+		} else {
+			this->xmdSendBufferSize = size;
+		}
+	}
+}
+
+void User::setRecvBufferSize(int size) {
+	if (size > 0) {
+		if(this->xmdTranseiver) {
+			this->xmdTranseiver->setRecvBufferSize(size);
+		} else {
+			this->xmdRecvBufferSize = size;
+		}
+	}
+}
+
+int User::getSendBufferSize() {
+	return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferSize() : 0;
+}
+
+int User::getRecvBufferSize() {
+	return this->xmdTranseiver ? this->xmdTranseiver->getRecvBufferSize() : 0;
+}
+
+float User::getSendBufferUsageRate() {
+	return this->xmdTranseiver ? this->xmdTranseiver->getSendBufferUsageRate() : 0;
+}
+
+float User::getRecvBufferUsageRate() {
+	return this->xmdTranseiver ? this->xmdTranseiver->getRecvBufferUsageRate() : 0;
+}
+
+void User::clearSendBuffer() {
+	if(this->xmdTranseiver) {
+		this->xmdTranseiver->clearSendBuffer();
+	}
+}
+
+void User::clearRecvBuffer() {
+	if(this->xmdTranseiver) {
+		this->xmdTranseiver->clearRecvBuffer();
+	}
+}
+
+void User::setTestPacketLoss(int testPacketLoss) {
+	this->testPacketLoss = testPacketLoss;
+	if(this->xmdTranseiver) {
+		this->xmdTranseiver->setTestPacketLoss(testPacketLoss);
 	}
 }

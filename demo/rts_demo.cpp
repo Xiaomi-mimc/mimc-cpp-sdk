@@ -2,9 +2,12 @@
 #include <mimc/user.h>
 #include <mimc/threadsafe_queue.h>
 #include <mimc/utils.h>
+#include <mimc/mimc_group_message.h>
 #include <fstream>
 #include <curl/curl.h>
 #include <list>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -43,6 +46,7 @@ public:
 			curl_easy_setopt(curl, CURLOPT_POST, 1);
 			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
 			struct curl_slist *headers = NULL;
 			headers = curl_slist_append(headers, "Content-Type: application/json");
@@ -104,6 +108,10 @@ public:
 		}
 	}
 
+	void handleGroupMessage(std::vector<MIMCGroupMessage> packets) {
+
+	}
+
 	void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
 
 	}
@@ -112,10 +120,12 @@ public:
 
 	}
 
-	MIMCMessage* pollMessage() {
-		MIMCMessage *messagePtr;
-		messages.pop(&messagePtr);
-		return messagePtr;
+	void handleSendGroupMsgTimeout(MIMCGroupMessage groupMessage) {
+
+	}
+
+	bool pollMessage(MIMCMessage& message) {
+		return messages.pop(message);
 	}
 
 private:
@@ -200,22 +210,25 @@ public:
 		string resource1 = Utils::generateRandomString(8);
 
 		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
-		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
-		user1->registerTokenFetcher(tokenFetcher);
-		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
-		user1->registerMessageHandler(new AVMessageHandler());
-		AVRTSCallEventHandler* rtsCallEventHandler = new AVRTSCallEventHandler(user1);
-		user1->registerRTSCallEventHandler(rtsCallEventHandler);
+		AVTokenFetcher tokenFetcher(appId, appKey, appSecret, appAccount1);
+		user1->registerTokenFetcher(&tokenFetcher);
+		AVOnlineStatusHandler onlineStatusHandler;
+		user1->registerOnlineStatusHandler(&onlineStatusHandler);
+		AVMessageHandler messageHandler;
+		user1->registerMessageHandler(&messageHandler);
+		AVRTSCallEventHandler rtsCallEventHandler(user1);
+		user1->registerRTSCallEventHandler(&rtsCallEventHandler);
 
 		user1->login();
 
-		sleep(10);
+		//sleep(10);
+		this_thread::sleep_for(chrono::seconds(10));
 
-		list<uint64_t>& callIds = rtsCallEventHandler->getChatIds();
+		list<uint64_t>& callIds = rtsCallEventHandler.getChatIds();
 
 		for (list<uint64_t>::iterator iter = callIds.begin(); iter != callIds.end(); iter++) {
 			uint64_t callId = *iter;
-			const string& data = rtsCallEventHandler->getChatData(callId);
+			const string& data = rtsCallEventHandler.getChatData(callId);
 			const char* filename = "test.pcm";
 			ofstream file(filename, ios::out | ios::binary | ios::ate);
 			if (file.is_open()) {
@@ -225,9 +238,11 @@ public:
 			break;
 		}
 
-		sleep(1);
+		//sleep(1);
+		this_thread::sleep_for(chrono::seconds(1));
 		user1->logout();
-		sleep(2);
+		//sleep(2);
+		this_thread::sleep_for(chrono::seconds(2));
 		delete user1;
 	}
 
@@ -247,21 +262,26 @@ public:
 
 		string resource1 = Utils::generateRandomString(8);
 		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
-		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
-		user1->registerTokenFetcher(tokenFetcher);
-		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
-		user1->registerMessageHandler(new AVMessageHandler());
-		AVRTSCallEventHandler* rtsCallEventHandler = new AVRTSCallEventHandler(user1);
-		user1->registerRTSCallEventHandler(rtsCallEventHandler);
+		AVTokenFetcher tokenFetcher(appId, appKey, appSecret, appAccount1);
+		user1->registerTokenFetcher(&tokenFetcher);
+		AVOnlineStatusHandler onlineStatusHandler;
+		user1->registerOnlineStatusHandler(&onlineStatusHandler);
+		AVMessageHandler messageHandler;
+		user1->registerMessageHandler(&messageHandler);
+		AVRTSCallEventHandler rtsCallEventHandler(user1);
+		user1->registerRTSCallEventHandler(&rtsCallEventHandler);
 
 		user1->login();
 
-		sleep(2);
+		//sleep(2);
+		this_thread::sleep_for(chrono::seconds(2));
 
 		user1->dialCall("5566", "AUDIO", "JAVA-FEEtSinu");
 
-		sleep(2);
-		std::list<uint64_t>& callIds = rtsCallEventHandler->getChatIds();
+		//sleep(2);
+		this_thread::sleep_for(chrono::seconds(2));
+
+		std::list<uint64_t>& callIds = rtsCallEventHandler.getChatIds();
 		if (!callIds.empty()) {
 			std::list<uint64_t>::iterator iter;
 			for (iter = callIds.begin(); iter != callIds.end(); iter++) {
@@ -270,32 +290,39 @@ public:
 				user1->sendRtsData(callId, rtsData, AUDIO);
 			}
 		}
-		sleep(5);
+		//sleep(5);
+		this_thread::sleep_for(chrono::seconds(5));
 		user1->logout();
-		sleep(1);
+		//sleep(1);
+		this_thread::sleep_for(chrono::seconds(1));
 		delete user1;
 	}
 
 	static void call() {
 		string resource1 = Utils::generateRandomString(8);
 		User* user1 = new User(atoll(appId.c_str()), appAccount1, resource1);
-		MIMCTokenFetcher* tokenFetcher = new AVTokenFetcher(appId, appKey, appSecret, appAccount1);
-		user1->registerTokenFetcher(tokenFetcher);
-		user1->registerOnlineStatusHandler(new AVOnlineStatusHandler());
-		user1->registerMessageHandler(new AVMessageHandler());
-		AVRTSCallEventHandler* rtsCallEventHandler = new AVRTSCallEventHandler(user1);
-		user1->registerRTSCallEventHandler(rtsCallEventHandler);
+		AVTokenFetcher tokenFetcher(appId, appKey, appSecret, appAccount1);
+		user1->registerTokenFetcher(&tokenFetcher);
+		AVOnlineStatusHandler onlineStatusHandler;
+		user1->registerOnlineStatusHandler(&onlineStatusHandler);
+		AVMessageHandler messageHandler;
+		user1->registerMessageHandler(&messageHandler);
+		AVRTSCallEventHandler rtsCallEventHandler(user1);
+		user1->registerRTSCallEventHandler(&rtsCallEventHandler);
 
 		user1->login();
 
-		sleep(2);
+		//sleep(2);
+		this_thread::sleep_for(chrono::seconds(2));
 
 		user1->dialCall("5566","AUDIO");
 
-		sleep(60);
+		//sleep(60);
+		this_thread::sleep_for(chrono::seconds(60));
 
 		user1->logout();
-		sleep(2);
+		//sleep(2);
+		this_thread::sleep_for(chrono::seconds(2));
 		delete user1;
 	}
 

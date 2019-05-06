@@ -1,0 +1,21 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(protobuf)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_SYSTEM_VERSION 19)
+set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
+set(CMAKE_CXX_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-g++)
+set(CMAKE_AR ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ar)
+set(CMAKE_ASM_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-as)
+set(CMAKE_RANLIB ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-ranlib)
+set(CMAKE_STRIP ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-strip)
+set(CMAKE_FIND_ROOT_PATH ${NDK_STANDALONE_TOOLCHAIN})
+
+add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -fno-exceptions -ffunction-sections -fdata-sections -Wall -Wno-sign-compare -Wno-unused-local-typedefs -fPIC")
+
+include_directories(${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR})
+add_library(protobuf SHARED src/google/protobuf/stubs/atomicops_internals_x86_gcc.cc src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc src/google/protobuf/stubs/common.cc src/google/protobuf/stubs/once.cc src/google/protobuf/stubs/stringprintf.cc src/google/protobuf/extension_set.cc src/google/protobuf/generated_message_util.cc src/google/protobuf/message_lite.cc src/google/protobuf/repeated_field.cc src/google/protobuf/wire_format_lite.cc src/google/protobuf/io/coded_stream.cc src/google/protobuf/io/zero_copy_stream.cc src/google/protobuf/io/zero_copy_stream_impl_lite.cc)

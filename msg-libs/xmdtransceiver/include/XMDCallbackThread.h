@@ -1,7 +1,7 @@
 #ifndef CALLBACKTHREAD_H
 #define CALLBACKTHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "PacketDispatcher.h"
 #include "XMDCommonData.h"
 

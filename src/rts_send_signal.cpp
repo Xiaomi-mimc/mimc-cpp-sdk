@@ -1,10 +1,13 @@
 #include <mimc/rts_send_signal.h>
 #include <mimc/user.h>
 #include <mimc/packet_manager.h>
+#include <mimc/p2p_callsession.h>
+#include <mimc/rts_data.pb.h>
+#include <XMDTransceiver.h>
 
 bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
-	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
-	if (!bindRelayResponse.IsInitialized()) {
+	const mimc::BindRelayResponse* bindRelayResponse = user->getBindRelayResponse();
+	if (!bindRelayResponse) {
 		
 		return false;
 	}
@@ -25,10 +28,10 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
 	fromUser->set_appaccount(user->getAppAccount());
 	fromUser->set_intranetip(localIp);
 	fromUser->set_intranetport(localPort);
-	fromUser->set_internetip(bindRelayResponse.internet_ip());
-	fromUser->set_internetport(bindRelayResponse.internet_port());
-	fromUser->set_relayip(bindRelayResponse.relay_ip());
-	fromUser->set_relayport(bindRelayResponse.relay_port());
+	fromUser->set_internetip(bindRelayResponse->internet_ip());
+	fromUser->set_internetport(bindRelayResponse->internet_port());
+	fromUser->set_relayip(bindRelayResponse->relay_ip());
+	fromUser->set_relayport(bindRelayResponse->relay_port());
 	fromUser->set_connid(user->getRelayConnId());
 
 	mimc::UserInfo* toUser = createRequest.add_members();
@@ -40,7 +43,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
 	createRequest.set_appcontent(callSession.getAppContent());
 
 	int create_request_size = createRequest.ByteSize();
-	char createRequestBytes[create_request_size];
+	char* createRequestBytes = new char[create_request_size];
 	memset(createRequestBytes, 0, create_request_size);
 	createRequest.SerializeToArray(createRequestBytes, create_request_size);
 	std::string createRequestBytesStr(createRequestBytes, create_request_size);
@@ -51,6 +54,7 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
 	callSession.setLatestLegalCallStateTs(time(NULL));
 
 	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, callId is %llu", user->getAppAccount().c_str(), callId);
+	delete[] createRequestBytes;
 
 	return true;
 }
@@ -71,12 +75,12 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::
 	theUser->set_appaccount(user->getAppAccount());
 	theUser->set_intranetip(localIp);
 	theUser->set_intranetport(localPort);
-	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
-	if (bindRelayResponse.IsInitialized()) {
-		theUser->set_internetip(bindRelayResponse.internet_ip());
-		theUser->set_internetport(bindRelayResponse.internet_port());
-		theUser->set_relayip(bindRelayResponse.relay_ip());
-		theUser->set_relayport(bindRelayResponse.relay_port());
+	const mimc::BindRelayResponse* bindRelayResponse = user->getBindRelayResponse();
+	if (bindRelayResponse) {
+		theUser->set_internetip(bindRelayResponse->internet_ip());
+		theUser->set_internetport(bindRelayResponse->internet_port());
+		theUser->set_relayip(bindRelayResponse->relay_ip());
+		theUser->set_relayport(bindRelayResponse->relay_port());
 	}
 
 	theUser->set_connid(user->getRelayConnId());
@@ -85,7 +89,7 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::
 	inviteResponse.set_errmsg(errMsg);
 
 	int invite_response_size = inviteResponse.ByteSize();
-	char inviteResponseBytes[invite_response_size];
+	char* inviteResponseBytes= new char[invite_response_size];
 	memset(inviteResponseBytes, 0, invite_response_size);
 	inviteResponse.SerializeToArray(inviteResponseBytes, invite_response_size);
 	std::string inviteResponseBytesStr(inviteResponseBytes, invite_response_size);
@@ -93,7 +97,7 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::
 	std::string packetId = sendRtsMessage(user, callId, mimc::INVITE_RESPONSE, callType, inviteResponseBytesStr);
 
 	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, callId is %llu, result is %d, errMsg is %s", user->getAppAccount().c_str(), callId, result, errMsg.c_str());
-
+	delete[] inviteResponseBytes;
 	return true;
 }
 
@@ -108,7 +112,7 @@ bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::strin
 	}
 
 	int bye_request_size = byeRequest.ByteSize();
-	char byeRequestBytes[bye_request_size];
+	char* byeRequestBytes = new char[bye_request_size];
 	memset(byeRequestBytes, 0, bye_request_size);
 	byeRequest.SerializeToArray(byeRequestBytes, bye_request_size);
 	std::string byeRequestBytesStr(byeRequestBytes, bye_request_size);
@@ -116,6 +120,7 @@ bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::strin
 	std::string packetId = sendRtsMessage(user, callId, mimc::BYE_REQUEST, callSession.getCallType(), byeRequestBytesStr);
 
 	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendByeRequest has called, user is %s, callId is %llu, byeReason is %s", user->getAppAccount().c_str(), callId, byeReason.c_str());
+	delete[] byeRequestBytes;
 
 	return true;
 }
@@ -125,21 +130,19 @@ bool RtsSendSignal::sendByeResponse(const User* user, uint64_t callId, mimc::RTS
 	mimc::ByeResponse byeResponse;
 	byeResponse.set_result(result);
 	int bye_response_size = byeResponse.ByteSize();
-	char byeResponseBytes[bye_response_size];
+	char* byeResponseBytes = new char[bye_response_size];
 	memset(byeResponseBytes, 0, bye_response_size);
 	byeResponse.SerializeToArray(byeResponseBytes, bye_response_size);
 	std::string byeResponseBytesStr(byeResponseBytes, bye_response_size);
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::BYE_RESPONSE, callSession.getCallType(), byeResponseBytesStr);
-
-	
-
+	delete[] byeResponseBytes;
 	return true;
 }
 
 bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
-	const mimc::BindRelayResponse& bindRelayResponse = user->getBindRelayResponse();
-	if (!bindRelayResponse.IsInitialized()) {
+	const mimc::BindRelayResponse* bindRelayResponse = user->getBindRelayResponse();
+	if (!bindRelayResponse) {
 		
 		return false;
 	}
@@ -158,14 +161,14 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
 	theUser->set_appaccount(user->getAppAccount());
 	theUser->set_intranetip(localIp);
 	theUser->set_intranetport(localPort);
-	theUser->set_internetip(bindRelayResponse.internet_ip());
-	theUser->set_internetport(bindRelayResponse.internet_port());
-	theUser->set_relayip(bindRelayResponse.relay_ip());
-	theUser->set_relayport(bindRelayResponse.relay_port());
+	theUser->set_internetip(bindRelayResponse->internet_ip());
+	theUser->set_internetport(bindRelayResponse->internet_port());
+	theUser->set_relayip(bindRelayResponse->relay_ip());
+	theUser->set_relayport(bindRelayResponse->relay_port());
 	theUser->set_connid(user->getRelayConnId());
 
 	int update_request_size = updateRequest.ByteSize();
-	char updateRequestBytes[update_request_size];
+	char* updateRequestBytes = new char [update_request_size];
 	memset(updateRequestBytes, 0, update_request_size);
 	updateRequest.SerializeToArray(updateRequestBytes, update_request_size);
 	std::string updateRequestBytesStr(updateRequestBytes, update_request_size);
@@ -174,9 +177,9 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_REQUEST, callSession.getCallType(), updateRequestBytesStr);
 	
-
 	callSession.setCallState(WAIT_UPDATE_RESPONSE);
 	callSession.setLatestLegalCallStateTs(time(NULL));
+	delete[] updateRequestBytes;
 
 	return true;
 }
@@ -186,7 +189,7 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::
 	updateResponse.set_result(result);
 
 	int update_response_size = updateResponse.ByteSize();
-	char updateResponseBytes[update_response_size];
+	char* updateResponseBytes = new char[update_response_size];
 	memset(updateResponseBytes, 0, update_response_size);
 	updateResponse.SerializeToArray(updateResponseBytes, update_response_size);
 	std::string updateResponseBytesStr(updateResponseBytes, update_response_size);
@@ -195,7 +198,7 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_RESPONSE, callSession.getCallType(), updateResponseBytesStr);
 	
-
+	delete[] updateResponseBytes;
 	return true;
 }
 
@@ -203,7 +206,7 @@ bool RtsSendSignal::pingCallCenter(const User* user, uint64_t callId) {
 	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
 	mimc::PingRequest pingRequest;
 	int ping_request_size = pingRequest.ByteSize();
-	char pingRequestBytes[ping_request_size];
+	char* pingRequestBytes = new char[ping_request_size];
 	memset(pingRequestBytes, 0, ping_request_size);
 	pingRequest.SerializeToArray(pingRequestBytes, ping_request_size);
 	std::string pingRequestBytesStr(pingRequestBytes, ping_request_size);
@@ -211,7 +214,7 @@ bool RtsSendSignal::pingCallCenter(const User* user, uint64_t callId) {
 	std::string packetId = sendRtsMessage(user, callId, mimc::PING_REQUEST, callSession.getCallType(), pingRequestBytesStr);
 
 	
-
+	delete[] pingRequestBytes;
 	return true;
 }
 
@@ -225,7 +228,7 @@ std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t callId, mim
 	rtsMessage.set_payload(payload);
 
 	int message_size = rtsMessage.ByteSize();
-	char messageBytes[message_size];
+	char* messageBytes = new char[message_size];
 	memset(messageBytes, 0, message_size);
 	rtsMessage.SerializeToArray(messageBytes, message_size);
 	std::string messageBytesStr(messageBytes, message_size);
@@ -244,5 +247,6 @@ std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t callId, mim
 	mimc_obj.message = v6payload;
 	(user->getPacketManager()->packetsWaitToSend).push(mimc_obj);
 
+	delete[] messageBytes;
 	return packetId;
 }

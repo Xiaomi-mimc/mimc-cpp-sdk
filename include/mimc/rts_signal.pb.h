@@ -114,11 +114,11 @@ const int CallStatus_ARRAYSIZE = CallStatus_MAX + 1;
 
 enum UpdateType {
   UPDATE = 1,
-  DELETE = 2
+  REMOVE = 2
 };
 bool UpdateType_IsValid(int value);
 const UpdateType UpdateType_MIN = UPDATE;
-const UpdateType UpdateType_MAX = DELETE;
+const UpdateType UpdateType_MAX = REMOVE;
 const int UpdateType_ARRAYSIZE = UpdateType_MAX + 1;
 
 // ===================================================================

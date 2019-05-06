@@ -1,4 +1,54 @@
-# Ignore everything in this directory
-# Except this file
+# Ignore everything in this directory  
+third-party-win/**/vsprojects/*
+# Except this file  
 !.gitignore
 bazel-*
+third-party-win/**/.vs/
+third-party-win/**/Debug/
+third-party-win/**/*.db
+mimi-cpp-sdk.VC.db
+third-party/**/.vs/
+third-party/**/Debug/
+third-party/**/*.db
+.vs/
+third-party/json-c/json-c.VC.VC.opendb
+third-party/protobuf-2_5_0/protobuf-2_5_0.VC.VC.opendb
+third-party/gtest-170/gtest-170.VC.VC.opendb
+msg-libs/xmdtransceiver/Debug/
+msg-libs/xmdtransceiver/test/client/Debug/
+msg-libs/xmdtransceiver/test/server/Debug/
+msg-libs/xmdtransceiver/x64/
+msg-libs/xmdtransceiver/xmdtransceiver.VC.db
+msg-libs/xmdtransceiver/xmdtransceiver2010.suo
+mimi-cpp-sdk.VC.VC.opendb
+mimc-cpp-sdk.VC.db
+mimc-cpp-sdk/msg-libs/xmdtransceiver/test/xmd-test/Debug/
+mimc-cpp-sdk/test/rts_test.VC.db
+mimc-cpp-sdk/test/rts_test.VC.VC.opendb
+mimc-cpp-sdk/Debug/
+Debug/
+test/rts_test.VC.db
+test/rts_test.VC.VC.opendb
+mimc.VC.db
+test/rts_test.VC.db
+test/mimc_test.VC.db
+third-party/protobuf-2_5_0/x64/
+third-party/gtest-170/x64/
+third-party/curl-7-59-0/x64/
+test/x64/
+test/mimc.VC.VC.opendb
+third-party/curl-7-59-0/projects/Windows/VC15/lib/.lib/
+mimc.VC.VC.opendb
+third-party/curl-7-59-0/projects/Windows/VC15/lib/x64/
+demo/x64/
+demo/rts_demo.VC.db
+demo/mimc_demo.VC.db
+mimc-cpp-sdk/third-party/protobuf-2_5_0/Win32/
+mimc-cpp-sdk/third-party/gtest-170/Win32/
+mimc-cpp-sdk/third-party/gtest-170/Release/
+mimc-cpp-sdk/third-party/curl-7-59-0/projects/Windows/VC15/lib/Win32/
+mimc-cpp-sdk/test/Win32/
+mimc-cpp-sdk/demo/Win32/
+mimc-cpp-sdk/msg-libs/xmdtransceiver/Win32/
+test/Win32/
+Win32/

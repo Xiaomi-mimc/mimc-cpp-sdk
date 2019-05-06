@@ -1,9 +1,10 @@
 #include <mimc/user.h>
 #include <mimc/threadsafe_queue.h>
 #include <string.h>
-#include <unistd.h>
 #include <curl/curl.h>
 #include <list>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -38,6 +39,10 @@ public:
         }
     }
 
+	void handleGroupMessage(std::vector<MIMCGroupMessage> packets) {
+
+	}
+
     void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
         
     }
@@ -46,10 +51,12 @@ public:
         
     }
 
-    MIMCMessage* pollMessage() {
-        MIMCMessage *messagePtr;
-        messages.pop(&messagePtr);
-        return messagePtr;
+	void handleSendGroupMsgTimeout(MIMCGroupMessage groupMessage) {
+
+	}
+
+    bool pollMessage(MIMCMessage& message) {
+        return messages.pop(message);
     }
 
 private:
@@ -117,7 +124,6 @@ private:
 class TestTokenFetcher : public MIMCTokenFetcher {
 public:
     string fetchToken() {
-        curl_global_init(CURL_GLOBAL_ALL);
         CURL *curl = curl_easy_init();
         CURLcode res;
 #ifndef STAGING
@@ -135,6 +141,7 @@ public:
             curl_easy_setopt(curl, CURLOPT_POST, 1);
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
             struct curl_slist *headers = NULL;
             headers = curl_slist_append(headers, "Content-Type: application/json");
@@ -153,8 +160,6 @@ public:
             curl_slist_free_all(headers);
             curl_easy_cleanup(curl);
         }
-
-        curl_global_cleanup();
 
         return result;
     }
@@ -183,18 +188,26 @@ private:
 class MimcDemo {
 public:
     static void testP2PSendOneMessage() {
+        curl_global_init(CURL_GLOBAL_ALL);
         User* from = new User(atoll(appId.c_str()), appAccount1);
         User* to = new User(atoll(appId.c_str()), appAccount2);
-        TestMessageHandler* fromMessageHandler = new TestMessageHandler();
-        TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
-        from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
-        from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
-        from->registerMessageHandler(fromMessageHandler);
+        TestMessageHandler fromMessageHandler;
+        TestMessageHandler toMessageHandler;
 
-        to->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
-        to->registerOnlineStatusHandler(new TestOnlineStatusHandler());
-        to->registerMessageHandler(toMessageHandler);
+        TestTokenFetcher fromTokenFetcher(appId, appKey, appSecret, appAccount1);
+        TestTokenFetcher toTokenFetcher(appId, appKey, appSecret, appAccount2);
+
+        TestOnlineStatusHandler fromOnlineStatusHandler;
+        TestOnlineStatusHandler toOnlineStatusHandler;
+
+        from->registerTokenFetcher(&fromTokenFetcher);
+        from->registerOnlineStatusHandler(&fromOnlineStatusHandler);
+        from->registerMessageHandler(&fromMessageHandler);
+
+        to->registerTokenFetcher(&toTokenFetcher);
+        to->registerOnlineStatusHandler(&toOnlineStatusHandler);
+        to->registerMessageHandler(&toMessageHandler);
 
         if (!from->login()) {
             return;
@@ -204,52 +217,66 @@ public:
             return;
         }
 
-        sleep(4);
+        //sleep(4);
+		std::this_thread::sleep_for(std::chrono::seconds(4));
 
         string payload1 = "WITH MIMC,WE CAN FLY HIGHER！";
         string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
-        
 
-        usleep(300000);
+        //usleep(300000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-        MIMCMessage *message1 = toMessageHandler->pollMessage();
-        if (message1 != NULL) {
+        MIMCMessage message1;
+        if (toMessageHandler.pollMessage(message1)) {
             
         }
 
         from->logout();
-        usleep(400000);
+        //usleep(400000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
         to->logout();
-        usleep(400000);
+        //usleep(400000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
         delete from;
         from = NULL;
         delete to;
         to = NULL;
+        curl_global_cleanup();
     }
 
     static void testP2PSendMessages() {
+        curl_global_init(CURL_GLOBAL_ALL);
         User* from = new User(atoll(appId.c_str()), appAccount1);
         User* to = new User(atoll(appId.c_str()), appAccount2);
-        TestMessageHandler* fromMessageHandler = new TestMessageHandler();
-        TestMessageHandler* toMessageHandler = new TestMessageHandler();
 
-        from->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount1));
-        from->registerOnlineStatusHandler(new TestOnlineStatusHandler());
-        from->registerMessageHandler(fromMessageHandler);
+        TestMessageHandler fromMessageHandler;
+        TestMessageHandler toMessageHandler;
 
-        to->registerTokenFetcher(new TestTokenFetcher(appId, appKey, appSecret, appAccount2));
-        to->registerOnlineStatusHandler(new TestOnlineStatusHandler());
-        to->registerMessageHandler(toMessageHandler);
+        TestTokenFetcher fromTokenFetcher(appId, appKey, appSecret, appAccount1);
+        TestTokenFetcher toTokenFetcher(appId, appKey, appSecret, appAccount2);
+
+        TestOnlineStatusHandler fromOnlineStatusHandler;
+        TestOnlineStatusHandler toOnlineStatusHandler;
+
+        from->registerTokenFetcher(&fromTokenFetcher);
+        from->registerOnlineStatusHandler(&fromOnlineStatusHandler);
+        from->registerMessageHandler(&fromMessageHandler);
+
+        to->registerTokenFetcher(&toTokenFetcher);
+        to->registerOnlineStatusHandler(&toOnlineStatusHandler);
+        to->registerMessageHandler(&toMessageHandler);
 
         from->login();
-        sleep(2);
+        //sleep(2);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 
         to->login();
-        sleep(2);
+        //sleep(2);
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 
-        MIMCMessage *message;
+        MIMCMessage message;
         const int MAX_NUM = 100;
         const int GOON_NUM = 20;
         int num = 0;
@@ -257,16 +284,18 @@ public:
             
             string payload1 = "With mimc,we can communicate much easier！";
             string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
-            usleep(300000);
-            while (message = toMessageHandler->pollMessage())
+            //usleep(300000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            while (toMessageHandler.pollMessage(message))
             {
                 
             }
 
             string payload2 = "Yes~I feel it";
             string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload2);
-            usleep(300000);
-            while (message = fromMessageHandler->pollMessage())
+            //usleep(300000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            while (fromMessageHandler.pollMessage(message))
             {
                 
             }
@@ -274,37 +303,43 @@ public:
 
         num = 0;
 
-        sleep(10);
+        //sleep(10);
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 
         while (num++ < GOON_NUM) {
             
             string payload3 = "Let's go on!";
             string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload3);
-            usleep(300000);
-            while (message = toMessageHandler->pollMessage())
+            //usleep(300000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            while (toMessageHandler.pollMessage(message))
             {
                 
             }
 
             string payload4 = "OK!";
             string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload4);
-            usleep(300000);
-            while (message = fromMessageHandler->pollMessage())
+            //usleep(300000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            while (fromMessageHandler.pollMessage(message))
             {
                 
             }
         }
 
         from->logout();
-        usleep(400000);
+        //usleep(400000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
         to->logout();
-        usleep(400000);
+        //usleep(400000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
         delete from;
         from = NULL;
         delete to;
         to = NULL;
+        curl_global_cleanup();
     }
 
 };

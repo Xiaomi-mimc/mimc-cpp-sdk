@@ -1,7 +1,7 @@
 #ifndef PACKETBUILDTHREAD_H
 #define PACKETBUILDTHREAD_H
 
-#include "Thread.h"
+#include "xmd_thread.h"
 #include "XMDCommonData.h"
 #include "PacketDispatcher.h"
 

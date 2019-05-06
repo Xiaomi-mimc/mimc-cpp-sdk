@@ -95,6 +95,10 @@
 extern "C" {
 #endif
 
+#ifndef BUILDING_LIBCURL
+#define BUILDING_LIBCURL
+#endif // !BUILDING_LIBCURL
+
 #if defined(BUILDING_LIBCURL) || defined(CURL_STRICTER)
 typedef struct Curl_easy CURL;
 typedef struct Curl_share CURLSH;

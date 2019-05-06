@@ -1,9 +1,12 @@
 #include "XMDTransceiver.h"
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include "handler.h"
 
 int main(int argc, char *argv[]) {
     XMDTransceiver* transceiver = new XMDTransceiver(1, 44324);
+    transceiver->start();
     transceiver->registerRecvDatagramHandler(new DataGramHandler());
     transceiver->registerConnHandler(new newConn());
     transceiver->registerStreamHandler(new streamClientHandler(transceiver));
@@ -16,7 +19,7 @@ int main(int argc, char *argv[]) {
     int size = atoi(argv[4]);
     int qps = atoi(argv[5]);
     int packetLossRate = atoi(argv[6]);
-    char data[size];
+    char* data = new char[size];
     
     
     //std::string ip = "10.231.49.218";
@@ -24,8 +27,8 @@ int main(int argc, char *argv[]) {
     uint64_t connId = transceiver->createConnection(ip, port, 
                                    NULL, 0, 20, NULL);
                                    
-    usleep(500000);
-
+    //usleep(500000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
     uint16_t streamId = transceiver->createStream(connId, ACK_STREAM, 400, false);
 
     transceiver->setTestPacketLoss(packetLossRate);
@@ -47,26 +50,32 @@ int main(int argc, char *argv[]) {
         
         transceiver->sendRTData(connId, streamId, data, size, true, P0, 2);
 
-        usleep(1000000 / qps);
+        //usleep(1000000 / qps);
+		std::this_thread::sleep_for(std::chrono::microseconds(1000000 / qps));
     }
 
-    usleep(15000000);
+    //usleep(2500000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+
     std::cout<<"close"<<std::endl;
 
     transceiver->closeStream(connId, streamId);
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
     transceiver->closeConnection(connId);
 
 
-    usleep(200000);
-    
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     transceiver->stop();
     transceiver->join();
+	delete data;
     delete transceiver;
     
 
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
 
 

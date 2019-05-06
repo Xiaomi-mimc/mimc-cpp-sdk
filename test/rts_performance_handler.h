@@ -47,22 +47,16 @@ public:
         XMDLoggerWrapper::instance()->warn("In onSendDataFailure, callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
-    RtsMessageData* pollInviteRequest(long timeout_s) {
-        RtsMessageData* inviteRequestPtr;
-        inviteRequests.pop(timeout_s, &inviteRequestPtr);
-        return inviteRequestPtr;
+    bool pollInviteRequest(long timeout_s, RtsMessageData& inviteRequest) {
+        return inviteRequests.pop(timeout_s, inviteRequest);
     }
 
-    RtsMessageData* pollCreateResponse(long timeout_s) {
-        RtsMessageData* createResponsePtr;
-        createResponses.pop(timeout_s, &createResponsePtr);
-        return createResponsePtr;
+    bool pollCreateResponse(long timeout_s, RtsMessageData& createResponse) {
+        return createResponses.pop(timeout_s, createResponse);
     }
 
-    RtsMessageData* pollBye(long timeout_s) {
-        RtsMessageData* byePtr;
-        byes.pop(timeout_s, &byePtr);
-        return byePtr;
+    bool pollBye(long timeout_s, RtsMessageData& bye) {
+        return byes.pop(timeout_s, bye);
     }
 
     void clear() {

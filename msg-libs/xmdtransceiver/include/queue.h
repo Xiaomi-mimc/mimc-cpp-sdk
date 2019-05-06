@@ -3,17 +3,19 @@
 
 #include <memory>
 #include <queue>
-#include <pthread.h>
-
+#include <mutex>
 
 template <typename T>
 class STLSafeQueue
 {
+
 private:
     std::queue<T> queue_;
-    pthread_mutex_t queue_mutex_;
+	std::mutex queue_mutex_;
+
 public:
     STLSafeQueue();
+    STLSafeQueue(const STLSafeQueue<T>& queue);
     ~STLSafeQueue();
 
     bool Push(T& val);
@@ -25,7 +27,12 @@ public:
 
 template <typename T>
 STLSafeQueue<T>::STLSafeQueue() {
-    queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+
+}
+
+template <typename T>
+STLSafeQueue<T>::STLSafeQueue(const STLSafeQueue<T>& queue) {
+
 }
 
 template <typename T>
@@ -34,22 +41,22 @@ STLSafeQueue<T>::~STLSafeQueue() {
 
 template <typename T>
 bool STLSafeQueue<T>::Push(T& val) {
-    pthread_mutex_lock(&queue_mutex_);
+	queue_mutex_.lock();
     queue_.push(val);
-    pthread_mutex_unlock(&queue_mutex_);
+	queue_mutex_.unlock();
     return true;
 }
 
 template <typename T>
 bool STLSafeQueue<T>::Pop(T& data) {
-    pthread_mutex_lock(&queue_mutex_);
+	queue_mutex_.lock();
     if (queue_.empty()) {
-        pthread_mutex_unlock(&queue_mutex_);
+		queue_mutex_.unlock();
         return false;
     }
     data = queue_.front();
     queue_.pop();
-    pthread_mutex_unlock(&queue_mutex_);
+	queue_mutex_.unlock();
     return true;
 }
 
@@ -60,13 +67,13 @@ bool STLSafeQueue<T>::empty() {
 
 template <typename T>
 bool STLSafeQueue<T>::Front(T& data) {
-    pthread_mutex_lock(&queue_mutex_);
+	queue_mutex_.lock();
     if (queue_.empty()) {
-        pthread_mutex_unlock(&queue_mutex_);
+		queue_mutex_.unlock();
         return false;
     }
     data = queue_.front();
-    pthread_mutex_unlock(&queue_mutex_);
+	queue_mutex_.unlock();
     return true;
 }
 

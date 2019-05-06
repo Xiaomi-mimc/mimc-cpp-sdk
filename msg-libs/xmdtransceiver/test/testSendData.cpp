@@ -5,7 +5,8 @@
 #include<stdlib.h>
 #include <openssl/rsa.h>
 #include <openssl/aes.h>
-
+#include <thread>
+#include <chrono>
 
 //XMDTransceiver* transceiver = new XMDTransceiver(45678, 1);
 
@@ -79,6 +80,15 @@ public:
     }
 };
 
+
+class SocketErrHander : public XMDSocketErrHandler {
+public:
+    virtual void handle(int err_no, std::string err_reson) {
+         std::cout<<"socket err " << err_no<< std::endl;
+    }
+};
+
+
 class XMDLOG : public ExternalLog {
 public:
     virtual void info(const char *msg) {
@@ -113,20 +123,39 @@ void* testrand(void* argc) {
         connId = transceiver->createConnection((char*)ip.c_str(), port, NULL, 0, 10, NULL);
         std::cout<<"conn id="<<connId<<std::endl;
 
+        std::cout<<"1"<<std::endl;
+
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        //usleep(1);
+		std::this_thread::sleep_for(std::chrono::microseconds(1));
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        std::cout<<"rand64="<<rand64()<<std::endl;
+        //std::cout<<t1<<","<<t2<<","<<t3<<std::endl;
 
         return NULL;
 
 }
 
 void* createthread(void* argc) {
-    pthread_t tid2;
-    pthread_create(&tid2, NULL, testrand, NULL);
+    //pthread_t tid2;
+    //pthread_create(&tid2, NULL, testrand, NULL);
+	std::thread t(testrand, (void*)NULL);
+	t.join();
     return NULL;
 }
 
 
+   /*
 
-/*
 TEST(test_xmdtransceiver, test_send_immediately) {
     XMDTransceiver* transceiver11 = new XMDTransceiver(1, 45678);
     transceiver11->registerRecvDatagramHandler(new DataGramHandler());
@@ -138,13 +167,15 @@ TEST(test_xmdtransceiver, test_send_immediately) {
     transceiver21->run();
 
     std::string message = "test_send_immediately";
-    std::string ip = "10.231.49.218";
+    std::string ip = "10.231.41.183";
     int port = 46897;
     EXPECT_EQ(46897, port);
-    usleep(100000);
+    //usleep(100000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
     //transceiver11->sendDatagram((char*)ip.c_str(), port, (char*)message.c_str(), message.length(), 0);
 
-    usleep(2000000);
+    //usleep(2000000);
+	std::this_thread::sleep_for(std::chrono::seconds(2));
     std::cout<<"test="<<message.length() << std::endl;
 }
 
@@ -163,7 +194,7 @@ TEST(test_xmdtransceiver, test_send_delay) {
     std::string message = "test_send_delay";
     std::string message2 = "test_send_delay2";
     std::string message3 = "test_send_delay3";
-    std::string ip = "10.231.49.218";
+    std::string ip = "10.231.41.183";
     int port = 44235;
     EXPECT_EQ(44235, port);
     transceiver->sendDatagram((char*)ip.c_str(), port, (char*)message.c_str(), message.length(), 10);
@@ -171,9 +202,10 @@ TEST(test_xmdtransceiver, test_send_delay) {
     //usleep(5000);
     transceiver->sendDatagram((char*)ip.c_str(), port, (char*)message3.c_str(), message3.length(), 50);
 
-    usleep(100000);
+    //usleep(100000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(100));
     std::string iptest;
-    int porttest;
+    uint16_t porttest;
     transceiver->getLocalInfo(iptest, porttest);
     transceiver2->getLocalInfo(iptest, porttest);
     std::cout<<"ip="<<iptest<<",port="<<porttest<<std::endl;
@@ -184,10 +216,10 @@ TEST(test_xmdtransceiver, test_send_delay) {
     std::cout<<"test"<<std::endl;
 }
 
-*/
 
 
-   /*
+
+
 TEST(test_xmdtransceiver, test_send_ackstreamData) {
     XMDLOG xmdlog_;
     XMDTransceiver::setExternalLog(&xmdlog_);
@@ -215,6 +247,7 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     std::string message = "test_send_createconn";
     std::string message2 = "test_send_RTDATA";
     std::string message3 = "1234567890abcdefghijklmnopqrstuvwxyz1234567无法威风威风威风无法为违法未访问涉非法为二分ssfefefefefefffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
     std::string ip = "127.0.0.1";
     int port = 44564;
 
@@ -225,9 +258,9 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     uint64_t connId = transceiver->createConnection((char*)ip.c_str(), port, 
                                    (char*)message.c_str(), message.length(), 10, NULL);
                                    
-    EXPECT_EQ(44564, port);
-    usleep(200000);
-
+    EXPECT_EQ(11000, port);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     std::string testip;
     int32_t testport;
@@ -235,22 +268,27 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
     uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 100, false);
     std::cout<<"stream id="<<streamId<<std::endl;
-
 
     int groupid = 0;
     groupid = transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false, P0, 1);
     std::cout<<"groupid=" <<groupid << std::endl;
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
     groupid = transceiver->sendRTData(connId, streamId, (char*)message2.c_str(), message2.length(), false, P0, 1);
     std::cout<<"groupid=" <<groupid << std::endl;
-    usleep(2000000);
+    //usleep(2000000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
     transceiver->closeStream(connId, streamId);
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
     transceiver->closeConnection(connId);
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
     transceiver->setSendBufferSize(12345);
     std::cout<<"test="<< connId <<",size="<<transceiver->getSendBufferSize() << std::endl;
 
@@ -266,7 +304,8 @@ TEST(test_xmdtransceiver, test_send_ackstreamData) {
     delete transceiver;
 
 
-    usleep(200000);
+    //usleep(200000);
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
 
 
@@ -298,11 +337,13 @@ TEST(test_xmdtransceiver, test_rand46) {
 
 TEST(test_xmdtransceiver, test_send_fecstreamData) {
     XMDTransceiver* transceiver = new XMDTransceiver(1, 45688);
+    transceiver->start();
     transceiver->registerRecvDatagramHandler(new DataGramHandler());
     transceiver->registerConnHandler(new newConn());
     transceiver->registerStreamHandler(new stHandler());
 
     XMDTransceiver* transceiver2 = new XMDTransceiver(1, 44234);
+    transceiver2->start();
     transceiver2->registerRecvDatagramHandler(new DataGramHandler());
     transceiver2->registerConnHandler(new newConn());
     transceiver2->registerStreamHandler(new stHandler());
@@ -335,12 +376,21 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
     XMDLoggerWrapper::instance()->debug("ip=%s, ip len=%d,port=%d", testip.c_str(), testip.length(),testport);
     std::cout<<"connid="<<connId<<",ip="<<testip<<",port="<<testport<<std::endl;
 
+    
     usleep(200000);
+    
     uint16_t streamId = transceiver->createStream(connId, FEC_STREAM, 0, false);
     std::cout<<"stream id="<<streamId<<std::endl;
 
     uint16_t streamId2 = transceiver->createStream(connId, FEC_STREAM, 0, false);
     std::cout<<"stream id="<<streamId2<<std::endl;
+
+    
+    transceiver->setTestPacketLoss(100);
+
+    transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false);
+
+    transceiver->setTestPacketLoss(0);
 
     transceiver->sendRTData(connId, streamId, (char*)message3.c_str(), message3.length(), false);
     usleep(200000);
@@ -354,8 +404,10 @@ TEST(test_xmdtransceiver, test_send_fecstreamData) {
 
 
     transceiver2->stop();
+    transceiver2->join();
     delete transceiver2;
     transceiver->stop();
+    transceiver->join();
     delete transceiver;
 
 

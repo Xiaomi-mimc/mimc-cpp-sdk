@@ -3,18 +3,18 @@
 #include "common.h"
 #include <sstream>
 
-pthread_mutex_t XMDCommonData::resend_queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t XMDCommonData::datagram_queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t XMDCommonData::packetId_mutex_ = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t XMDCommonData::callback_data_map_mutex_ = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t XMDCommonData::stream_data_send_callback_map_mutex_ = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t XMDCommonData::packet_loss_map_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+std::mutex XMDCommonData::resend_queue_mutex_;
+std::mutex XMDCommonData::datagram_queue_mutex_;
+std::mutex XMDCommonData::packetId_mutex_;
+std::mutex XMDCommonData::callback_data_map_mutex_;
+std::mutex XMDCommonData::stream_data_send_callback_map_mutex_;
+std::mutex XMDCommonData::packet_loss_map_mutex_;
+std::mutex XMDCommonData::conn_mutex_;
+std::mutex XMDCommonData::group_id_mutex_;
+std::mutex XMDCommonData::socket_send_queue_mutex_;
 
 
 XMDCommonData::XMDCommonData(int decodeThreadSize) {
-    pthread_rwlock_init(&conn_mutex_, NULL);
-    pthread_rwlock_init(&group_id_mutex_, NULL);
-
     decodeThreadSize_ = decodeThreadSize;
     for (int i = 0; i < decodeThreadSize; i++) {
         STLSafeQueue<StreamData*> tmpQueue;
@@ -26,11 +26,11 @@ XMDCommonData::XMDCommonData(int decodeThreadSize) {
     datagramQueueMaxLen_ = DEFAULT_DATAGRAM_QUEUE_LEN;
     callbackQueueMaxLen_ = DEFAULT_CALLBACK_QUEUE_LEN;
     resendQueueMaxLen_ = DEFAULT_RESEND_QUEUE_LEN;
+    ping_interval_ = PING_INTERVAL / 1000;
+    resend_interval_ = FIRST_RESEND_INTERVAL;
 }
 
 XMDCommonData::~XMDCommonData() {
-    pthread_rwlock_destroy(&conn_mutex_);
-    pthread_rwlock_destroy(&group_id_mutex_);
     connVec_.clear();
 }
 
@@ -49,18 +49,28 @@ StreamQueueData* XMDCommonData::streamQueuePop() {
     }
 }
 
+bool XMDCommonData::streamQueueEmpty() {
+    return streamQueue_.empty();
+}
+
 void XMDCommonData::socketSendQueuePush(SendQueueData* data) {
-    socketSendQueue_.Push(data);
+    socket_send_queue_mutex_.lock();
+    socketSendQueue_.push(data);
+    socket_send_queue_mutex_.unlock();
 }
 
 SendQueueData* XMDCommonData::socketSendQueuePop() {
     SendQueueData* data = NULL;
-    bool result = socketSendQueue_.Pop(data);
-    if (result) {
-        return data;
-    } else {
+    socket_send_queue_mutex_.lock();
+    if (socketSendQueue_.empty()) {
+        socket_send_queue_mutex_.unlock();
         return NULL;
     }
+    data = socketSendQueue_.front();
+    socketSendQueue_.pop();
+    socket_send_queue_mutex_.unlock();
+
+    return data;
 }
 
 void XMDCommonData::socketRecvQueuePush(SocketData* data) {
@@ -76,6 +86,11 @@ SocketData* XMDCommonData::socketRecvQueuePop() {
         return NULL;
     }
 }
+
+bool XMDCommonData::socketRecvQueueEmpty() {
+    return socketRecvQueue_.empty();
+}
+
 
 
 
@@ -104,6 +119,11 @@ StreamData* XMDCommonData::packetRecoverQueuePop(int id) {
     }
 }
 
+bool XMDCommonData::packetRecoverQueueEmpty(int id) {
+    return packetRecoverQueueVec_[id].empty();
+}
+
+
 bool XMDCommonData::callbackQueuePush(CallbackQueueData* data) {
     if (callbackQueue_.Size() >= callbackQueueMaxLen_) {
         XMDLoggerWrapper::instance()->warn("callbackQueue size(%d) bigger than queue max len(%d)", 
@@ -124,6 +144,11 @@ CallbackQueueData* XMDCommonData::callbackQueuePop() {
         return NULL;
     }
 }
+
+bool XMDCommonData::callbackQueueEmpty() {
+    return callbackQueue_.empty();
+}
+
 
 void XMDCommonData::setCallbackQueueSize(int size) {
     callbackQueueMaxLen_ = size;
@@ -147,24 +172,24 @@ void XMDCommonData::clearCallbackQueue() {
 
 
 bool XMDCommonData::datagramQueuePush(SendQueueData* data) {
-    pthread_mutex_lock(&datagram_queue_mutex_);
-    if (datagramQueue_.size() >= datagramQueueMaxLen_) {
-        XMDLoggerWrapper::instance()->warn("datagramQueue size(%d) bigger than queue max len(%d)", 
-                                           datagramQueue_.size(), datagramQueueMaxLen_);
-        pthread_mutex_unlock(&datagram_queue_mutex_);
+	datagram_queue_mutex_.lock();
+	if (datagramQueue_.size() >= datagramQueueMaxLen_) {
+		XMDLoggerWrapper::instance()->warn("datagramQueue size(%d) bigger than queue max len(%d)",
+											datagramQueue_.size(), datagramQueueMaxLen_);
+        datagram_queue_mutex_.unlock();
         delete data;
         return false;
     }
     datagramQueue_.push(data);
-    pthread_mutex_unlock(&datagram_queue_mutex_);
+    datagram_queue_mutex_.unlock();
     return true;
 }
 
-SendQueueData* XMDCommonData::datagramQueuePop() {
+SendQueueData* XMDCommonData::datagramQueuePriorityPop() {
     SendQueueData* data = NULL;
-    pthread_mutex_lock(&datagram_queue_mutex_);
+    datagram_queue_mutex_.lock();
     if (datagramQueue_.empty()) {
-        pthread_mutex_unlock(&datagram_queue_mutex_);
+        datagram_queue_mutex_.unlock();
         return NULL;
     }
     data = datagramQueue_.top();
@@ -174,9 +199,24 @@ SendQueueData* XMDCommonData::datagramQueuePop() {
     } else {
         data = NULL;
     }
-    pthread_mutex_unlock(&datagram_queue_mutex_);
+    datagram_queue_mutex_.unlock();
     return data;
 }
+
+SendQueueData* XMDCommonData::datagramQueuePop() {
+    SendQueueData* data = NULL;
+    datagram_queue_mutex_.lock();
+    if (datagramQueue_.empty()) {
+        datagram_queue_mutex_.unlock();
+        return NULL;
+    }
+    data = datagramQueue_.top();
+    datagramQueue_.pop();
+    datagram_queue_mutex_.unlock();
+
+    return data;
+}
+
 
 
 void XMDCommonData::setDatagramQueueSize(int size) {
@@ -188,59 +228,57 @@ float XMDCommonData::getDatagramQueueUsageRate() {
 }
 
 void XMDCommonData::clearDatagramQueue() {
-    pthread_mutex_lock(&datagram_queue_mutex_);
+    datagram_queue_mutex_.lock();
     while (!datagramQueue_.empty()) {
         datagramQueue_.pop();
     }
-    pthread_mutex_unlock(&datagram_queue_mutex_);
+    datagram_queue_mutex_.unlock();
 }
 
 
 bool XMDCommonData::isConnExist(uint64_t connId) {
-    pthread_rwlock_rdlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("isConnExist connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return false;
     }
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return true;
 }
 
 
 int XMDCommonData::insertConn(uint64_t connId, ConnInfo connInfo) {
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     connectionMap_[connId] = connInfo;
     connVec_.push_back(connId);
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return 0;
 }
 int XMDCommonData::updateConn(uint64_t connId, ConnInfo connInfo) {
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return -1;
     }
     
     connectionMap_[connId] = connInfo;
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return 0;
 }
 
 int XMDCommonData::deleteConn(uint64_t connId) {
     uint32_t maxStreamId = 0;
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it != connectionMap_.end()) {
         maxStreamId = it->second.max_stream_id;
-        RSA_free(it->second.rsa);
-        connectionMap_.erase(it);
     }
     
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
 
     deleteFromConnVec(connId);
 
@@ -250,12 +288,12 @@ int XMDCommonData::deleteConn(uint64_t connId) {
 
     deleteNetStatus(connId);
 
-    pthread_mutex_lock(&packetId_mutex_);
+    packetId_mutex_.lock();
     std::unordered_map<uint64_t, uint64_t>::iterator packetIdIt = packetIdMap_.find(connId);
     if (packetIdIt != packetIdMap_.end()) {
         packetIdMap_.erase(packetIdIt);
     } 
-    pthread_mutex_unlock(&packetId_mutex_);
+    packetId_mutex_.unlock();
 
     std::stringstream ss_conn;
     ss_conn << connId;
@@ -275,45 +313,44 @@ int XMDCommonData::deleteConn(uint64_t connId) {
 }
 
 bool XMDCommonData::getConnInfo(uint64_t connId, ConnInfo& cInfo) {
-    pthread_rwlock_rdlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("getConnInfo connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return false;
     }
     cInfo = connectionMap_[connId];
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return true;
 }
 
 uint32_t XMDCommonData::getConnStreamId(uint64_t connId) {
     uint32_t streamId = 0;
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it != connectionMap_.end()) {
         ConnInfo& info = it->second;
         streamId = info.created_stream_id + 2;
         info.created_stream_id = streamId;
     }
-    
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return streamId;
 }
 
 int XMDCommonData::updateConnIpInfo(uint64_t connId, uint32_t ip, int port) {
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it != connectionMap_.end()) {
         ConnInfo& info = it->second;
         info.ip = ip;
         info.port = port;
     } else {
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return -1;
     }
     
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return 0;
 }
 
@@ -321,14 +358,14 @@ int XMDCommonData::updateConnIpInfo(uint64_t connId, uint32_t ip, int port) {
 
 std::vector<uint64_t> XMDCommonData::getConnVec() {
     std::vector<uint64_t> tmpvec; 
-    pthread_rwlock_rdlock(&conn_mutex_);
+	conn_mutex_.lock();
     tmpvec = connVec_;
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return tmpvec;
 }
 
 bool XMDCommonData::deleteFromConnVec(uint64_t connId) {
-    pthread_rwlock_rdlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::vector<uint64_t>::iterator it = connVec_.begin();
     for (; it != connVec_.end(); it++) {
         if (*it == connId) {
@@ -336,61 +373,61 @@ bool XMDCommonData::deleteFromConnVec(uint64_t connId) {
             break;
         }
     }
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
 
     return true;
 }
 
 
 bool XMDCommonData::isStreamExist(uint64_t connId, uint16_t streamId) {
-    pthread_rwlock_rdlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
     if (itConn == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return false;
     }
     
     std::unordered_map<uint16_t, StreamInfo>::iterator it = itConn->second.streamMap.find(streamId);
     if (it == itConn->second.streamMap.end()) {
         XMDLoggerWrapper::instance()->debug("isStreamExist stream(%d) not exist.", streamId);
-        pthread_rwlock_unlock(&conn_mutex_);
+		conn_mutex_.unlock();
         return false;
     }
-    pthread_rwlock_unlock(&conn_mutex_);
+	conn_mutex_.unlock();
     return true;
 }
 
 
 int XMDCommonData::insertStream(uint64_t connId, uint16_t streamId, StreamInfo streamInfo) {
-    pthread_rwlock_wrlock(&conn_mutex_);
+	conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
     if (it == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return -1;
     }
     
     ConnInfo& connInfo = it->second;
     if (!connInfo.connState == CONNECTED) {
         XMDLoggerWrapper::instance()->warn("insertStream connection(%ld) has not been established.", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return -1;
     }
     if (connInfo.max_stream_id < streamId) {
         connInfo.max_stream_id = streamId;
     }
     connInfo.streamMap[streamId] = streamInfo;
-    pthread_rwlock_unlock(&conn_mutex_);
+    conn_mutex_.unlock();
     return 0;
 }
 
 int XMDCommonData::deleteStream(uint64_t connId, uint16_t streamId) {
-    pthread_rwlock_wrlock(&conn_mutex_);
+    conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
     if (itConn == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return -1;
     }
     ConnInfo& connInfo = itConn->second;
@@ -398,11 +435,11 @@ int XMDCommonData::deleteStream(uint64_t connId, uint16_t streamId) {
     std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
     if (it == connInfo.streamMap.end()) {
         XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return -1;
     }
     connInfo.streamMap.erase(it);
-    pthread_rwlock_unlock(&conn_mutex_);
+    conn_mutex_.unlock();
 
     std::stringstream ss;
     ss << connId << streamId;
@@ -412,11 +449,11 @@ int XMDCommonData::deleteStream(uint64_t connId, uint16_t streamId) {
 }
 
 bool XMDCommonData::getStreamInfo(uint64_t connId, uint16_t streamId, StreamInfo& sInfo) {
-    pthread_rwlock_rdlock(&conn_mutex_);
+    conn_mutex_.lock();
     std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
     if (itConn == connectionMap_.end()) {
         XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return false;
     }
     ConnInfo& connInfo = itConn->second;
@@ -425,11 +462,11 @@ bool XMDCommonData::getStreamInfo(uint64_t connId, uint16_t streamId, StreamInfo
     std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
     if (it == connInfo.streamMap.end()) {
         XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
-        pthread_rwlock_unlock(&conn_mutex_);
+        conn_mutex_.unlock();
         return false;
     }
     sInfo = it->second;
-    pthread_rwlock_unlock(&conn_mutex_);
+    conn_mutex_.unlock();
 
     return true;
 }
@@ -447,7 +484,7 @@ bool XMDCommonData::getPingPacket(uint64_t connId, PingPacket& packet) {
 
 uint64_t XMDCommonData::getPakcetId(uint64_t connId) {
     uint64_t packetid = 1;
-    pthread_mutex_lock(&packetId_mutex_);
+    packetId_mutex_.lock();
     std::unordered_map<uint64_t, uint64_t>::iterator it = packetIdMap_.find(connId);
     if (it == packetIdMap_.end()) {
         packetIdMap_[connId] = packetid + 1;
@@ -455,7 +492,7 @@ uint64_t XMDCommonData::getPakcetId(uint64_t connId) {
         packetid = packetIdMap_[connId];
         packetIdMap_[connId] = packetid + 1;
     }
-    pthread_mutex_unlock(&packetId_mutex_);
+    packetId_mutex_.unlock();
 
     return packetid;
 }
@@ -463,23 +500,27 @@ uint64_t XMDCommonData::getPakcetId(uint64_t connId) {
 
 
 bool XMDCommonData::resendQueuePush(ResendData* data) {
-    pthread_mutex_lock(&resend_queue_mutex_);
-    if (resendQueue_.size() >= resendQueueMaxLen_) {
+    resend_queue_mutex_.lock();
+	if (resendQueue_.size() >= resendQueueMaxLen_) {
         XMDLoggerWrapper::instance()->warn("resendQueue size(%d) bigger than queue max len(%d)", 
-                                           resendQueue_.size(), resendQueueMaxLen_);
-        pthread_mutex_unlock(&resend_queue_mutex_);
+										resendQueue_.size(), resendQueueMaxLen_);
+        resend_queue_mutex_.unlock();
         delete data;
         return false;
     }
     resendQueue_.push(data);
-    pthread_mutex_unlock(&resend_queue_mutex_);
+    resend_queue_mutex_.unlock();
     return true;
 }
 
 
-ResendData* XMDCommonData::resendQueuePop() {
+ResendData* XMDCommonData::resendQueuePriorityPop() {
     ResendData* data = NULL;
-    pthread_mutex_lock(&resend_queue_mutex_);
+    resend_queue_mutex_.lock();
+	if (resendQueue_.empty()) {
+        resend_queue_mutex_.unlock();
+        return NULL;
+    }
     uint64_t currentMs = current_ms();
     data = resendQueue_.top();
     if (data->reSendTime <= currentMs) {
@@ -497,9 +538,23 @@ ResendData* XMDCommonData::resendQueuePop() {
             data = NULL;
         }
     }
-    pthread_mutex_unlock(&resend_queue_mutex_);
+    resend_queue_mutex_.unlock();
     return data;
 }
+
+ResendData* XMDCommonData::resendQueuePop() {
+    ResendData* data = NULL;
+    resend_queue_mutex_.lock();
+    if (resendQueue_.empty()) {
+        resend_queue_mutex_.unlock();
+        return NULL;
+    }
+    data = resendQueue_.top();
+    resendQueue_.pop();
+    resend_queue_mutex_.unlock();
+    return data;
+}
+
 
 void XMDCommonData::setResendQueueSize(int size) {
     resendQueueMaxLen_ = size;
@@ -515,11 +570,11 @@ float XMDCommonData::getResendQueueUsageRate() {
 }
 
 void XMDCommonData::clearResendQueue() {
-    pthread_mutex_lock(&resend_queue_mutex_);
+    resend_queue_mutex_.lock();
     while (!resendQueue_.empty()) {
         resendQueue_.pop();
     }
-    pthread_mutex_unlock(&resend_queue_mutex_);
+    resend_queue_mutex_.unlock();
 }
 
 
@@ -585,7 +640,7 @@ uint32_t XMDCommonData::getGroupId(uint64_t connId, uint16_t streamId) {
     std::stringstream ss;
     ss << connId << streamId;
     std::string key = ss.str();
-    pthread_rwlock_wrlock(&group_id_mutex_);
+	group_id_mutex_.lock();
     std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(key);
     if (it != groupIdMap_.end()) {
         groupId = it->second;
@@ -593,17 +648,17 @@ uint32_t XMDCommonData::getGroupId(uint64_t connId, uint16_t streamId) {
     } else {
         groupIdMap_[key] = 1;
     }
-    pthread_rwlock_unlock(&group_id_mutex_);
+    group_id_mutex_.unlock();
     return groupId;
 }
 
 void XMDCommonData::deleteGroupId(std::string id) {
-    pthread_rwlock_wrlock(&group_id_mutex_);
+    group_id_mutex_.lock();
     std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(id);
     if (it != groupIdMap_.end()) {
         groupIdMap_.erase(it);
     }
-    pthread_rwlock_unlock(&group_id_mutex_);
+    group_id_mutex_.unlock();
 }
 
 /*
@@ -633,7 +688,7 @@ void XMDCommonData::deleteLastCallbackGroupId(std::string id) {
 }
 
 void XMDCommonData::insertCallbackDataMap(std::string key, uint32_t groupId, int waitTime, CallbackQueueData* data) {
-    pthread_mutex_lock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.lock();
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it == callbackDataMap_.end()) {
         std::map<uint32_t, CallbackQueueData*> tmpMap;
@@ -646,12 +701,12 @@ void XMDCommonData::insertCallbackDataMap(std::string key, uint32_t groupId, int
         CallBackSortBuffer& buffer = it->second;
         buffer.groupMap[groupId] = data;
     }
-    pthread_mutex_unlock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.unlock();
 }
 
 int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQueueData* &data) {
     int result = 0;
-    pthread_mutex_lock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.lock();
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it != callbackDataMap_.end()) {
         if (it->second.groupMap.size() == 0) {
@@ -677,12 +732,12 @@ int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQu
         result = -1;
     }
 
-    pthread_mutex_unlock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.unlock();
     return result;
 }
 
 void XMDCommonData::deletefromCallbackDataMap(std::string key) {
-    pthread_mutex_lock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.lock();
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it != callbackDataMap_.end()) {
         std::map<uint32_t, CallbackQueueData*>::iterator it2 = it->second.groupMap.begin();
@@ -691,20 +746,20 @@ void XMDCommonData::deletefromCallbackDataMap(std::string key) {
         }
         callbackDataMap_.erase(it);
     }
-    pthread_mutex_unlock(&callback_data_map_mutex_);
+    callback_data_map_mutex_.unlock();
 }
 
 void XMDCommonData::insertSendCallbackMap(std::string key, uint32_t groupSize) {
-    pthread_mutex_lock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.lock();
     streamDataSendCallback data;
     data.groupSize = groupSize;
     streamDataSendCbMap_[key] = data;
-    pthread_mutex_unlock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.unlock();
 }
 
 int XMDCommonData::updateSendCallbackMap(std::string key, uint32_t sliceId) {
     int result = -1;
-    pthread_mutex_lock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.lock();
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         it->second.sliceMap[sliceId] = true;
@@ -715,27 +770,27 @@ int XMDCommonData::updateSendCallbackMap(std::string key, uint32_t sliceId) {
             result = 0;
         }
     }
-    pthread_mutex_unlock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.unlock();
     return result;
 }
 
 void XMDCommonData::deleteSendCallbackMap(std::string key) {
-    pthread_mutex_lock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.lock();
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         streamDataSendCbMap_.erase(it);
     }
-    pthread_mutex_unlock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.unlock();
 }
 
 bool XMDCommonData::SendCallbackMapRecordExist(std::string key) {
     bool result = false;
-    pthread_mutex_lock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.lock();
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         result = true;
     }
-    pthread_mutex_unlock(&stream_data_send_callback_map_mutex_);
+    stream_data_send_callback_map_mutex_.unlock();
 
     return result;
 }
@@ -756,15 +811,15 @@ bool XMDCommonData::getDeletePacketCallbackInfo(std::string key, PacketCallbackI
 }
 
 void XMDCommonData::insertPacketLossInfoMap(uint64_t connId) {
-    pthread_mutex_lock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.lock();
     PacketLossInfo packet;
     PacketLossInfoMap_[connId] = packet;
-    pthread_mutex_unlock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.unlock();
 }
 
 void XMDCommonData::updatePacketLossInfoMap(uint64_t connId, uint64_t packetId) {
     //XMDLoggerWrapper::instance()->debug("updatePacketLossInfoMap connid(%ld), packetid(%ld)", connId, packetId);
-    pthread_mutex_lock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.lock();
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfo& packet = it->second;
@@ -780,32 +835,32 @@ void XMDCommonData::updatePacketLossInfoMap(uint64_t connId, uint64_t packetId) 
         }
     }
     
-    pthread_mutex_unlock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.unlock();
 }
 
 void XMDCommonData::deletePacketLossInfoMap(uint64_t connId) {
-    pthread_mutex_lock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.lock();
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfoMap_.erase(it);
     }
-    pthread_mutex_unlock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.unlock();
 }
 
 bool XMDCommonData::getPacketLossInfo(uint64_t connId, PacketLossInfo& data) {
-    pthread_mutex_lock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.lock();
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it == PacketLossInfoMap_.end()) {
-        pthread_mutex_unlock(&packet_loss_map_mutex_);
+        packet_loss_map_mutex_.unlock();
         return false;
     }
     data = it->second;
-    pthread_mutex_unlock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.unlock();
     return true;
 }
 
 void XMDCommonData::startPacketLossCalucate(uint64_t connId) {
-    pthread_mutex_lock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.lock();
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfo& packet = it->second;
@@ -814,7 +869,7 @@ void XMDCommonData::startPacketLossCalucate(uint64_t connId) {
         packet.oldPakcetCount = packet.newPacketCount;
         packet.newPacketCount = 0;
     }
-    pthread_mutex_unlock(&packet_loss_map_mutex_);
+    packet_loss_map_mutex_.unlock();
 }
 
 
@@ -834,16 +889,19 @@ bool XMDCommonData::pongThreadQueuePop(PongThreadData& data) {
     return false;
 }
 
-
-int getResendTimeInterval(int sendcount) {
-    if (sendcount == 1) {
-        return FIRST_RESEND_INTERVAL;
-    } else if (sendcount == 2) {
-        return SECOND_RESEND_INTERVAL;
-    } else {
-        return THIRD_RESEND_INTERVAL;
-    }
+void XMDCommonData::NotifyBlockQueue() {
 }
+/*
+bool XMDCommonData::SendQueueHasNewData() {
+    XMDLoggerWrapper::instance()->debug("has new data");
+    if (datagramQueue_.empty() && socketSendQueue_.empty() && resendQueue_.empty()) {
+        std::unique_lock <std::mutex> lck(send_thread_mutex_);
+        XMDLoggerWrapper::instance()->debug("has new data lock");
+        con_var_send_thread_.wait(lck);
+    }
+    return true;
+}
+*/
 
 
 

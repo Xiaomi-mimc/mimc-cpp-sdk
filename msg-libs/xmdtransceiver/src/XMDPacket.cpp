@@ -17,9 +17,14 @@ int XMDPacketManager::buildConn(uint64_t connId, unsigned char* data, int len, i
     xmdConnection->SetPublicKey(nlen, n, elen, e);
     xmdConnection->SetPayload(len, data);
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -36,9 +41,14 @@ int XMDPacketManager::buildConnReset(uint64_t connId, ConnResetType type) {
     XMDConnReset* connReset = (XMDConnReset*)((char*)xmdPakcet_t + sizeof(XMDPacket));
     connReset->SetConnId(connId);
     connReset->SetErrType(type);
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -47,10 +57,6 @@ int XMDPacketManager::buildConnReset(uint64_t connId, ConnResetType type) {
 }
 
 int XMDPacketManager::buildConnResp(uint64_t connId, unsigned char* key, int len) {
-    if (NULL == key) {
-        XMDLoggerWrapper::instance()->warn("key invalid.");
-        return -1;
-    }
     int packetLen = sizeof(XMDPacket) + sizeof(XMDConnResp) + XMD_CRC_LEN + len;
     XMDPacket* xmdPakcet_t = (XMDPacket*) ::operator new(packetLen);
     xmdPakcet_t->SetMagic();
@@ -59,9 +65,14 @@ int XMDPacketManager::buildConnResp(uint64_t connId, unsigned char* key, int len
     XMDConnResp* connResp = (XMDConnResp*)((char*)xmdPakcet_t + sizeof(XMDPacket));
     connResp->SetConnId(connId);
     connResp->SetSessionKey(key, len);
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -78,9 +89,13 @@ int XMDPacketManager::buildConnClose(uint64_t connId) {
     XMDConnClose* connClose = (XMDConnClose*)((char*)xmdPakcet_t + sizeof(XMDPacket));
     connClose->SetConnId(connId);    
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -95,9 +110,14 @@ int XMDPacketManager::buildDatagram(unsigned char* data, int len) {
     xmdPakcet_t->SetMagic();
     xmdPakcet_t->SetSign(DATAGRAM, 0, 0);
     xmdPakcet_t->SetPayload(len, data);
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + len_ - XMD_CRC_LEN);
+    
+    char* crc32 = (char*)xmdPakcet_t + len_ - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, len_ - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
 
@@ -129,9 +149,13 @@ int XMDPacketManager::buildStreamClose(uint64_t connId, uint16_t streamId, bool 
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -174,9 +198,13 @@ int XMDPacketManager::buildFECStreamData(XMDFECStreamData stData, unsigned char*
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -217,9 +245,13 @@ int XMDPacketManager::buildAckStreamData(XMDACKStreamData stData, unsigned char*
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -253,9 +285,13 @@ int XMDPacketManager::buildStreamDataAck(uint64_t connId, uint64_t packetid, uin
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -291,9 +327,13 @@ int XMDPacketManager::buildXMDPing(uint64_t connId, bool isEncrypt, std::string 
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -331,9 +371,13 @@ int XMDPacketManager::buildXMDPong(XMDPong pongData, bool isEncrypt, std::string
                packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
     }
 
-    uint32_t* crc32 = (uint32_t*)((char*)xmdPakcet_t + packetLen - XMD_CRC_LEN);
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
     uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
-    *crc32 = htonl(crc32_val);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
 
     xmdPacket_ = xmdPakcet_t;
     len_ = packetLen;
@@ -569,8 +613,10 @@ XMDPacket* XMDPacketManager::decode(char* data, int len) {
         return NULL;
     }
 
-    uint32_t* crc32 = (uint32_t*)(data + len - XMD_CRC_LEN);
-    uint32_t origin_crc = ntohl(*crc32);
+    //uint32_t* crc32 = (uint32_t*)(data + len - XMD_CRC_LEN);
+    uint32_t crc32 = 0;
+    trans_uint32_t(crc32, (char*)(data + len - XMD_CRC_LEN));
+    uint32_t origin_crc = ntohl(crc32);
     uint32_t current_crc = adler32(1L, (unsigned char*)data, len - XMD_CRC_LEN);
 
     if (origin_crc != current_crc) {

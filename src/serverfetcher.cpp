@@ -1,7 +1,13 @@
 #include <mimc/serverfetcher.h>
-#include <map>
 #include <XMDLoggerWrapper.h>
+#include <curl/curl.h>
+#include <json-c/json.h>
+#include <map>
 #include <string.h>
+
+#ifdef _WIN32
+#define strcasecmp _stricmp
+#endif // _WIN32
 
 std::string ServerFetcher::fetchServerAddr(const char* const &url, std::string list) {
 	int pos = list.find(",");
@@ -28,24 +34,25 @@ std::string ServerFetcher::fetchServerAddr(const char* const &url, std::string l
 		url_get += iter->first + "=" + iter->second + "&";
 	}
 
-	curl_global_init(CURL_GLOBAL_ALL);
     CURL *curl = curl_easy_init();
     CURLcode res;
 
     std::string result;
     if (curl) {
        	curl_easy_setopt(curl, CURLOPT_URL, url_get.c_str());
+       	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
     	curl_easy_setopt(curl, CURLOPT_HTTPGET, 1);
     	struct curl_slist *headers = NULL;
         headers = curl_slist_append(headers, "Content-Type: application/json");
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeRecData);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)(&result));
+
         res = curl_easy_perform(curl);
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
-    curl_global_cleanup();
+
     if (res != CURLE_OK) {
         XMDLoggerWrapper::instance()->error("ServerFetcher::fetchServerAddr curl perform error, error code is %d", res);	
     	return "";
