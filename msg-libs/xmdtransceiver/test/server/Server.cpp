@@ -12,6 +12,9 @@ int main() {
 
     transceiver->run();
 
+    usleep(100000000);
+    //transceiver->stop();
     transceiver->join();
+    delete transceiver;
 }
 

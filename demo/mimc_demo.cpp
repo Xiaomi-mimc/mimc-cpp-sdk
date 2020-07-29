@@ -1,7 +1,8 @@
-#include <mimc/user.h>
-#include <mimc/threadsafe_queue.h>
+#include "mimc/user.h"
+#include "include/ring_queue.h"
 #include <string.h>
 #include <curl/curl.h>
+#include <string>
 #include <list>
 #include <chrono>
 #include <thread>
@@ -17,46 +18,58 @@ string appId = "2882303761517479657";
 string appKey = "5221747911657";
 string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
 #endif
-string appAccount1 = "LeiJun222";
-string appAccount2 = "LinBin333";
-string appAccount3 = "Jerry";
+string appAccount1 = "LeiJun1";
+string appAccount2 = "LinBin1";
+string appAccount3 = "Jerry1";
 
 class TestOnlineStatusHandler : public OnlineStatusHandler {
 public:
-    void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
+    void statusChange(OnlineStatus status, const std::string& type, const std::string& reason, const std::string& desc) {
         XMDLoggerWrapper::instance()->info("In statusChange, status is %d, type is %s, reason is %s, desc is %s", status, type.c_str(), reason.c_str(), desc.c_str());
     }
 };
 
 class TestMessageHandler : public MessageHandler {
 public:
-    void handleMessage(std::vector<MIMCMessage> packets) {
-        std::vector<MIMCMessage>::iterator it = packets.begin();
+    void handleOnlineMessage(const MIMCMessage &packets) {
+
+    }
+
+    bool handleMessage(const std::vector<MIMCMessage>& packets) {
+        std::vector<MIMCMessage>::const_iterator it = packets.begin();
         for (; it != packets.end(); ++it) {
             messages.push(*it);
-            MIMCMessage& message = *it;
-            printf("recv message, payload is %s, bizType is %s\n", message.getPayload().c_str(), message.getBizType().c_str());
+            const MIMCMessage& message = *it;
+            printf("------------------recv message, payload is %s, bizType is %s, convIndex:%ld\n", message.getPayload().c_str(), message.getBizType().c_str(), message.getConvIndex());
         }
+
+        return true;
     }
 
-	void handleGroupMessage(std::vector<MIMCGroupMessage> packets) {
-
+	bool handleGroupMessage(const std::vector<MIMCGroupMessage>& packets) {
+        return true;
 	}
 
-    void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
+    void handleServerAck(const MIMCServerAck &serverAck) {
+	    XMDLoggerWrapper::instance()->debug(
+            "------------------ConvIndex:%lld, code:%d, desc:%s", serverAck.getConvIndex(), serverAck.getCode(), serverAck.getDesc().c_str());
+    }
+
+    void handleSendMsgTimeout(const MIMCMessage& message) {
         
     }
 
-    void handleSendMsgTimeout(MIMCMessage message) {
-        
-    }
-
-	void handleSendGroupMsgTimeout(MIMCGroupMessage groupMessage) {
+	void handleSendGroupMsgTimeout(const MIMCGroupMessage& groupMessage) {
 
 	}
 
     bool pollMessage(MIMCMessage& message) {
         return messages.pop(message);
+    }
+
+    bool onPullNotification() {
+        XMDLoggerWrapper::instance()->debug("------------------onPullNotification");
+        return true;
     }
 
 private:
@@ -65,7 +78,7 @@ private:
 
 class TestRTSCallEventHandler : public RTSCallEventHandler {
 public:
-    LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+    LaunchedResponse onLaunched(uint64_t callId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
         XMDLoggerWrapper::instance()->info("In onLaunched, callId is %llu, fromAccount is %s, appContent is %s, fromResource is %s", callId, fromAccount.c_str(), appContent.c_str(), fromResource.c_str());
         if (appContent != this->appContent) {
             return LaunchedResponse(false, LAUNCH_ERR_ILLEGALSIG);
@@ -75,14 +88,14 @@ public:
         return LaunchedResponse(true, LAUNCH_OK);
     }
 
-    void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
+    void onAnswered(uint64_t callId, bool accepted, const std::string& desc) {
         XMDLoggerWrapper::instance()->info("In onAnswered, callId is %llu, accepted is %d, desc is %s", callId, accepted, desc.c_str());
         if (accepted) {
             callIds.push_back(callId);
         }
     }
 
-    void onClosed(uint64_t callId, const std::string desc) {
+    void onClosed(uint64_t callId, const std::string& desc) {
         XMDLoggerWrapper::instance()->info("In onClosed, callId is %llu, desc is %s", callId, desc.c_str());
         std::list<uint64_t>::iterator iter;
         for (iter = callIds.begin(); iter != callIds.end();) {
@@ -95,15 +108,15 @@ public:
         }
     }
 
-    void handleData(uint64_t callId, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+    void handleData(uint64_t callId, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
         XMDLoggerWrapper::instance()->info("In handleData, callId is %llu, data is %s, dataType is %d", callId, data.c_str(), dataType);
     }
 
-    void handleSendDataSucc(uint64_t callId, int groupId, const std::string ctx) {
+    void handleSendDataSucc(uint64_t callId, int groupId, const std::string& ctx) {
         XMDLoggerWrapper::instance()->info("In handleSendDataSucc, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
-    void handleSendDataFail(uint64_t callId, int groupId, const std::string ctx) {
+    void handleSendDataFail(uint64_t callId, int groupId, const std::string& ctx) {
         XMDLoggerWrapper::instance()->warn("In handleSendDataFail, callId is %llu, groupId is %d, ctx is %s", callId, groupId, ctx.c_str());
     }
 
@@ -220,7 +233,7 @@ public:
         //sleep(4);
 		std::this_thread::sleep_for(std::chrono::seconds(4));
 
-        string payload1 = "WITH MIMC,WE CAN FLY HIGHER！";
+        string payload1 = "WITH MIMC,WE CAN FLY HIGHER!";
         string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
 
         //usleep(300000);
@@ -269,11 +282,9 @@ public:
         to->registerMessageHandler(&toMessageHandler);
 
         from->login();
-        //sleep(2);
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 
         to->login();
-        //sleep(2);
 		std::this_thread::sleep_for(std::chrono::seconds(2));
 
         MIMCMessage message;
@@ -282,8 +293,8 @@ public:
         int num = 0;
         while (num++ < MAX_NUM) {
             
-            string payload1 = "With mimc,we can communicate much easier！";
-            string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1);
+            string payload1 = "With mimc,we can communicate much easier!";
+            string packetId_sent1 = from->sendMessage(to->getAppAccount(), payload1, "", true, true);
             //usleep(300000);
 			std::this_thread::sleep_for(std::chrono::milliseconds(300));
             while (toMessageHandler.pollMessage(message))
@@ -292,7 +303,7 @@ public:
             }
 
             string payload2 = "Yes~I feel it";
-            string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload2);
+            string packetId_sent2 = to->sendMessage(from->getAppAccount(), payload2, "", true, true);
             //usleep(300000);
 			std::this_thread::sleep_for(std::chrono::milliseconds(300));
             while (fromMessageHandler.pollMessage(message))
@@ -300,6 +311,7 @@ public:
                 
             }
         }
+
 
         num = 0;
 
@@ -341,7 +353,6 @@ public:
         to = NULL;
         curl_global_cleanup();
     }
-
 };
 
 int main(int argc, char **argv) {

@@ -2,7 +2,7 @@
 // source: rts_data.proto
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
-#include <mimc/rts_data.pb.h>
+#include "mimc/rts_data.pb.h"
 
 #include <algorithm>
 
@@ -103,6 +103,16 @@ bool PKT_TYPE_IsValid(int value) {
 }
 
 bool STREAM_STRATEGY_IsValid(int value) {
+  switch(value) {
+    case 1:
+    case 2:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool CallType_IsValid(int value) {
   switch(value) {
     case 1:
     case 2:
@@ -1686,6 +1696,7 @@ void BindRelayResponse::Swap(BindRelayResponse* other) {
 #ifndef _MSC_VER
 const int PingRelayRequest::kUuidFieldNumber;
 const int PingRelayRequest::kResourceFieldNumber;
+const int PingRelayRequest::kCallTypeFieldNumber;
 #endif  // !_MSC_VER
 
 PingRelayRequest::PingRelayRequest()
@@ -1706,6 +1717,7 @@ void PingRelayRequest::SharedCtor() {
   _cached_size_ = 0;
   uuid_ = GOOGLE_ULONGLONG(0);
   resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  calltype_ = 1;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -1753,6 +1765,7 @@ void PingRelayRequest::Clear() {
         resource_->clear();
       }
     }
+    calltype_ = 1;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -1788,6 +1801,25 @@ bool PingRelayRequest::MergePartialFromCodedStream(
         } else {
           goto handle_uninterpreted;
         }
+        if (input->ExpectTag(24)) goto parse_callType;
+        break;
+      }
+
+      // optional .mimc.CallType callType = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_callType:
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::mimc::CallType_IsValid(value)) {
+            set_calltype(static_cast< ::mimc::CallType >(value));
+          }
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -1820,6 +1852,12 @@ void PingRelayRequest::SerializeWithCachedSizes(
       2, this->resource(), output);
   }
 
+  // optional .mimc.CallType callType = 3;
+  if (has_calltype()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      3, this->calltype(), output);
+  }
+
 }
 
 int PingRelayRequest::ByteSize() const {
@@ -1838,6 +1876,12 @@ int PingRelayRequest::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->resource());
+    }
+
+    // optional .mimc.CallType callType = 3;
+    if (has_calltype()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->calltype());
     }
 
   }
@@ -1861,6 +1905,9 @@ void PingRelayRequest::MergeFrom(const PingRelayRequest& from) {
     if (from.has_resource()) {
       set_resource(from.resource());
     }
+    if (from.has_calltype()) {
+      set_calltype(from.calltype());
+    }
   }
 }
 
@@ -1880,6 +1927,7 @@ void PingRelayRequest::Swap(PingRelayRequest* other) {
   if (other != this) {
     std::swap(uuid_, other->uuid_);
     std::swap(resource_, other->resource_);
+    std::swap(calltype_, other->calltype_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }

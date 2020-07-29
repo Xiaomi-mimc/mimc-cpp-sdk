@@ -1,12 +1,16 @@
 #ifndef MIMC_CPP_SDK_MIMCGROUPMESSAGE_H
 #define MIMC_CPP_SDK_MIMCGROUPMESSAGE_H
 
+#include <string>
+#include <time.h>
+
 class MIMCGroupMessage {
 
 public:
 	MIMCGroupMessage() {}
 
-	MIMCGroupMessage(const std::string& packetId, int64_t sequence, const std::string& fromAccount, const std::string& fromResource, uint64_t topicId, const std::string& payload, const std::string& bizType, time_t timestamp) {
+	MIMCGroupMessage(const std::string &packetId, int64_t sequence, const std::string &fromAccount, const std::string &fromResource, uint64_t topicId, const std::string &payload, const std::string &bizType, time_t timestamp, int64_t convIndex = 0)
+	{
 		this->packetId = packetId;
 		this->sequence = sequence;
 		this->fromAccount = fromAccount;
@@ -15,6 +19,7 @@ public:
 		this->payload = payload;
 		this->bizType = bizType;
 		this->timestamp = timestamp;
+		this->convIndex = convIndex;
 	}
 	std::string getPacketId() const { return this->packetId; }
 	int64_t getSequence() const { return this->sequence; }
@@ -27,6 +32,7 @@ public:
 	static bool sortBySequence(const MIMCGroupMessage &m1, const MIMCGroupMessage &m2) {
 		return m1.sequence < m2.sequence;
 	}
+	int64_t getConvIndex() const { return convIndex; }
 
 private:
 	std::string packetId;
@@ -37,5 +43,6 @@ private:
 	uint64_t topicId;
 	std::string payload;
 	std::string bizType;
+	int64_t convIndex;
 };
 #endif

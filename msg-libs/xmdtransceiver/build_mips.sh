@@ -6,3 +6,6 @@ cmake ..
 make
 cd ..
 mv CMakeLists.txt CMakeLists_Mips.txt
+cp ./build/libxmdtransceiver.so ../../../lib
+md5sum ./build/libxmdtransceiver.so
+md5sum ../../../lib/libxmdtransceiver.so

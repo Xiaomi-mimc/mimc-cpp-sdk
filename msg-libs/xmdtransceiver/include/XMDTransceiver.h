@@ -1,27 +1,16 @@
 #ifndef RTSTREAM_H
 #define RTSTREAM_H
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include "pthread.h"
-#pragma comment(lib, "Ws2_32.lib")
-#endif // _WIN32
-
 #include "XMDSendThread.h"
 #include "XMDRecvThread.h"
 #include "XMDCommonData.h"
 #include "PacketDispatcher.h"
-//#include "log4cplus/logger.h"
+#include "XMDWorkerThreadPool.h"
+#include "XMDTimerThreadPool.h"
 #include "XMDPacket.h"
-#include "XMDPacketRecoverThreadPool.h"
-#include "XMDCallbackThread.h"
-#include "XMDPacketBuildThreadPool.h"
-#include "XMDPacketDecodeThreadPool.h"
-#include "PingThread.h"
-#include "PongThread.h"
 #include "ExternalLog.h"
 
-const int MAX_PACKET_LEN = 512 * 1024;
+const unsigned int MAX_PACKET_LEN = 512 * 1024;
 
 
 class XMDTransceiver {
@@ -30,28 +19,26 @@ private:
     XMDSendThread* sendThread_;
     XMDRecvThread* recvThread_;
     PacketDispatcher* packetDispatcher_;
-    XMDPacketRecoverThreadPool* packetRecoverThreadPool_;
-    XMDPacketBuildThreadPool* packetbuildThreadPool_;
-    XMDPacketDecodeThreadPool* packetDecodeThreadPool_;
-    XMDCallbackThread* callbackThread_;
-    PingThread* pingThread_;
-    PongThread* pongThread_;
+    XMDWorkerThreadPool* workerThreadPool_;
+    XMDTimerThreadPool* timerThreadPool_;
     int port_;
-    static pthread_mutex_t create_conn_mutex_;
-    std::mutex reset_socket_mutex_;
-    int decodeThreadSize_;
+    static pthread_mutex_t reset_socket_mutex_;
+    int workerThreadSize_;
+    int timerThreadSize_;
+    int bufferMaxSize_;
+    uint16_t local_port_;
+    uint32_t local_ip_;
+    std::string local_ip_str_;
     
 public:
-    XMDTransceiver(int decodeThreadSize, int port = 0) {
+    XMDTransceiver(unsigned int wokerThreadSize, uint16_t port = 0) {
         port_ = port;
-        decodeThreadSize_ = decodeThreadSize;
+        workerThreadSize_ = wokerThreadSize;
+        timerThreadSize_ = 1;
+        local_ip_ = 0;
+        local_port_ = 0;
     }
-
     ~XMDTransceiver() {
-        if (commonData_) {
-            delete commonData_;
-            commonData_ = NULL;
-        }
         if (packetDispatcher_) {
             delete packetDispatcher_;
             packetDispatcher_ = NULL;
@@ -64,29 +51,17 @@ public:
             delete sendThread_;
             sendThread_ = NULL;
         }
-        if (packetRecoverThreadPool_) {
-            delete packetRecoverThreadPool_;
-            packetRecoverThreadPool_ = NULL;
+        if (workerThreadPool_) {
+            delete workerThreadPool_;
+            workerThreadPool_ = NULL;
         }
-        if (callbackThread_) {
-            delete callbackThread_;
-            callbackThread_ = NULL;
+        if (timerThreadPool_) {
+            delete timerThreadPool_;
+            timerThreadPool_ = NULL;
         }
-        if (pingThread_) {
-            delete pingThread_;
-            pingThread_ = NULL;
-        }
-        if (pongThread_) {
-            delete pongThread_;
-            pongThread_ = NULL;
-        }
-        if (packetbuildThreadPool_) {
-            delete packetbuildThreadPool_;
-            packetbuildThreadPool_ = NULL;
-        }
-        if (packetDecodeThreadPool_) {
-            delete packetDecodeThreadPool_;
-            packetDecodeThreadPool_ = NULL;
+        if (commonData_) {
+            delete commonData_;
+            commonData_ = NULL;
         }
     }
 
@@ -94,9 +69,11 @@ public:
 
     int resetSocket();
     
-    int sendDatagram(char* ip, uint16_t port, char* data, int len, uint64_t delay_ms);
+    int sendDatagram(char* ip, uint16_t port, char* data, unsigned int len, uint64_t delay_ms);
+    int buildAndSendDatagram(char* ip, uint16_t port, char* data, unsigned int len, uint64_t delay_ms, unsigned char packetType);
+    int sendTestRttPacket(uint64_t connId, unsigned int delayMs, unsigned int packetCount);
 
-    uint64_t createConnection(char* ip, uint16_t port, char* data, int len, uint16_t timeout, void* ctx);
+    uint64_t createConnection(char* ip, uint16_t port, char* data, unsigned int len, uint16_t timeout, void* ctx);
     int closeConnection(uint64_t connId);
 
     uint16_t createStream(uint64_t connId, StreamType streamType, uint16_t waitTime, bool isEncrypt);
@@ -118,9 +95,9 @@ public:
         packetDispatcher_->registerXMDSocketErrHandler(handler);
     }
 
-    int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, void* ctx = NULL);
+    int sendRTData(uint64_t connId, uint16_t streamId, char* data, unsigned int len, void* ctx = NULL);
     
-    int sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx = NULL);
+    int sendRTData(uint64_t connId, uint16_t streamId, char* data, unsigned int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx = NULL);
 
     int updatePeerInfo(uint64_t connId, char* ip, uint16_t port);
 
@@ -141,25 +118,41 @@ public:
         XMDLoggerWrapper::instance()->externalLog(externalLog);
     }
 
-    void setTestPacketLoss (int value) {
+    void setTestPacketLoss (unsigned int value) {
         sendThread_->setTestPacketLoss(value);
         recvThread_->setTestPacketLoss(value);
     }
 
     void setSendBufferSize(int size);
-    void setRecvBufferSize(int size);
-    int getSendBufferSize();
-    int getRecvBufferSize();
+    int getSendBufferUsedSize();
+    int getSendBufferMaxSize();
     float getSendBufferUsageRate();
-    float getRecvBufferUsageRate();
     void clearSendBuffer();
-    void clearRecvBuffer();
+    void setRecvBufferSize(int size) { }
+    int getRecvBufferUsedSize() { return 0; }
+    int getRecvBufferMaxSize() { return 0; }
+    float getRecvBufferUsageRate() { return 0; }
+    void clearRecvBuffer() { }
+    int getTimerQueueUsedSize(int id) { return commonData_->getTimerQueueUsedSize(id); }
+    int getSocketSendQueueUsedSize() { return commonData_->getSocketSendQueueUsedSize(); }
+    int getWorkerQueueUsedSize(int id) { return commonData_->getWorkerQueueUsedSize(id); }
+    int getTimerQueueMaxSize(int id) { return commonData_->getTimerQueueMaxSize(id); }
+    int getSocketSendQueueMaxSize() { return commonData_->getSocketSendQueueMaxSize(); }
+    int getWorkerQueueMaxSize(int id) { return commonData_->getWorkerQueueMaxSize(id); }
+    void setTimerQueueMaxSize(int id, int size) { commonData_->setTimerQueueMaxSize(id, size); }
+    void setWorkerQueueMaxSize(int id, int size) { commonData_->setWorkerQueueMaxSize(id, size); }
+    void setSocketSendQueueMaxSize(int size) { commonData_->setSocketSendQueueMaxSize(size); }
+    float getTimerQueueUsageRate(int id) { return commonData_->getTimerQueueUsageRate(id); }
+    float getWorkerQueueUsageRate(int id) { return commonData_->getWorkerQueueUsageRate(id); }
+    float getSocketSendQueueUsageRate() { return commonData_->getSocketSendQueueUsageRate(); }
 
     ConnectionState getConnState(uint64_t connId);
 
-    void SetPingTimeIntervalSecond(unsigned int value) { commonData_->SetPingTimeInterval(value); }
+    void SetPingTimeIntervalMs(uint64_t connId, uint16_t value) { commonData_->SetPingIntervalMs(connId, value); }
 
-    void SetAckPacketResendIntervalMicroSecond(unsigned int value) { commonData_->SetResendTimeInterval(value); }
+    void SetAckPacketResendIntervalMicroSecond(unsigned int value) {  }
+
+    netStatus getNetStatus(uint64_t connId) {return commonData_->getNetStatus(connId); }
     
 };
 

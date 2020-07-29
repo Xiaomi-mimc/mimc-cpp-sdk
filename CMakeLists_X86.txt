@@ -8,6 +8,6 @@ add_definitions("-Os -D_GLIBCXX_USE_NANOSLEEP -fno-exceptions -ffunction-section
 
 include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include)
 aux_source_directory(${PROJECT_SOURCE_DIR}/src LIB_SRC)
-link_directories(/home/work/codes/streaming-sdk/third-party/MIMC/lib/x86_64)
+link_directories(/home/work/codes/mimc/mimc-cpp-sdk/third-party/so)
 add_library(mimc_sdk SHARED ${LIB_SRC})
-target_link_libraries(mimc_sdk curl-7-59-0 json-c protobuf crypto ssl xmdtransceiver)
+target_link_libraries(mimc_sdk curl-7-59-0  json-c protobuf crypto ssl xmdtransceiver)

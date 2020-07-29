@@ -1,6 +1,6 @@
 #ifndef TIMER_H
 #define TIMER_H
-#include "xmd_thread.h"
+#include "Thread.h"
 #include <list>
 #include <cstdarg>
 

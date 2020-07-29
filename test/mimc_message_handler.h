@@ -1,38 +1,46 @@
 #ifndef MIMC_CPP_TEST_MESSAGE_HANDLER_H
 #define MIMC_CPP_TEST_MESSAGE_HANDLER_H
 
-#include <mimc/message_handler.h>
-#include <mimc/threadsafe_queue.h>
-#include <mimc/mimc_group_message.h>
+#include "mimc/message_handler.h"
+#include "include/ring_queue.h"
+#include "mimc/mimc_group_message.h"
 
 class TestMessageHandler : public MessageHandler {
 public:
-    void handleMessage(std::vector<MIMCMessage> packets) {
-        std::vector<MIMCMessage>::iterator it = packets.begin();
+    bool handleMessage(const std::vector<MIMCMessage>& packets) {
+        std::vector<MIMCMessage>::const_iterator it = packets.begin();
         for (; it != packets.end(); ++it) {
             messages.push(*it);
-            MIMCMessage& message = *it;
+            const MIMCMessage& message = *it;
             printf("recv message, payload is %s, bizType is %s\n", message.getPayload().c_str(), message.getBizType().c_str());
         }
+
+        return true;
+    }
+    void handleOnlineMessage(const MIMCMessage& packets) {
+        messages.push(packets);
+        printf("recv online message, payload is %s, bizType is %s\n", packets.getPayload().c_str(), packets.getBizType().c_str());
     }
 
-	void handleGroupMessage(std::vector<MIMCGroupMessage> packets) {
-		std::vector<MIMCGroupMessage>::iterator it = packets.begin();
+	bool handleGroupMessage(const std::vector<MIMCGroupMessage>& packets) {
+		std::vector<MIMCGroupMessage>::const_iterator it = packets.begin();
 		for (; it != packets.end(); ++it) {
 			groupMessages.push(*it);
-			MIMCGroupMessage& groupMessage = *it;
+			const MIMCGroupMessage& groupMessage = *it;
 			printf("recv group message, payload is %s, bizType is %s\n", groupMessage.getPayload().c_str(), groupMessage.getBizType().c_str());
 		}
-	}
-    void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
-        packetIds.push(packetId);
+
+        return true;
+    }
+    void handleServerAck(const MIMCServerAck &serverAck) {
+        packetIds.push(serverAck.getPacketId());
     }
 
-    void handleSendMsgTimeout(MIMCMessage message) {
+    void handleSendMsgTimeout(const MIMCMessage& message) {
 
     }
 
-	void handleSendGroupMsgTimeout(MIMCGroupMessage groupMessage) {
+	void handleSendGroupMsgTimeout(const MIMCGroupMessage& groupMessage) {
 	
 	}
 
@@ -46,6 +54,10 @@ public:
 
     bool pollServerAck(std::string& packetId) {
         return packetIds.pop(packetId);
+    }
+
+    bool onPullNotification() {
+        return true;
     }
 private:
     ThreadSafeQueue<MIMCMessage> messages;

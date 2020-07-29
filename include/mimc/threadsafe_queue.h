@@ -10,109 +10,82 @@
 #include <time.h>
 #include <thread>
 #include <chrono>
+#include "mimc/mutex_lock.h"
 
-const int QUEUE_SIZE = 100;
-
-template <class T>
+template <typename T>
 class ThreadSafeQueue
 {
-public:
-	ThreadSafeQueue(unsigned int capacity = QUEUE_SIZE);
-	void push(const T& new_data);
-	bool pop(long timeout, T& result);
-	bool pop(T& result);
-	bool empty();
-	void clear();
-	unsigned int size();
-	unsigned int capacity();
-	~ThreadSafeQueue();
 
 private:
-	T* queue;
-	unsigned int capacity_;
-	int head, tail;
-	pthread_mutex_t mutex;
+    std::queue<T> queue_;
+	std::mutex queue_mutex_;
+
+public:
+    ThreadSafeQueue();
+    ThreadSafeQueue(const ThreadSafeQueue<T>& queue);
+    ~ThreadSafeQueue();
+
+    bool Push(T& val);
+    bool Pop(T& ptr);
+    bool empty();
+    bool Front(T& ptr);
+    size_t Size();
 };
 
-template<class T>
-void ThreadSafeQueue<T>::push(const T& new_data) {
-	while ((tail + 1) % capacity_ == head) {
-		//usleep(10000);
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	}
-	pthread_mutex_lock(&mutex);
-	queue[tail] = new_data;
-	tail = (tail + 1) % capacity_;
-	pthread_mutex_unlock(&mutex);
+template <typename T>
+ThreadSafeQueue<T>::ThreadSafeQueue() {
+
 }
 
-template <class T>
-bool ThreadSafeQueue<T>::pop(long timeout, T& result) {
-	time_t start = time(NULL);
-	while (empty()) {
-		if (time(NULL) - start >= timeout) {
-			return false;
-		} else {
-			//usleep(100000);
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-	}
-	int pos = head;
-	head = (head + 1) % capacity_;
-	result = queue[pos];
-	return true;
+template <typename T>
+ThreadSafeQueue<T>::ThreadSafeQueue(const ThreadSafeQueue<T>& queue) {
+
 }
 
-template <class T>
-bool ThreadSafeQueue<T>::pop(T& result) {
-	if (empty()) {
-		return false;
-	}
-	int pos = head;
-	head = (head + 1) % capacity_;
-	result = queue[pos];
-	return true;
-}
-
-template <class T>
-bool ThreadSafeQueue<T>::empty() {
-	if (head == tail) {
-		return true;
-	}
-	return false;
-}
-
-template <class T>
-void ThreadSafeQueue<T>::clear() {
-	head = 0;
-	tail = 0;
-}
-
-template <class T>
-unsigned int ThreadSafeQueue<T>::size() {
-	if (tail >= head) {
-		return tail - head;
-	} else {
-		return head - tail;
-	}
-}
-
-template <class T>
-unsigned int ThreadSafeQueue<T>::capacity() {
-	return capacity_;
-}
-
-template <class T>
-ThreadSafeQueue<T>::ThreadSafeQueue(unsigned int capacity)
-	: capacity_(capacity), head(0), tail(0), mutex(PTHREAD_MUTEX_INITIALIZER)
-{
-	queue = new T[capacity_];
-}
-
-template <class T>
+template <typename T>
 ThreadSafeQueue<T>::~ThreadSafeQueue() {
-	delete[] queue;
-	queue = NULL;
 }
 
+template <typename T>
+bool ThreadSafeQueue<T>::Push(T& val) {
+	queue_mutex_.lock();
+    queue_.push(val);
+	queue_mutex_.unlock();
+    return true;
+}
+
+template <typename T>
+bool ThreadSafeQueue<T>::Pop(T& data) {
+	queue_mutex_.lock();
+    if (queue_.empty()) {
+		queue_mutex_.unlock();
+        return false;
+    }
+    data = queue_.front();
+    queue_.pop();
+	queue_mutex_.unlock();
+    return true;
+}
+
+template <typename T>
+bool ThreadSafeQueue<T>::empty() {
+    return queue_.empty();
+}
+
+template <typename T>
+bool ThreadSafeQueue<T>::Front(T& data) {
+	queue_mutex_.lock();
+    if (queue_.empty()) {
+		queue_mutex_.unlock();
+        return false;
+    }
+    data = queue_.front();
+	queue_mutex_.unlock();
+    return true;
+}
+
+template <typename T>
+size_t ThreadSafeQueue<T>::Size() {
+    return queue_.size();
+}
 #endif

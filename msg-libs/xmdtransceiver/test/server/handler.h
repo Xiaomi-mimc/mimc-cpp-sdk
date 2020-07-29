@@ -3,7 +3,7 @@
 
 class DataGramHandler : public DatagramRecvHandler {
 public:
-    virtual void handle(char* ip, int port, char* data, uint32_t len) {
+    virtual void handle(char* ip, int port, char* data, uint32_t len, unsigned char packetType) {
         std::string tmpStr(data, len);
         std::cout<<current_ms()<<":receive datagram.data=" << tmpStr << ",len=" << len << std::endl;
     }
@@ -50,9 +50,9 @@ public:
         //std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",len="<<len<<",data="<<tmpStr<<std::endl;
         std::cout<<"recv stream data connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<",len="<<len<<std::endl;
         //std::cout<<"time="<<current_ms()<<std::endl;
-        uint16_t streamid = transceiver->createStream(conn_id, FEC_STREAM, 100, false);
-        transceiver->sendRTData(conn_id, streamid, data, len, false, P0, 2);
-        //transceiver->sendRTData(conn_id, stream_id, data, len, false, P0, 2);
+        //uint16_t streamid = transceiver->createStream(conn_id, ACK_STREAM, 100, false);
+        //transceiver->sendRTData(conn_id, streamid, data, len, false, P0, 2);
+        transceiver->sendRTData(conn_id, stream_id, data, len, false, P0, -1);
     }
     virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
         std::cout<<"send stream data succ, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;

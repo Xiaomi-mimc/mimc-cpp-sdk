@@ -36,6 +36,7 @@ class FilterRequest;
 class FilterResponse;
 class PullMessageRequest;
 class TopicMessage;
+class TransferTopicMessage;
 class QueryAppinfoRequest;
 class Appinfo;
 class MIMCPacket;
@@ -44,12 +45,13 @@ class MIMCPacketAck;
 class MIMCP2PMessage;
 class MIMCP2TMessage;
 class MIMCSequenceAck;
-class MIMCPull;
 class P2PPushMesage;
 class P2TPushMesage;
 class MIMCUser;
 class MIMCGroup;
 class UCGroup;
+class GenerateIdRequest;
+class GenerateIdResponse;
 class UCPacket;
 class UCExchange;
 class UCJoin;
@@ -85,12 +87,22 @@ enum MIMC_MSG_TYPE {
   RTS_SIGNAL = 7,
   UC_PACKET = 8,
   P2P_PUSH_MESSAGE = 9,
-  P2T_PUSH_MESSAGE = 10
+  P2T_PUSH_MESSAGE = 10,
+  ONLINE_MESSAGE = 11
 };
 bool MIMC_MSG_TYPE_IsValid(int value);
 const MIMC_MSG_TYPE MIMC_MSG_TYPE_MIN = P2P_MESSAGE;
-const MIMC_MSG_TYPE MIMC_MSG_TYPE_MAX = P2T_PUSH_MESSAGE;
+const MIMC_MSG_TYPE MIMC_MSG_TYPE_MAX = ONLINE_MESSAGE;
 const int MIMC_MSG_TYPE_ARRAYSIZE = MIMC_MSG_TYPE_MAX + 1;
+
+enum MIMC_PUSH_STATUS {
+  STATUS_NORMAL = 1,
+  STATUS_EXCEED_COUNT_LIMIT = 2
+};
+bool MIMC_PUSH_STATUS_IsValid(int value);
+const MIMC_PUSH_STATUS MIMC_PUSH_STATUS_MIN = STATUS_NORMAL;
+const MIMC_PUSH_STATUS MIMC_PUSH_STATUS_MAX = STATUS_EXCEED_COUNT_LIMIT;
+const int MIMC_PUSH_STATUS_ARRAYSIZE = MIMC_PUSH_STATUS_MAX + 1;
 
 enum UC_MSG_TYPE {
   PING = 1,
@@ -403,18 +415,28 @@ class PullMessageRequest : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
+  // optional uint64 appId = 3;
+  inline bool has_appid() const;
+  inline void clear_appid();
+  static const int kAppIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:mimc.PullMessageRequest)
  private:
   inline void set_has_uuid();
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
+  inline void set_has_appid();
+  inline void clear_has_appid();
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
+  ::google::protobuf::uint64 appid_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -498,12 +520,12 @@ class TopicMessage : public ::google::protobuf::MessageLite {
   inline ::mimc::MIMCPacket* release_packet();
   inline void set_allocated_packet(::mimc::MIMCPacket* packet);
 
-  // optional int64 uuid = 3;
+  // optional uint64 uuid = 3;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 3;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 uuid() const;
+  inline void set_uuid(::google::protobuf::uint64 value);
 
   // optional string resource = 4;
   inline bool has_resource() const;
@@ -517,6 +539,13 @@ class TopicMessage : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
+  // optional bool isSystemMsg = 5;
+  inline bool has_issystemmsg() const;
+  inline void clear_issystemmsg();
+  static const int kIsSystemMsgFieldNumber = 5;
+  inline bool issystemmsg() const;
+  inline void set_issystemmsg(bool value);
+
   // @@protoc_insertion_point(class_scope:mimc.TopicMessage)
  private:
   inline void set_has_topicid();
@@ -527,11 +556,132 @@ class TopicMessage : public ::google::protobuf::MessageLite {
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
+  inline void set_has_issystemmsg();
+  inline void clear_has_issystemmsg();
 
   ::google::protobuf::uint64 topicid_;
   ::mimc::MIMCPacket* packet_;
-  ::google::protobuf::int64 uuid_;
+  ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
+  bool issystemmsg_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_mimc_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_mimc_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_mimc_2eproto();
+  friend void protobuf_ShutdownFile_mimc_2eproto();
+
+  void InitAsDefaultInstance();
+  static TopicMessage* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class TransferTopicMessage : public ::google::protobuf::MessageLite {
+ public:
+  TransferTopicMessage();
+  virtual ~TransferTopicMessage();
+
+  TransferTopicMessage(const TransferTopicMessage& from);
+
+  inline TransferTopicMessage& operator=(const TransferTopicMessage& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const TransferTopicMessage& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const TransferTopicMessage* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(TransferTopicMessage* other);
+
+  // implements Message ----------------------------------------------
+
+  TransferTopicMessage* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const TransferTopicMessage& from);
+  void MergeFrom(const TransferTopicMessage& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional .mimc.MIMCPacket packet = 1;
+  inline bool has_packet() const;
+  inline void clear_packet();
+  static const int kPacketFieldNumber = 1;
+  inline const ::mimc::MIMCPacket& packet() const;
+  inline ::mimc::MIMCPacket* mutable_packet();
+  inline ::mimc::MIMCPacket* release_packet();
+  inline void set_allocated_packet(::mimc::MIMCPacket* packet);
+
+  // repeated uint64 uuidList = 2;
+  inline int uuidlist_size() const;
+  inline void clear_uuidlist();
+  static const int kUuidListFieldNumber = 2;
+  inline ::google::protobuf::uint64 uuidlist(int index) const;
+  inline void set_uuidlist(int index, ::google::protobuf::uint64 value);
+  inline void add_uuidlist(::google::protobuf::uint64 value);
+  inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >&
+      uuidlist() const;
+  inline ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
+      mutable_uuidlist();
+
+  // optional .mimc.MIMC_MSG_TYPE type = 3;
+  inline bool has_type() const;
+  inline void clear_type();
+  static const int kTypeFieldNumber = 3;
+  inline ::mimc::MIMC_MSG_TYPE type() const;
+  inline void set_type(::mimc::MIMC_MSG_TYPE value);
+
+  // optional uint64 appId = 4;
+  inline bool has_appid() const;
+  inline void clear_appid();
+  static const int kAppIdFieldNumber = 4;
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
+
+  // @@protoc_insertion_point(class_scope:mimc.TransferTopicMessage)
+ private:
+  inline void set_has_packet();
+  inline void clear_has_packet();
+  inline void set_has_type();
+  inline void clear_has_type();
+  inline void set_has_appid();
+  inline void clear_has_appid();
+
+  ::mimc::MIMCPacket* packet_;
+  ::google::protobuf::RepeatedField< ::google::protobuf::uint64 > uuidlist_;
+  ::google::protobuf::uint64 appid_;
+  int type_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
@@ -545,7 +695,7 @@ class TopicMessage : public ::google::protobuf::MessageLite {
   friend void protobuf_ShutdownFile_mimc_2eproto();
 
   void InitAsDefaultInstance();
-  static TopicMessage* default_instance_;
+  static TransferTopicMessage* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -762,17 +912,80 @@ class Appinfo : public ::google::protobuf::MessageLite {
   inline ::std::string* release_messagefilter();
   inline void set_allocated_messagefilter(::std::string* messagefilter);
 
-  // optional string ucMsgCallbackUrl = 7;
-  inline bool has_ucmsgcallbackurl() const;
-  inline void clear_ucmsgcallbackurl();
-  static const int kUcMsgCallbackUrlFieldNumber = 7;
-  inline const ::std::string& ucmsgcallbackurl() const;
-  inline void set_ucmsgcallbackurl(const ::std::string& value);
-  inline void set_ucmsgcallbackurl(const char* value);
-  inline void set_ucmsgcallbackurl(const char* value, size_t size);
-  inline ::std::string* mutable_ucmsgcallbackurl();
-  inline ::std::string* release_ucmsgcallbackurl();
-  inline void set_allocated_ucmsgcallbackurl(::std::string* ucmsgcallbackurl);
+  // optional bool enableBlacklist = 7;
+  inline bool has_enableblacklist() const;
+  inline void clear_enableblacklist();
+  static const int kEnableBlacklistFieldNumber = 7;
+  inline bool enableblacklist() const;
+  inline void set_enableblacklist(bool value);
+
+  // optional int64 topicMemberCount = 8;
+  inline bool has_topicmembercount() const;
+  inline void clear_topicmembercount();
+  static const int kTopicMemberCountFieldNumber = 8;
+  inline ::google::protobuf::int64 topicmembercount() const;
+  inline void set_topicmembercount(::google::protobuf::int64 value);
+
+  // optional bool enableAntiSpam = 9;
+  inline bool has_enableantispam() const;
+  inline void clear_enableantispam();
+  static const int kEnableAntiSpamFieldNumber = 9;
+  inline bool enableantispam() const;
+  inline void set_enableantispam(bool value);
+
+  // optional int32 msgStorageTime = 10;
+  inline bool has_msgstoragetime() const;
+  inline void clear_msgstoragetime();
+  static const int kMsgStorageTimeFieldNumber = 10;
+  inline ::google::protobuf::int32 msgstoragetime() const;
+  inline void set_msgstoragetime(::google::protobuf::int32 value);
+
+  // optional int32 contactExpireTime = 11;
+  inline bool has_contactexpiretime() const;
+  inline void clear_contactexpiretime();
+  static const int kContactExpireTimeFieldNumber = 11;
+  inline ::google::protobuf::int32 contactexpiretime() const;
+  inline void set_contactexpiretime(::google::protobuf::int32 value);
+
+  // optional int32 p2pMaxQps = 12;
+  inline bool has_p2pmaxqps() const;
+  inline void clear_p2pmaxqps();
+  static const int kP2PMaxQpsFieldNumber = 12;
+  inline ::google::protobuf::int32 p2pmaxqps() const;
+  inline void set_p2pmaxqps(::google::protobuf::int32 value);
+
+  // optional int32 p2tMaxQps = 13;
+  inline bool has_p2tmaxqps() const;
+  inline void clear_p2tmaxqps();
+  static const int kP2TMaxQpsFieldNumber = 13;
+  inline ::google::protobuf::int32 p2tmaxqps() const;
+  inline void set_p2tmaxqps(::google::protobuf::int32 value);
+
+  // optional int32 ucMaxQps = 14;
+  inline bool has_ucmaxqps() const;
+  inline void clear_ucmaxqps();
+  static const int kUcMaxQpsFieldNumber = 14;
+  inline ::google::protobuf::int32 ucmaxqps() const;
+  inline void set_ucmaxqps(::google::protobuf::int32 value);
+
+  // optional string offlineResourceCallbackUrl = 15;
+  inline bool has_offlineresourcecallbackurl() const;
+  inline void clear_offlineresourcecallbackurl();
+  static const int kOfflineResourceCallbackUrlFieldNumber = 15;
+  inline const ::std::string& offlineresourcecallbackurl() const;
+  inline void set_offlineresourcecallbackurl(const ::std::string& value);
+  inline void set_offlineresourcecallbackurl(const char* value);
+  inline void set_offlineresourcecallbackurl(const char* value, size_t size);
+  inline ::std::string* mutable_offlineresourcecallbackurl();
+  inline ::std::string* release_offlineresourcecallbackurl();
+  inline void set_allocated_offlineresourcecallbackurl(::std::string* offlineresourcecallbackurl);
+
+  // optional int32 offlineMsgMaxCount = 16;
+  inline bool has_offlinemsgmaxcount() const;
+  inline void clear_offlinemsgmaxcount();
+  static const int kOfflineMsgMaxCountFieldNumber = 16;
+  inline ::google::protobuf::int32 offlinemsgmaxcount() const;
+  inline void set_offlinemsgmaxcount(::google::protobuf::int32 value);
 
   // @@protoc_insertion_point(class_scope:mimc.Appinfo)
  private:
@@ -788,8 +1001,26 @@ class Appinfo : public ::google::protobuf::MessageLite {
   inline void clear_has_context();
   inline void set_has_messagefilter();
   inline void clear_has_messagefilter();
-  inline void set_has_ucmsgcallbackurl();
-  inline void clear_has_ucmsgcallbackurl();
+  inline void set_has_enableblacklist();
+  inline void clear_has_enableblacklist();
+  inline void set_has_topicmembercount();
+  inline void clear_has_topicmembercount();
+  inline void set_has_enableantispam();
+  inline void clear_has_enableantispam();
+  inline void set_has_msgstoragetime();
+  inline void clear_has_msgstoragetime();
+  inline void set_has_contactexpiretime();
+  inline void clear_has_contactexpiretime();
+  inline void set_has_p2pmaxqps();
+  inline void clear_has_p2pmaxqps();
+  inline void set_has_p2tmaxqps();
+  inline void clear_has_p2tmaxqps();
+  inline void set_has_ucmaxqps();
+  inline void clear_has_ucmaxqps();
+  inline void set_has_offlineresourcecallbackurl();
+  inline void clear_has_offlineresourcecallbackurl();
+  inline void set_has_offlinemsgmaxcount();
+  inline void clear_has_offlinemsgmaxcount();
 
   ::google::protobuf::uint64 appid_;
   ::std::string* msgcallbackurl_;
@@ -797,10 +1028,19 @@ class Appinfo : public ::google::protobuf::MessageLite {
   ::google::protobuf::uint64 uuidttl_;
   ::std::string* context_;
   ::std::string* messagefilter_;
-  ::std::string* ucmsgcallbackurl_;
+  ::google::protobuf::int64 topicmembercount_;
+  bool enableblacklist_;
+  bool enableantispam_;
+  ::google::protobuf::int32 msgstoragetime_;
+  ::google::protobuf::int32 contactexpiretime_;
+  ::google::protobuf::int32 p2pmaxqps_;
+  ::google::protobuf::int32 p2tmaxqps_;
+  ::google::protobuf::int32 ucmaxqps_;
+  ::std::string* offlineresourcecallbackurl_;
+  ::google::protobuf::int32 offlinemsgmaxcount_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(16 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -925,6 +1165,20 @@ class MIMCPacket : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::int64 timestamp() const;
   inline void set_timestamp(::google::protobuf::int64 value);
 
+  // optional bool conversation = 7;
+  inline bool has_conversation() const;
+  inline void clear_conversation();
+  static const int kConversationFieldNumber = 7;
+  inline bool conversation() const;
+  inline void set_conversation(bool value);
+
+  // optional int64 convIndex = 8;
+  inline bool has_convindex() const;
+  inline void clear_convindex();
+  static const int kConvIndexFieldNumber = 8;
+  inline ::google::protobuf::int64 convindex() const;
+  inline void set_convindex(::google::protobuf::int64 value);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCPacket)
  private:
   inline void set_has_packetid();
@@ -939,16 +1193,22 @@ class MIMCPacket : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_timestamp();
   inline void clear_has_timestamp();
+  inline void set_has_conversation();
+  inline void clear_has_conversation();
+  inline void set_has_convindex();
+  inline void clear_has_convindex();
 
   ::std::string* packetid_;
   ::std::string* package_;
   ::google::protobuf::int64 sequence_;
   ::std::string* payload_;
-  ::google::protobuf::int64 timestamp_;
   int type_;
+  bool conversation_;
+  ::google::protobuf::int64 timestamp_;
+  ::google::protobuf::int64 convindex_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1016,12 +1276,12 @@ class MIMCPacketList : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional int64 uuid = 1;
+  // optional uint64 uuid = 1;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 1;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 uuid() const;
+  inline void set_uuid(::google::protobuf::uint64 value);
 
   // optional string resource = 2;
   inline bool has_resource() const;
@@ -1054,6 +1314,13 @@ class MIMCPacketList : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::RepeatedPtrField< ::mimc::MIMCPacket >*
       mutable_packets();
 
+  // optional .mimc.MIMC_PUSH_STATUS status = 5;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 5;
+  inline ::mimc::MIMC_PUSH_STATUS status() const;
+  inline void set_status(::mimc::MIMC_PUSH_STATUS value);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCPacketList)
  private:
   inline void set_has_uuid();
@@ -1062,14 +1329,17 @@ class MIMCPacketList : public ::google::protobuf::MessageLite {
   inline void clear_has_resource();
   inline void set_has_maxsequence();
   inline void clear_has_maxsequence();
+  inline void set_has_status();
+  inline void clear_has_status();
 
-  ::google::protobuf::int64 uuid_;
+  ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
   ::google::protobuf::int64 maxsequence_;
   ::google::protobuf::RepeatedPtrField< ::mimc::MIMCPacket > packets_;
+  int status_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1149,12 +1419,12 @@ class MIMCPacketAck : public ::google::protobuf::MessageLite {
   inline ::std::string* release_packetid();
   inline void set_allocated_packetid(::std::string* packetid);
 
-  // optional int64 uuid = 2;
+  // optional uint64 uuid = 2;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 2;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 uuid() const;
+  inline void set_uuid(::google::protobuf::uint64 value);
 
   // optional string resource = 3;
   inline bool has_resource() const;
@@ -1206,6 +1476,20 @@ class MIMCPacketAck : public ::google::protobuf::MessageLite {
   inline ::std::string* release_errormsg();
   inline void set_allocated_errormsg(::std::string* errormsg);
 
+  // optional int32 code = 8;
+  inline bool has_code() const;
+  inline void clear_code();
+  static const int kCodeFieldNumber = 8;
+  inline ::google::protobuf::int32 code() const;
+  inline void set_code(::google::protobuf::int32 value);
+
+  // optional int64 convIndex = 9;
+  inline bool has_convindex() const;
+  inline void clear_convindex();
+  static const int kConvIndexFieldNumber = 9;
+  inline ::google::protobuf::int64 convindex() const;
+  inline void set_convindex(::google::protobuf::int64 value);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCPacketAck)
  private:
   inline void set_has_packetid();
@@ -1222,17 +1506,23 @@ class MIMCPacketAck : public ::google::protobuf::MessageLite {
   inline void clear_has_package();
   inline void set_has_errormsg();
   inline void clear_has_errormsg();
+  inline void set_has_code();
+  inline void clear_has_code();
+  inline void set_has_convindex();
+  inline void clear_has_convindex();
 
   ::std::string* packetid_;
-  ::google::protobuf::int64 uuid_;
+  ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
   ::google::protobuf::int64 sequence_;
   ::google::protobuf::int64 timestamp_;
   ::std::string* package_;
   ::std::string* errormsg_;
+  ::google::protobuf::int64 convindex_;
+  ::google::protobuf::int32 code_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(9 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1337,14 +1627,14 @@ class MIMCP2PMessage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
-  // optional bytes bizType = 5;
+  // optional string bizType = 5;
   inline bool has_biztype() const;
   inline void clear_biztype();
   static const int kBizTypeFieldNumber = 5;
   inline const ::std::string& biztype() const;
   inline void set_biztype(const ::std::string& value);
   inline void set_biztype(const char* value);
-  inline void set_biztype(const void* value, size_t size);
+  inline void set_biztype(const char* value, size_t size);
   inline ::std::string* mutable_biztype();
   inline ::std::string* release_biztype();
   inline void set_allocated_biztype(::std::string* biztype);
@@ -1474,14 +1764,14 @@ class MIMCP2TMessage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
-  // optional bytes bizType = 5;
+  // optional string bizType = 5;
   inline bool has_biztype() const;
   inline void clear_biztype();
   static const int kBizTypeFieldNumber = 5;
   inline const ::std::string& biztype() const;
   inline void set_biztype(const ::std::string& value);
   inline void set_biztype(const char* value);
-  inline void set_biztype(const void* value, size_t size);
+  inline void set_biztype(const char* value, size_t size);
   inline ::std::string* mutable_biztype();
   inline ::std::string* release_biztype();
   inline void set_allocated_biztype(::std::string* biztype);
@@ -1574,12 +1864,12 @@ class MIMCSequenceAck : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional int64 uuid = 1;
+  // optional uint64 uuid = 1;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 1;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 uuid() const;
+  inline void set_uuid(::google::protobuf::uint64 value);
 
   // optional string resource = 2;
   inline bool has_resource() const;
@@ -1600,6 +1890,13 @@ class MIMCSequenceAck : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::int64 sequence() const;
   inline void set_sequence(::google::protobuf::int64 value);
 
+  // optional uint64 appId = 4;
+  inline bool has_appid() const;
+  inline void clear_appid();
+  static const int kAppIdFieldNumber = 4;
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
+
   // @@protoc_insertion_point(class_scope:mimc.MIMCSequenceAck)
  private:
   inline void set_has_uuid();
@@ -1608,13 +1905,16 @@ class MIMCSequenceAck : public ::google::protobuf::MessageLite {
   inline void clear_has_resource();
   inline void set_has_sequence();
   inline void clear_has_sequence();
+  inline void set_has_appid();
+  inline void clear_has_appid();
 
-  ::google::protobuf::int64 uuid_;
+  ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
   ::google::protobuf::int64 sequence_;
+  ::google::protobuf::uint64 appid_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1626,104 +1926,6 @@ class MIMCSequenceAck : public ::google::protobuf::MessageLite {
 
   void InitAsDefaultInstance();
   static MIMCSequenceAck* default_instance_;
-};
-// -------------------------------------------------------------------
-
-class MIMCPull : public ::google::protobuf::MessageLite {
- public:
-  MIMCPull();
-  virtual ~MIMCPull();
-
-  MIMCPull(const MIMCPull& from);
-
-  inline MIMCPull& operator=(const MIMCPull& from) {
-    CopyFrom(from);
-    return *this;
-  }
-
-  static const MIMCPull& default_instance();
-
-  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
-  // Returns the internal default instance pointer. This function can
-  // return NULL thus should not be used by the user. This is intended
-  // for Protobuf internal code. Please use default_instance() declared
-  // above instead.
-  static inline const MIMCPull* internal_default_instance() {
-    return default_instance_;
-  }
-  #endif
-
-  void Swap(MIMCPull* other);
-
-  // implements Message ----------------------------------------------
-
-  MIMCPull* New() const;
-  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
-  void CopyFrom(const MIMCPull& from);
-  void MergeFrom(const MIMCPull& from);
-  void Clear();
-  bool IsInitialized() const;
-
-  int ByteSize() const;
-  bool MergePartialFromCodedStream(
-      ::google::protobuf::io::CodedInputStream* input);
-  void SerializeWithCachedSizes(
-      ::google::protobuf::io::CodedOutputStream* output) const;
-  int GetCachedSize() const { return _cached_size_; }
-  private:
-  void SharedCtor();
-  void SharedDtor();
-  void SetCachedSize(int size) const;
-  public:
-
-  ::std::string GetTypeName() const;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // optional int64 uuid = 1;
-  inline bool has_uuid() const;
-  inline void clear_uuid();
-  static const int kUuidFieldNumber = 1;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
-
-  // optional string resource = 2;
-  inline bool has_resource() const;
-  inline void clear_resource();
-  static const int kResourceFieldNumber = 2;
-  inline const ::std::string& resource() const;
-  inline void set_resource(const ::std::string& value);
-  inline void set_resource(const char* value);
-  inline void set_resource(const char* value, size_t size);
-  inline ::std::string* mutable_resource();
-  inline ::std::string* release_resource();
-  inline void set_allocated_resource(::std::string* resource);
-
-  // @@protoc_insertion_point(class_scope:mimc.MIMCPull)
- private:
-  inline void set_has_uuid();
-  inline void clear_has_uuid();
-  inline void set_has_resource();
-  inline void clear_has_resource();
-
-  ::google::protobuf::int64 uuid_;
-  ::std::string* resource_;
-
-  mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
-
-  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
-  friend void  protobuf_AddDesc_mimc_2eproto_impl();
-  #else
-  friend void  protobuf_AddDesc_mimc_2eproto();
-  #endif
-  friend void protobuf_AssignDesc_mimc_2eproto();
-  friend void protobuf_ShutdownFile_mimc_2eproto();
-
-  void InitAsDefaultInstance();
-  static MIMCPull* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -1820,6 +2022,25 @@ class P2PPushMesage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
+  // optional string bizType = 5;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 5;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const char* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
+  // optional bool isSystemMsg = 6;
+  inline bool has_issystemmsg() const;
+  inline void clear_issystemmsg();
+  static const int kIsSystemMsgFieldNumber = 6;
+  inline bool issystemmsg() const;
+  inline void set_issystemmsg(bool value);
+
   // @@protoc_insertion_point(class_scope:mimc.P2PPushMesage)
  private:
   inline void set_has_from();
@@ -1828,14 +2049,20 @@ class P2PPushMesage : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_isstore();
   inline void clear_has_isstore();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
+  inline void set_has_issystemmsg();
+  inline void clear_has_issystemmsg();
 
   ::mimc::MIMCUser* from_;
   ::google::protobuf::RepeatedPtrField< ::mimc::MIMCUser > to_;
   ::std::string* payload_;
+  ::std::string* biztype_;
   bool isstore_;
+  bool issystemmsg_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -1943,6 +2170,25 @@ class P2TPushMesage : public ::google::protobuf::MessageLite {
   inline bool isstore() const;
   inline void set_isstore(bool value);
 
+  // optional string bizType = 5;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 5;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const char* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
+  // optional bool isSystemMsg = 6;
+  inline bool has_issystemmsg() const;
+  inline void clear_issystemmsg();
+  static const int kIsSystemMsgFieldNumber = 6;
+  inline bool issystemmsg() const;
+  inline void set_issystemmsg(bool value);
+
   // @@protoc_insertion_point(class_scope:mimc.P2TPushMesage)
  private:
   inline void set_has_from();
@@ -1951,14 +2197,20 @@ class P2TPushMesage : public ::google::protobuf::MessageLite {
   inline void clear_has_payload();
   inline void set_has_isstore();
   inline void clear_has_isstore();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
+  inline void set_has_issystemmsg();
+  inline void clear_has_issystemmsg();
 
   ::mimc::MIMCUser* from_;
   ::google::protobuf::RepeatedPtrField< ::mimc::MIMCGroup > to_;
   ::std::string* payload_;
+  ::std::string* biztype_;
   bool isstore_;
+  bool issystemmsg_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(4 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -2026,12 +2278,12 @@ class MIMCUser : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional int64 appId = 1;
+  // optional uint64 appId = 1;
   inline bool has_appid() const;
   inline void clear_appid();
   static const int kAppIdFieldNumber = 1;
-  inline ::google::protobuf::int64 appid() const;
-  inline void set_appid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
 
   // optional string appAccount = 2;
   inline bool has_appaccount() const;
@@ -2045,12 +2297,12 @@ class MIMCUser : public ::google::protobuf::MessageLite {
   inline ::std::string* release_appaccount();
   inline void set_allocated_appaccount(::std::string* appaccount);
 
-  // optional int64 uuid = 3;
+  // optional uint64 uuid = 3;
   inline bool has_uuid() const;
   inline void clear_uuid();
   static const int kUuidFieldNumber = 3;
-  inline ::google::protobuf::int64 uuid() const;
-  inline void set_uuid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 uuid() const;
+  inline void set_uuid(::google::protobuf::uint64 value);
 
   // optional string resource = 4;
   inline bool has_resource() const;
@@ -2075,9 +2327,9 @@ class MIMCUser : public ::google::protobuf::MessageLite {
   inline void set_has_resource();
   inline void clear_has_resource();
 
-  ::google::protobuf::int64 appid_;
+  ::google::protobuf::uint64 appid_;
   ::std::string* appaccount_;
-  ::google::protobuf::int64 uuid_;
+  ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
 
   mutable int _cached_size_;
@@ -2149,19 +2401,19 @@ class MIMCGroup : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional int64 appId = 1;
+  // optional uint64 appId = 1;
   inline bool has_appid() const;
   inline void clear_appid();
   static const int kAppIdFieldNumber = 1;
-  inline ::google::protobuf::int64 appid() const;
-  inline void set_appid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
 
-  // optional int64 topicId = 2;
+  // optional uint64 topicId = 2;
   inline bool has_topicid() const;
   inline void clear_topicid();
   static const int kTopicIdFieldNumber = 2;
-  inline ::google::protobuf::int64 topicid() const;
-  inline void set_topicid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 topicid() const;
+  inline void set_topicid(::google::protobuf::uint64 value);
 
   // @@protoc_insertion_point(class_scope:mimc.MIMCGroup)
  private:
@@ -2170,8 +2422,8 @@ class MIMCGroup : public ::google::protobuf::MessageLite {
   inline void set_has_topicid();
   inline void clear_has_topicid();
 
-  ::google::protobuf::int64 appid_;
-  ::google::protobuf::int64 topicid_;
+  ::google::protobuf::uint64 appid_;
+  ::google::protobuf::uint64 topicid_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -2242,19 +2494,19 @@ class UCGroup : public ::google::protobuf::MessageLite {
 
   // accessors -------------------------------------------------------
 
-  // optional int64 appId = 1;
+  // optional uint64 appId = 1;
   inline bool has_appid() const;
   inline void clear_appid();
   static const int kAppIdFieldNumber = 1;
-  inline ::google::protobuf::int64 appid() const;
-  inline void set_appid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 appid() const;
+  inline void set_appid(::google::protobuf::uint64 value);
 
-  // optional int64 topicId = 2;
+  // optional uint64 topicId = 2;
   inline bool has_topicid() const;
   inline void clear_topicid();
   static const int kTopicIdFieldNumber = 2;
-  inline ::google::protobuf::int64 topicid() const;
-  inline void set_topicid(::google::protobuf::int64 value);
+  inline ::google::protobuf::uint64 topicid() const;
+  inline void set_topicid(::google::protobuf::uint64 value);
 
   // @@protoc_insertion_point(class_scope:mimc.UCGroup)
  private:
@@ -2263,8 +2515,8 @@ class UCGroup : public ::google::protobuf::MessageLite {
   inline void set_has_topicid();
   inline void clear_has_topicid();
 
-  ::google::protobuf::int64 appid_;
-  ::google::protobuf::int64 topicid_;
+  ::google::protobuf::uint64 appid_;
+  ::google::protobuf::uint64 topicid_;
 
   mutable int _cached_size_;
   ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
@@ -2279,6 +2531,192 @@ class UCGroup : public ::google::protobuf::MessageLite {
 
   void InitAsDefaultInstance();
   static UCGroup* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class GenerateIdRequest : public ::google::protobuf::MessageLite {
+ public:
+  GenerateIdRequest();
+  virtual ~GenerateIdRequest();
+
+  GenerateIdRequest(const GenerateIdRequest& from);
+
+  inline GenerateIdRequest& operator=(const GenerateIdRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const GenerateIdRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const GenerateIdRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(GenerateIdRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  GenerateIdRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const GenerateIdRequest& from);
+  void MergeFrom(const GenerateIdRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required uint64 requestId = 1;
+  inline bool has_requestid() const;
+  inline void clear_requestid();
+  static const int kRequestIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 requestid() const;
+  inline void set_requestid(::google::protobuf::uint64 value);
+
+  // required int32 bussinessType = 2;
+  inline bool has_bussinesstype() const;
+  inline void clear_bussinesstype();
+  static const int kBussinessTypeFieldNumber = 2;
+  inline ::google::protobuf::int32 bussinesstype() const;
+  inline void set_bussinesstype(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:mimc.GenerateIdRequest)
+ private:
+  inline void set_has_requestid();
+  inline void clear_has_requestid();
+  inline void set_has_bussinesstype();
+  inline void clear_has_bussinesstype();
+
+  ::google::protobuf::uint64 requestid_;
+  ::google::protobuf::int32 bussinesstype_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_mimc_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_mimc_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_mimc_2eproto();
+  friend void protobuf_ShutdownFile_mimc_2eproto();
+
+  void InitAsDefaultInstance();
+  static GenerateIdRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class GenerateIdResponse : public ::google::protobuf::MessageLite {
+ public:
+  GenerateIdResponse();
+  virtual ~GenerateIdResponse();
+
+  GenerateIdResponse(const GenerateIdResponse& from);
+
+  inline GenerateIdResponse& operator=(const GenerateIdResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const GenerateIdResponse& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const GenerateIdResponse* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(GenerateIdResponse* other);
+
+  // implements Message ----------------------------------------------
+
+  GenerateIdResponse* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const GenerateIdResponse& from);
+  void MergeFrom(const GenerateIdResponse& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required uint64 requestId = 1;
+  inline bool has_requestid() const;
+  inline void clear_requestid();
+  static const int kRequestIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 requestid() const;
+  inline void set_requestid(::google::protobuf::uint64 value);
+
+  // required uint64 id = 2;
+  inline bool has_id() const;
+  inline void clear_id();
+  static const int kIdFieldNumber = 2;
+  inline ::google::protobuf::uint64 id() const;
+  inline void set_id(::google::protobuf::uint64 value);
+
+  // @@protoc_insertion_point(class_scope:mimc.GenerateIdResponse)
+ private:
+  inline void set_has_requestid();
+  inline void clear_has_requestid();
+  inline void set_has_id();
+  inline void clear_has_id();
+
+  ::google::protobuf::uint64 requestid_;
+  ::google::protobuf::uint64 id_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_mimc_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_mimc_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_mimc_2eproto();
+  friend void protobuf_ShutdownFile_mimc_2eproto();
+
+  void InitAsDefaultInstance();
+  static GenerateIdResponse* default_instance_;
 };
 // -------------------------------------------------------------------
 
@@ -3111,6 +3549,18 @@ class UCMessage : public ::google::protobuf::MessageLite {
   inline ::std::string* release_packetid();
   inline void set_allocated_packetid(::std::string* packetid);
 
+  // optional string bizType = 8;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 8;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const char* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
   // @@protoc_insertion_point(class_scope:mimc.UCMessage)
  private:
   inline void set_has_group();
@@ -3127,6 +3577,8 @@ class UCMessage : public ::google::protobuf::MessageLite {
   inline void clear_has_timestamp();
   inline void set_has_packetid();
   inline void clear_has_packetid();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
 
   ::mimc::UCGroup* group_;
   ::std::string* payload_;
@@ -3134,10 +3586,11 @@ class UCMessage : public ::google::protobuf::MessageLite {
   ::mimc::MIMCUser* user_;
   ::google::protobuf::int64 timestamp_;
   ::std::string* packetid_;
+  ::std::string* biztype_;
   bool isstore_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -3268,6 +3721,18 @@ class UCPushMessage : public ::google::protobuf::MessageLite {
   inline ::std::string* release_packetid();
   inline void set_allocated_packetid(::std::string* packetid);
 
+  // optional string bizType = 7;
+  inline bool has_biztype() const;
+  inline void clear_biztype();
+  static const int kBizTypeFieldNumber = 7;
+  inline const ::std::string& biztype() const;
+  inline void set_biztype(const ::std::string& value);
+  inline void set_biztype(const char* value);
+  inline void set_biztype(const char* value, size_t size);
+  inline ::std::string* mutable_biztype();
+  inline ::std::string* release_biztype();
+  inline void set_allocated_biztype(::std::string* biztype);
+
   // @@protoc_insertion_point(class_scope:mimc.UCPushMessage)
  private:
   inline void set_has_user();
@@ -3278,16 +3743,19 @@ class UCPushMessage : public ::google::protobuf::MessageLite {
   inline void clear_has_timestamp();
   inline void set_has_packetid();
   inline void clear_has_packetid();
+  inline void set_has_biztype();
+  inline void clear_has_biztype();
 
   ::mimc::MIMCUser* user_;
   ::google::protobuf::RepeatedPtrField< ::mimc::UCGroup > group_;
   ::google::protobuf::RepeatedPtrField< ::std::string> payloads_;
   ::google::protobuf::int64 timestamp_;
   ::std::string* packetid_;
+  ::std::string* biztype_;
   bool isstore_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_mimc_2eproto_impl();
@@ -4263,6 +4731,28 @@ inline void PullMessageRequest::set_allocated_resource(::std::string* resource) 
   }
 }
 
+// optional uint64 appId = 3;
+inline bool PullMessageRequest::has_appid() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PullMessageRequest::set_has_appid() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PullMessageRequest::clear_has_appid() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PullMessageRequest::clear_appid() {
+  appid_ = GOOGLE_ULONGLONG(0);
+  clear_has_appid();
+}
+inline ::google::protobuf::uint64 PullMessageRequest::appid() const {
+  return appid_;
+}
+inline void PullMessageRequest::set_appid(::google::protobuf::uint64 value) {
+  set_has_appid();
+  appid_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // TopicMessage
@@ -4331,7 +4821,7 @@ inline void TopicMessage::set_allocated_packet(::mimc::MIMCPacket* packet) {
   }
 }
 
-// optional int64 uuid = 3;
+// optional uint64 uuid = 3;
 inline bool TopicMessage::has_uuid() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -4342,13 +4832,13 @@ inline void TopicMessage::clear_has_uuid() {
   _has_bits_[0] &= ~0x00000004u;
 }
 inline void TopicMessage::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
+  uuid_ = GOOGLE_ULONGLONG(0);
   clear_has_uuid();
 }
-inline ::google::protobuf::int64 TopicMessage::uuid() const {
+inline ::google::protobuf::uint64 TopicMessage::uuid() const {
   return uuid_;
 }
-inline void TopicMessage::set_uuid(::google::protobuf::int64 value) {
+inline void TopicMessage::set_uuid(::google::protobuf::uint64 value) {
   set_has_uuid();
   uuid_ = value;
 }
@@ -4421,6 +4911,144 @@ inline void TopicMessage::set_allocated_resource(::std::string* resource) {
     clear_has_resource();
     resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional bool isSystemMsg = 5;
+inline bool TopicMessage::has_issystemmsg() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void TopicMessage::set_has_issystemmsg() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void TopicMessage::clear_has_issystemmsg() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void TopicMessage::clear_issystemmsg() {
+  issystemmsg_ = false;
+  clear_has_issystemmsg();
+}
+inline bool TopicMessage::issystemmsg() const {
+  return issystemmsg_;
+}
+inline void TopicMessage::set_issystemmsg(bool value) {
+  set_has_issystemmsg();
+  issystemmsg_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// TransferTopicMessage
+
+// optional .mimc.MIMCPacket packet = 1;
+inline bool TransferTopicMessage::has_packet() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void TransferTopicMessage::set_has_packet() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void TransferTopicMessage::clear_has_packet() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void TransferTopicMessage::clear_packet() {
+  if (packet_ != NULL) packet_->::mimc::MIMCPacket::Clear();
+  clear_has_packet();
+}
+inline const ::mimc::MIMCPacket& TransferTopicMessage::packet() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return packet_ != NULL ? *packet_ : *default_instance().packet_;
+#else
+  return packet_ != NULL ? *packet_ : *default_instance_->packet_;
+#endif
+}
+inline ::mimc::MIMCPacket* TransferTopicMessage::mutable_packet() {
+  set_has_packet();
+  if (packet_ == NULL) packet_ = new ::mimc::MIMCPacket;
+  return packet_;
+}
+inline ::mimc::MIMCPacket* TransferTopicMessage::release_packet() {
+  clear_has_packet();
+  ::mimc::MIMCPacket* temp = packet_;
+  packet_ = NULL;
+  return temp;
+}
+inline void TransferTopicMessage::set_allocated_packet(::mimc::MIMCPacket* packet) {
+  delete packet_;
+  packet_ = packet;
+  if (packet) {
+    set_has_packet();
+  } else {
+    clear_has_packet();
+  }
+}
+
+// repeated uint64 uuidList = 2;
+inline int TransferTopicMessage::uuidlist_size() const {
+  return uuidlist_.size();
+}
+inline void TransferTopicMessage::clear_uuidlist() {
+  uuidlist_.Clear();
+}
+inline ::google::protobuf::uint64 TransferTopicMessage::uuidlist(int index) const {
+  return uuidlist_.Get(index);
+}
+inline void TransferTopicMessage::set_uuidlist(int index, ::google::protobuf::uint64 value) {
+  uuidlist_.Set(index, value);
+}
+inline void TransferTopicMessage::add_uuidlist(::google::protobuf::uint64 value) {
+  uuidlist_.Add(value);
+}
+inline const ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >&
+TransferTopicMessage::uuidlist() const {
+  return uuidlist_;
+}
+inline ::google::protobuf::RepeatedField< ::google::protobuf::uint64 >*
+TransferTopicMessage::mutable_uuidlist() {
+  return &uuidlist_;
+}
+
+// optional .mimc.MIMC_MSG_TYPE type = 3;
+inline bool TransferTopicMessage::has_type() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void TransferTopicMessage::set_has_type() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void TransferTopicMessage::clear_has_type() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void TransferTopicMessage::clear_type() {
+  type_ = 1;
+  clear_has_type();
+}
+inline ::mimc::MIMC_MSG_TYPE TransferTopicMessage::type() const {
+  return static_cast< ::mimc::MIMC_MSG_TYPE >(type_);
+}
+inline void TransferTopicMessage::set_type(::mimc::MIMC_MSG_TYPE value) {
+  assert(::mimc::MIMC_MSG_TYPE_IsValid(value));
+  set_has_type();
+  type_ = value;
+}
+
+// optional uint64 appId = 4;
+inline bool TransferTopicMessage::has_appid() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void TransferTopicMessage::set_has_appid() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void TransferTopicMessage::clear_has_appid() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void TransferTopicMessage::clear_appid() {
+  appid_ = GOOGLE_ULONGLONG(0);
+  clear_has_appid();
+}
+inline ::google::protobuf::uint64 TransferTopicMessage::appid() const {
+  return appid_;
+}
+inline void TransferTopicMessage::set_appid(::google::protobuf::uint64 value) {
+  set_has_appid();
+  appid_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -4847,74 +5475,272 @@ inline void Appinfo::set_allocated_messagefilter(::std::string* messagefilter) {
   }
 }
 
-// optional string ucMsgCallbackUrl = 7;
-inline bool Appinfo::has_ucmsgcallbackurl() const {
+// optional bool enableBlacklist = 7;
+inline bool Appinfo::has_enableblacklist() const {
   return (_has_bits_[0] & 0x00000040u) != 0;
 }
-inline void Appinfo::set_has_ucmsgcallbackurl() {
+inline void Appinfo::set_has_enableblacklist() {
   _has_bits_[0] |= 0x00000040u;
 }
-inline void Appinfo::clear_has_ucmsgcallbackurl() {
+inline void Appinfo::clear_has_enableblacklist() {
   _has_bits_[0] &= ~0x00000040u;
 }
-inline void Appinfo::clear_ucmsgcallbackurl() {
-  if (ucmsgcallbackurl_ != &::google::protobuf::internal::kEmptyString) {
-    ucmsgcallbackurl_->clear();
+inline void Appinfo::clear_enableblacklist() {
+  enableblacklist_ = false;
+  clear_has_enableblacklist();
+}
+inline bool Appinfo::enableblacklist() const {
+  return enableblacklist_;
+}
+inline void Appinfo::set_enableblacklist(bool value) {
+  set_has_enableblacklist();
+  enableblacklist_ = value;
+}
+
+// optional int64 topicMemberCount = 8;
+inline bool Appinfo::has_topicmembercount() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void Appinfo::set_has_topicmembercount() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void Appinfo::clear_has_topicmembercount() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void Appinfo::clear_topicmembercount() {
+  topicmembercount_ = GOOGLE_LONGLONG(0);
+  clear_has_topicmembercount();
+}
+inline ::google::protobuf::int64 Appinfo::topicmembercount() const {
+  return topicmembercount_;
+}
+inline void Appinfo::set_topicmembercount(::google::protobuf::int64 value) {
+  set_has_topicmembercount();
+  topicmembercount_ = value;
+}
+
+// optional bool enableAntiSpam = 9;
+inline bool Appinfo::has_enableantispam() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+inline void Appinfo::set_has_enableantispam() {
+  _has_bits_[0] |= 0x00000100u;
+}
+inline void Appinfo::clear_has_enableantispam() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline void Appinfo::clear_enableantispam() {
+  enableantispam_ = false;
+  clear_has_enableantispam();
+}
+inline bool Appinfo::enableantispam() const {
+  return enableantispam_;
+}
+inline void Appinfo::set_enableantispam(bool value) {
+  set_has_enableantispam();
+  enableantispam_ = value;
+}
+
+// optional int32 msgStorageTime = 10;
+inline bool Appinfo::has_msgstoragetime() const {
+  return (_has_bits_[0] & 0x00000200u) != 0;
+}
+inline void Appinfo::set_has_msgstoragetime() {
+  _has_bits_[0] |= 0x00000200u;
+}
+inline void Appinfo::clear_has_msgstoragetime() {
+  _has_bits_[0] &= ~0x00000200u;
+}
+inline void Appinfo::clear_msgstoragetime() {
+  msgstoragetime_ = 0;
+  clear_has_msgstoragetime();
+}
+inline ::google::protobuf::int32 Appinfo::msgstoragetime() const {
+  return msgstoragetime_;
+}
+inline void Appinfo::set_msgstoragetime(::google::protobuf::int32 value) {
+  set_has_msgstoragetime();
+  msgstoragetime_ = value;
+}
+
+// optional int32 contactExpireTime = 11;
+inline bool Appinfo::has_contactexpiretime() const {
+  return (_has_bits_[0] & 0x00000400u) != 0;
+}
+inline void Appinfo::set_has_contactexpiretime() {
+  _has_bits_[0] |= 0x00000400u;
+}
+inline void Appinfo::clear_has_contactexpiretime() {
+  _has_bits_[0] &= ~0x00000400u;
+}
+inline void Appinfo::clear_contactexpiretime() {
+  contactexpiretime_ = 0;
+  clear_has_contactexpiretime();
+}
+inline ::google::protobuf::int32 Appinfo::contactexpiretime() const {
+  return contactexpiretime_;
+}
+inline void Appinfo::set_contactexpiretime(::google::protobuf::int32 value) {
+  set_has_contactexpiretime();
+  contactexpiretime_ = value;
+}
+
+// optional int32 p2pMaxQps = 12;
+inline bool Appinfo::has_p2pmaxqps() const {
+  return (_has_bits_[0] & 0x00000800u) != 0;
+}
+inline void Appinfo::set_has_p2pmaxqps() {
+  _has_bits_[0] |= 0x00000800u;
+}
+inline void Appinfo::clear_has_p2pmaxqps() {
+  _has_bits_[0] &= ~0x00000800u;
+}
+inline void Appinfo::clear_p2pmaxqps() {
+  p2pmaxqps_ = 0;
+  clear_has_p2pmaxqps();
+}
+inline ::google::protobuf::int32 Appinfo::p2pmaxqps() const {
+  return p2pmaxqps_;
+}
+inline void Appinfo::set_p2pmaxqps(::google::protobuf::int32 value) {
+  set_has_p2pmaxqps();
+  p2pmaxqps_ = value;
+}
+
+// optional int32 p2tMaxQps = 13;
+inline bool Appinfo::has_p2tmaxqps() const {
+  return (_has_bits_[0] & 0x00001000u) != 0;
+}
+inline void Appinfo::set_has_p2tmaxqps() {
+  _has_bits_[0] |= 0x00001000u;
+}
+inline void Appinfo::clear_has_p2tmaxqps() {
+  _has_bits_[0] &= ~0x00001000u;
+}
+inline void Appinfo::clear_p2tmaxqps() {
+  p2tmaxqps_ = 0;
+  clear_has_p2tmaxqps();
+}
+inline ::google::protobuf::int32 Appinfo::p2tmaxqps() const {
+  return p2tmaxqps_;
+}
+inline void Appinfo::set_p2tmaxqps(::google::protobuf::int32 value) {
+  set_has_p2tmaxqps();
+  p2tmaxqps_ = value;
+}
+
+// optional int32 ucMaxQps = 14;
+inline bool Appinfo::has_ucmaxqps() const {
+  return (_has_bits_[0] & 0x00002000u) != 0;
+}
+inline void Appinfo::set_has_ucmaxqps() {
+  _has_bits_[0] |= 0x00002000u;
+}
+inline void Appinfo::clear_has_ucmaxqps() {
+  _has_bits_[0] &= ~0x00002000u;
+}
+inline void Appinfo::clear_ucmaxqps() {
+  ucmaxqps_ = 0;
+  clear_has_ucmaxqps();
+}
+inline ::google::protobuf::int32 Appinfo::ucmaxqps() const {
+  return ucmaxqps_;
+}
+inline void Appinfo::set_ucmaxqps(::google::protobuf::int32 value) {
+  set_has_ucmaxqps();
+  ucmaxqps_ = value;
+}
+
+// optional string offlineResourceCallbackUrl = 15;
+inline bool Appinfo::has_offlineresourcecallbackurl() const {
+  return (_has_bits_[0] & 0x00004000u) != 0;
+}
+inline void Appinfo::set_has_offlineresourcecallbackurl() {
+  _has_bits_[0] |= 0x00004000u;
+}
+inline void Appinfo::clear_has_offlineresourcecallbackurl() {
+  _has_bits_[0] &= ~0x00004000u;
+}
+inline void Appinfo::clear_offlineresourcecallbackurl() {
+  if (offlineresourcecallbackurl_ != &::google::protobuf::internal::kEmptyString) {
+    offlineresourcecallbackurl_->clear();
   }
-  clear_has_ucmsgcallbackurl();
+  clear_has_offlineresourcecallbackurl();
 }
-inline const ::std::string& Appinfo::ucmsgcallbackurl() const {
-  return *ucmsgcallbackurl_;
+inline const ::std::string& Appinfo::offlineresourcecallbackurl() const {
+  return *offlineresourcecallbackurl_;
 }
-inline void Appinfo::set_ucmsgcallbackurl(const ::std::string& value) {
-  set_has_ucmsgcallbackurl();
-  if (ucmsgcallbackurl_ == &::google::protobuf::internal::kEmptyString) {
-    ucmsgcallbackurl_ = new ::std::string;
+inline void Appinfo::set_offlineresourcecallbackurl(const ::std::string& value) {
+  set_has_offlineresourcecallbackurl();
+  if (offlineresourcecallbackurl_ == &::google::protobuf::internal::kEmptyString) {
+    offlineresourcecallbackurl_ = new ::std::string;
   }
-  ucmsgcallbackurl_->assign(value);
+  offlineresourcecallbackurl_->assign(value);
 }
-inline void Appinfo::set_ucmsgcallbackurl(const char* value) {
-  set_has_ucmsgcallbackurl();
-  if (ucmsgcallbackurl_ == &::google::protobuf::internal::kEmptyString) {
-    ucmsgcallbackurl_ = new ::std::string;
+inline void Appinfo::set_offlineresourcecallbackurl(const char* value) {
+  set_has_offlineresourcecallbackurl();
+  if (offlineresourcecallbackurl_ == &::google::protobuf::internal::kEmptyString) {
+    offlineresourcecallbackurl_ = new ::std::string;
   }
-  ucmsgcallbackurl_->assign(value);
+  offlineresourcecallbackurl_->assign(value);
 }
-inline void Appinfo::set_ucmsgcallbackurl(const char* value, size_t size) {
-  set_has_ucmsgcallbackurl();
-  if (ucmsgcallbackurl_ == &::google::protobuf::internal::kEmptyString) {
-    ucmsgcallbackurl_ = new ::std::string;
+inline void Appinfo::set_offlineresourcecallbackurl(const char* value, size_t size) {
+  set_has_offlineresourcecallbackurl();
+  if (offlineresourcecallbackurl_ == &::google::protobuf::internal::kEmptyString) {
+    offlineresourcecallbackurl_ = new ::std::string;
   }
-  ucmsgcallbackurl_->assign(reinterpret_cast<const char*>(value), size);
+  offlineresourcecallbackurl_->assign(reinterpret_cast<const char*>(value), size);
 }
-inline ::std::string* Appinfo::mutable_ucmsgcallbackurl() {
-  set_has_ucmsgcallbackurl();
-  if (ucmsgcallbackurl_ == &::google::protobuf::internal::kEmptyString) {
-    ucmsgcallbackurl_ = new ::std::string;
+inline ::std::string* Appinfo::mutable_offlineresourcecallbackurl() {
+  set_has_offlineresourcecallbackurl();
+  if (offlineresourcecallbackurl_ == &::google::protobuf::internal::kEmptyString) {
+    offlineresourcecallbackurl_ = new ::std::string;
   }
-  return ucmsgcallbackurl_;
+  return offlineresourcecallbackurl_;
 }
-inline ::std::string* Appinfo::release_ucmsgcallbackurl() {
-  clear_has_ucmsgcallbackurl();
-  if (ucmsgcallbackurl_ == &::google::protobuf::internal::kEmptyString) {
+inline ::std::string* Appinfo::release_offlineresourcecallbackurl() {
+  clear_has_offlineresourcecallbackurl();
+  if (offlineresourcecallbackurl_ == &::google::protobuf::internal::kEmptyString) {
     return NULL;
   } else {
-    ::std::string* temp = ucmsgcallbackurl_;
-    ucmsgcallbackurl_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    ::std::string* temp = offlineresourcecallbackurl_;
+    offlineresourcecallbackurl_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
     return temp;
   }
 }
-inline void Appinfo::set_allocated_ucmsgcallbackurl(::std::string* ucmsgcallbackurl) {
-  if (ucmsgcallbackurl_ != &::google::protobuf::internal::kEmptyString) {
-    delete ucmsgcallbackurl_;
+inline void Appinfo::set_allocated_offlineresourcecallbackurl(::std::string* offlineresourcecallbackurl) {
+  if (offlineresourcecallbackurl_ != &::google::protobuf::internal::kEmptyString) {
+    delete offlineresourcecallbackurl_;
   }
-  if (ucmsgcallbackurl) {
-    set_has_ucmsgcallbackurl();
-    ucmsgcallbackurl_ = ucmsgcallbackurl;
+  if (offlineresourcecallbackurl) {
+    set_has_offlineresourcecallbackurl();
+    offlineresourcecallbackurl_ = offlineresourcecallbackurl;
   } else {
-    clear_has_ucmsgcallbackurl();
-    ucmsgcallbackurl_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    clear_has_offlineresourcecallbackurl();
+    offlineresourcecallbackurl_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional int32 offlineMsgMaxCount = 16;
+inline bool Appinfo::has_offlinemsgmaxcount() const {
+  return (_has_bits_[0] & 0x00008000u) != 0;
+}
+inline void Appinfo::set_has_offlinemsgmaxcount() {
+  _has_bits_[0] |= 0x00008000u;
+}
+inline void Appinfo::clear_has_offlinemsgmaxcount() {
+  _has_bits_[0] &= ~0x00008000u;
+}
+inline void Appinfo::clear_offlinemsgmaxcount() {
+  offlinemsgmaxcount_ = 0;
+  clear_has_offlinemsgmaxcount();
+}
+inline ::google::protobuf::int32 Appinfo::offlinemsgmaxcount() const {
+  return offlinemsgmaxcount_;
+}
+inline void Appinfo::set_offlinemsgmaxcount(::google::protobuf::int32 value) {
+  set_has_offlinemsgmaxcount();
+  offlinemsgmaxcount_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -5198,11 +6024,55 @@ inline void MIMCPacket::set_timestamp(::google::protobuf::int64 value) {
   timestamp_ = value;
 }
 
+// optional bool conversation = 7;
+inline bool MIMCPacket::has_conversation() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void MIMCPacket::set_has_conversation() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void MIMCPacket::clear_has_conversation() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void MIMCPacket::clear_conversation() {
+  conversation_ = false;
+  clear_has_conversation();
+}
+inline bool MIMCPacket::conversation() const {
+  return conversation_;
+}
+inline void MIMCPacket::set_conversation(bool value) {
+  set_has_conversation();
+  conversation_ = value;
+}
+
+// optional int64 convIndex = 8;
+inline bool MIMCPacket::has_convindex() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void MIMCPacket::set_has_convindex() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void MIMCPacket::clear_has_convindex() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void MIMCPacket::clear_convindex() {
+  convindex_ = GOOGLE_LONGLONG(0);
+  clear_has_convindex();
+}
+inline ::google::protobuf::int64 MIMCPacket::convindex() const {
+  return convindex_;
+}
+inline void MIMCPacket::set_convindex(::google::protobuf::int64 value) {
+  set_has_convindex();
+  convindex_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // MIMCPacketList
 
-// optional int64 uuid = 1;
+// optional uint64 uuid = 1;
 inline bool MIMCPacketList::has_uuid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -5213,13 +6083,13 @@ inline void MIMCPacketList::clear_has_uuid() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void MIMCPacketList::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
+  uuid_ = GOOGLE_ULONGLONG(0);
   clear_has_uuid();
 }
-inline ::google::protobuf::int64 MIMCPacketList::uuid() const {
+inline ::google::protobuf::uint64 MIMCPacketList::uuid() const {
   return uuid_;
 }
-inline void MIMCPacketList::set_uuid(::google::protobuf::int64 value) {
+inline void MIMCPacketList::set_uuid(::google::protobuf::uint64 value) {
   set_has_uuid();
   uuid_ = value;
 }
@@ -5341,6 +6211,29 @@ MIMCPacketList::mutable_packets() {
   return &packets_;
 }
 
+// optional .mimc.MIMC_PUSH_STATUS status = 5;
+inline bool MIMCPacketList::has_status() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void MIMCPacketList::set_has_status() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void MIMCPacketList::clear_has_status() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void MIMCPacketList::clear_status() {
+  status_ = 1;
+  clear_has_status();
+}
+inline ::mimc::MIMC_PUSH_STATUS MIMCPacketList::status() const {
+  return static_cast< ::mimc::MIMC_PUSH_STATUS >(status_);
+}
+inline void MIMCPacketList::set_status(::mimc::MIMC_PUSH_STATUS value) {
+  assert(::mimc::MIMC_PUSH_STATUS_IsValid(value));
+  set_has_status();
+  status_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // MIMCPacketAck
@@ -5415,7 +6308,7 @@ inline void MIMCPacketAck::set_allocated_packetid(::std::string* packetid) {
   }
 }
 
-// optional int64 uuid = 2;
+// optional uint64 uuid = 2;
 inline bool MIMCPacketAck::has_uuid() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -5426,13 +6319,13 @@ inline void MIMCPacketAck::clear_has_uuid() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void MIMCPacketAck::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
+  uuid_ = GOOGLE_ULONGLONG(0);
   clear_has_uuid();
 }
-inline ::google::protobuf::int64 MIMCPacketAck::uuid() const {
+inline ::google::protobuf::uint64 MIMCPacketAck::uuid() const {
   return uuid_;
 }
-inline void MIMCPacketAck::set_uuid(::google::protobuf::int64 value) {
+inline void MIMCPacketAck::set_uuid(::google::protobuf::uint64 value) {
   set_has_uuid();
   uuid_ = value;
 }
@@ -5691,6 +6584,50 @@ inline void MIMCPacketAck::set_allocated_errormsg(::std::string* errormsg) {
   }
 }
 
+// optional int32 code = 8;
+inline bool MIMCPacketAck::has_code() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void MIMCPacketAck::set_has_code() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void MIMCPacketAck::clear_has_code() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void MIMCPacketAck::clear_code() {
+  code_ = 0;
+  clear_has_code();
+}
+inline ::google::protobuf::int32 MIMCPacketAck::code() const {
+  return code_;
+}
+inline void MIMCPacketAck::set_code(::google::protobuf::int32 value) {
+  set_has_code();
+  code_ = value;
+}
+
+// optional int64 convIndex = 9;
+inline bool MIMCPacketAck::has_convindex() const {
+  return (_has_bits_[0] & 0x00000100u) != 0;
+}
+inline void MIMCPacketAck::set_has_convindex() {
+  _has_bits_[0] |= 0x00000100u;
+}
+inline void MIMCPacketAck::clear_has_convindex() {
+  _has_bits_[0] &= ~0x00000100u;
+}
+inline void MIMCPacketAck::clear_convindex() {
+  convindex_ = GOOGLE_LONGLONG(0);
+  clear_has_convindex();
+}
+inline ::google::protobuf::int64 MIMCPacketAck::convindex() const {
+  return convindex_;
+}
+inline void MIMCPacketAck::set_convindex(::google::protobuf::int64 value) {
+  set_has_convindex();
+  convindex_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // MIMCP2PMessage
@@ -5871,7 +6808,7 @@ inline void MIMCP2PMessage::set_isstore(bool value) {
   isstore_ = value;
 }
 
-// optional bytes bizType = 5;
+// optional string bizType = 5;
 inline bool MIMCP2PMessage::has_biztype() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
@@ -5904,7 +6841,7 @@ inline void MIMCP2PMessage::set_biztype(const char* value) {
   }
   biztype_->assign(value);
 }
-inline void MIMCP2PMessage::set_biztype(const void* value, size_t size) {
+inline void MIMCP2PMessage::set_biztype(const char* value, size_t size) {
   set_has_biztype();
   if (biztype_ == &::google::protobuf::internal::kEmptyString) {
     biztype_ = new ::std::string;
@@ -6121,7 +7058,7 @@ inline void MIMCP2TMessage::set_isstore(bool value) {
   isstore_ = value;
 }
 
-// optional bytes bizType = 5;
+// optional string bizType = 5;
 inline bool MIMCP2TMessage::has_biztype() const {
   return (_has_bits_[0] & 0x00000010u) != 0;
 }
@@ -6154,7 +7091,7 @@ inline void MIMCP2TMessage::set_biztype(const char* value) {
   }
   biztype_->assign(value);
 }
-inline void MIMCP2TMessage::set_biztype(const void* value, size_t size) {
+inline void MIMCP2TMessage::set_biztype(const char* value, size_t size) {
   set_has_biztype();
   if (biztype_ == &::google::protobuf::internal::kEmptyString) {
     biztype_ = new ::std::string;
@@ -6195,7 +7132,7 @@ inline void MIMCP2TMessage::set_allocated_biztype(::std::string* biztype) {
 
 // MIMCSequenceAck
 
-// optional int64 uuid = 1;
+// optional uint64 uuid = 1;
 inline bool MIMCSequenceAck::has_uuid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -6206,13 +7143,13 @@ inline void MIMCSequenceAck::clear_has_uuid() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void MIMCSequenceAck::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
+  uuid_ = GOOGLE_ULONGLONG(0);
   clear_has_uuid();
 }
-inline ::google::protobuf::int64 MIMCSequenceAck::uuid() const {
+inline ::google::protobuf::uint64 MIMCSequenceAck::uuid() const {
   return uuid_;
 }
-inline void MIMCSequenceAck::set_uuid(::google::protobuf::int64 value) {
+inline void MIMCSequenceAck::set_uuid(::google::protobuf::uint64 value) {
   set_has_uuid();
   uuid_ = value;
 }
@@ -6309,100 +7246,26 @@ inline void MIMCSequenceAck::set_sequence(::google::protobuf::int64 value) {
   sequence_ = value;
 }
 
-// -------------------------------------------------------------------
-
-// MIMCPull
-
-// optional int64 uuid = 1;
-inline bool MIMCPull::has_uuid() const {
-  return (_has_bits_[0] & 0x00000001u) != 0;
+// optional uint64 appId = 4;
+inline bool MIMCSequenceAck::has_appid() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
 }
-inline void MIMCPull::set_has_uuid() {
-  _has_bits_[0] |= 0x00000001u;
+inline void MIMCSequenceAck::set_has_appid() {
+  _has_bits_[0] |= 0x00000008u;
 }
-inline void MIMCPull::clear_has_uuid() {
-  _has_bits_[0] &= ~0x00000001u;
+inline void MIMCSequenceAck::clear_has_appid() {
+  _has_bits_[0] &= ~0x00000008u;
 }
-inline void MIMCPull::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
-  clear_has_uuid();
+inline void MIMCSequenceAck::clear_appid() {
+  appid_ = GOOGLE_ULONGLONG(0);
+  clear_has_appid();
 }
-inline ::google::protobuf::int64 MIMCPull::uuid() const {
-  return uuid_;
+inline ::google::protobuf::uint64 MIMCSequenceAck::appid() const {
+  return appid_;
 }
-inline void MIMCPull::set_uuid(::google::protobuf::int64 value) {
-  set_has_uuid();
-  uuid_ = value;
-}
-
-// optional string resource = 2;
-inline bool MIMCPull::has_resource() const {
-  return (_has_bits_[0] & 0x00000002u) != 0;
-}
-inline void MIMCPull::set_has_resource() {
-  _has_bits_[0] |= 0x00000002u;
-}
-inline void MIMCPull::clear_has_resource() {
-  _has_bits_[0] &= ~0x00000002u;
-}
-inline void MIMCPull::clear_resource() {
-  if (resource_ != &::google::protobuf::internal::kEmptyString) {
-    resource_->clear();
-  }
-  clear_has_resource();
-}
-inline const ::std::string& MIMCPull::resource() const {
-  return *resource_;
-}
-inline void MIMCPull::set_resource(const ::std::string& value) {
-  set_has_resource();
-  if (resource_ == &::google::protobuf::internal::kEmptyString) {
-    resource_ = new ::std::string;
-  }
-  resource_->assign(value);
-}
-inline void MIMCPull::set_resource(const char* value) {
-  set_has_resource();
-  if (resource_ == &::google::protobuf::internal::kEmptyString) {
-    resource_ = new ::std::string;
-  }
-  resource_->assign(value);
-}
-inline void MIMCPull::set_resource(const char* value, size_t size) {
-  set_has_resource();
-  if (resource_ == &::google::protobuf::internal::kEmptyString) {
-    resource_ = new ::std::string;
-  }
-  resource_->assign(reinterpret_cast<const char*>(value), size);
-}
-inline ::std::string* MIMCPull::mutable_resource() {
-  set_has_resource();
-  if (resource_ == &::google::protobuf::internal::kEmptyString) {
-    resource_ = new ::std::string;
-  }
-  return resource_;
-}
-inline ::std::string* MIMCPull::release_resource() {
-  clear_has_resource();
-  if (resource_ == &::google::protobuf::internal::kEmptyString) {
-    return NULL;
-  } else {
-    ::std::string* temp = resource_;
-    resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-    return temp;
-  }
-}
-inline void MIMCPull::set_allocated_resource(::std::string* resource) {
-  if (resource_ != &::google::protobuf::internal::kEmptyString) {
-    delete resource_;
-  }
-  if (resource) {
-    set_has_resource();
-    resource_ = resource;
-  } else {
-    clear_has_resource();
-    resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
-  }
+inline void MIMCSequenceAck::set_appid(::google::protobuf::uint64 value) {
+  set_has_appid();
+  appid_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -6568,6 +7431,98 @@ inline void P2PPushMesage::set_isstore(bool value) {
   isstore_ = value;
 }
 
+// optional string bizType = 5;
+inline bool P2PPushMesage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void P2PPushMesage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void P2PPushMesage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void P2PPushMesage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& P2PPushMesage::biztype() const {
+  return *biztype_;
+}
+inline void P2PPushMesage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void P2PPushMesage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void P2PPushMesage::set_biztype(const char* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* P2PPushMesage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* P2PPushMesage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void P2PPushMesage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional bool isSystemMsg = 6;
+inline bool P2PPushMesage::has_issystemmsg() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void P2PPushMesage::set_has_issystemmsg() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void P2PPushMesage::clear_has_issystemmsg() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void P2PPushMesage::clear_issystemmsg() {
+  issystemmsg_ = false;
+  clear_has_issystemmsg();
+}
+inline bool P2PPushMesage::issystemmsg() const {
+  return issystemmsg_;
+}
+inline void P2PPushMesage::set_issystemmsg(bool value) {
+  set_has_issystemmsg();
+  issystemmsg_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // P2TPushMesage
@@ -6731,11 +7686,103 @@ inline void P2TPushMesage::set_isstore(bool value) {
   isstore_ = value;
 }
 
+// optional string bizType = 5;
+inline bool P2TPushMesage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void P2TPushMesage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void P2TPushMesage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void P2TPushMesage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& P2TPushMesage::biztype() const {
+  return *biztype_;
+}
+inline void P2TPushMesage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void P2TPushMesage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void P2TPushMesage::set_biztype(const char* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* P2TPushMesage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* P2TPushMesage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void P2TPushMesage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional bool isSystemMsg = 6;
+inline bool P2TPushMesage::has_issystemmsg() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void P2TPushMesage::set_has_issystemmsg() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void P2TPushMesage::clear_has_issystemmsg() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void P2TPushMesage::clear_issystemmsg() {
+  issystemmsg_ = false;
+  clear_has_issystemmsg();
+}
+inline bool P2TPushMesage::issystemmsg() const {
+  return issystemmsg_;
+}
+inline void P2TPushMesage::set_issystemmsg(bool value) {
+  set_has_issystemmsg();
+  issystemmsg_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // MIMCUser
 
-// optional int64 appId = 1;
+// optional uint64 appId = 1;
 inline bool MIMCUser::has_appid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -6746,13 +7793,13 @@ inline void MIMCUser::clear_has_appid() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void MIMCUser::clear_appid() {
-  appid_ = GOOGLE_LONGLONG(0);
+  appid_ = GOOGLE_ULONGLONG(0);
   clear_has_appid();
 }
-inline ::google::protobuf::int64 MIMCUser::appid() const {
+inline ::google::protobuf::uint64 MIMCUser::appid() const {
   return appid_;
 }
-inline void MIMCUser::set_appid(::google::protobuf::int64 value) {
+inline void MIMCUser::set_appid(::google::protobuf::uint64 value) {
   set_has_appid();
   appid_ = value;
 }
@@ -6827,7 +7874,7 @@ inline void MIMCUser::set_allocated_appaccount(::std::string* appaccount) {
   }
 }
 
-// optional int64 uuid = 3;
+// optional uint64 uuid = 3;
 inline bool MIMCUser::has_uuid() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
@@ -6838,13 +7885,13 @@ inline void MIMCUser::clear_has_uuid() {
   _has_bits_[0] &= ~0x00000004u;
 }
 inline void MIMCUser::clear_uuid() {
-  uuid_ = GOOGLE_LONGLONG(0);
+  uuid_ = GOOGLE_ULONGLONG(0);
   clear_has_uuid();
 }
-inline ::google::protobuf::int64 MIMCUser::uuid() const {
+inline ::google::protobuf::uint64 MIMCUser::uuid() const {
   return uuid_;
 }
-inline void MIMCUser::set_uuid(::google::protobuf::int64 value) {
+inline void MIMCUser::set_uuid(::google::protobuf::uint64 value) {
   set_has_uuid();
   uuid_ = value;
 }
@@ -6923,7 +7970,7 @@ inline void MIMCUser::set_allocated_resource(::std::string* resource) {
 
 // MIMCGroup
 
-// optional int64 appId = 1;
+// optional uint64 appId = 1;
 inline bool MIMCGroup::has_appid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -6934,18 +7981,18 @@ inline void MIMCGroup::clear_has_appid() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void MIMCGroup::clear_appid() {
-  appid_ = GOOGLE_LONGLONG(0);
+  appid_ = GOOGLE_ULONGLONG(0);
   clear_has_appid();
 }
-inline ::google::protobuf::int64 MIMCGroup::appid() const {
+inline ::google::protobuf::uint64 MIMCGroup::appid() const {
   return appid_;
 }
-inline void MIMCGroup::set_appid(::google::protobuf::int64 value) {
+inline void MIMCGroup::set_appid(::google::protobuf::uint64 value) {
   set_has_appid();
   appid_ = value;
 }
 
-// optional int64 topicId = 2;
+// optional uint64 topicId = 2;
 inline bool MIMCGroup::has_topicid() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -6956,13 +8003,13 @@ inline void MIMCGroup::clear_has_topicid() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void MIMCGroup::clear_topicid() {
-  topicid_ = GOOGLE_LONGLONG(0);
+  topicid_ = GOOGLE_ULONGLONG(0);
   clear_has_topicid();
 }
-inline ::google::protobuf::int64 MIMCGroup::topicid() const {
+inline ::google::protobuf::uint64 MIMCGroup::topicid() const {
   return topicid_;
 }
-inline void MIMCGroup::set_topicid(::google::protobuf::int64 value) {
+inline void MIMCGroup::set_topicid(::google::protobuf::uint64 value) {
   set_has_topicid();
   topicid_ = value;
 }
@@ -6971,7 +8018,7 @@ inline void MIMCGroup::set_topicid(::google::protobuf::int64 value) {
 
 // UCGroup
 
-// optional int64 appId = 1;
+// optional uint64 appId = 1;
 inline bool UCGroup::has_appid() const {
   return (_has_bits_[0] & 0x00000001u) != 0;
 }
@@ -6982,18 +8029,18 @@ inline void UCGroup::clear_has_appid() {
   _has_bits_[0] &= ~0x00000001u;
 }
 inline void UCGroup::clear_appid() {
-  appid_ = GOOGLE_LONGLONG(0);
+  appid_ = GOOGLE_ULONGLONG(0);
   clear_has_appid();
 }
-inline ::google::protobuf::int64 UCGroup::appid() const {
+inline ::google::protobuf::uint64 UCGroup::appid() const {
   return appid_;
 }
-inline void UCGroup::set_appid(::google::protobuf::int64 value) {
+inline void UCGroup::set_appid(::google::protobuf::uint64 value) {
   set_has_appid();
   appid_ = value;
 }
 
-// optional int64 topicId = 2;
+// optional uint64 topicId = 2;
 inline bool UCGroup::has_topicid() const {
   return (_has_bits_[0] & 0x00000002u) != 0;
 }
@@ -7004,15 +8051,111 @@ inline void UCGroup::clear_has_topicid() {
   _has_bits_[0] &= ~0x00000002u;
 }
 inline void UCGroup::clear_topicid() {
-  topicid_ = GOOGLE_LONGLONG(0);
+  topicid_ = GOOGLE_ULONGLONG(0);
   clear_has_topicid();
 }
-inline ::google::protobuf::int64 UCGroup::topicid() const {
+inline ::google::protobuf::uint64 UCGroup::topicid() const {
   return topicid_;
 }
-inline void UCGroup::set_topicid(::google::protobuf::int64 value) {
+inline void UCGroup::set_topicid(::google::protobuf::uint64 value) {
   set_has_topicid();
   topicid_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GenerateIdRequest
+
+// required uint64 requestId = 1;
+inline bool GenerateIdRequest::has_requestid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void GenerateIdRequest::set_has_requestid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void GenerateIdRequest::clear_has_requestid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void GenerateIdRequest::clear_requestid() {
+  requestid_ = GOOGLE_ULONGLONG(0);
+  clear_has_requestid();
+}
+inline ::google::protobuf::uint64 GenerateIdRequest::requestid() const {
+  return requestid_;
+}
+inline void GenerateIdRequest::set_requestid(::google::protobuf::uint64 value) {
+  set_has_requestid();
+  requestid_ = value;
+}
+
+// required int32 bussinessType = 2;
+inline bool GenerateIdRequest::has_bussinesstype() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void GenerateIdRequest::set_has_bussinesstype() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void GenerateIdRequest::clear_has_bussinesstype() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void GenerateIdRequest::clear_bussinesstype() {
+  bussinesstype_ = 0;
+  clear_has_bussinesstype();
+}
+inline ::google::protobuf::int32 GenerateIdRequest::bussinesstype() const {
+  return bussinesstype_;
+}
+inline void GenerateIdRequest::set_bussinesstype(::google::protobuf::int32 value) {
+  set_has_bussinesstype();
+  bussinesstype_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// GenerateIdResponse
+
+// required uint64 requestId = 1;
+inline bool GenerateIdResponse::has_requestid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void GenerateIdResponse::set_has_requestid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void GenerateIdResponse::clear_has_requestid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void GenerateIdResponse::clear_requestid() {
+  requestid_ = GOOGLE_ULONGLONG(0);
+  clear_has_requestid();
+}
+inline ::google::protobuf::uint64 GenerateIdResponse::requestid() const {
+  return requestid_;
+}
+inline void GenerateIdResponse::set_requestid(::google::protobuf::uint64 value) {
+  set_has_requestid();
+  requestid_ = value;
+}
+
+// required uint64 id = 2;
+inline bool GenerateIdResponse::has_id() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void GenerateIdResponse::set_has_id() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void GenerateIdResponse::clear_has_id() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void GenerateIdResponse::clear_id() {
+  id_ = GOOGLE_ULONGLONG(0);
+  clear_has_id();
+}
+inline ::google::protobuf::uint64 GenerateIdResponse::id() const {
+  return id_;
+}
+inline void GenerateIdResponse::set_id(::google::protobuf::uint64 value) {
+  set_has_id();
+  id_ = value;
 }
 
 // -------------------------------------------------------------------
@@ -8073,6 +9216,76 @@ inline void UCMessage::set_allocated_packetid(::std::string* packetid) {
   }
 }
 
+// optional string bizType = 8;
+inline bool UCMessage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void UCMessage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void UCMessage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void UCMessage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& UCMessage::biztype() const {
+  return *biztype_;
+}
+inline void UCMessage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void UCMessage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void UCMessage::set_biztype(const char* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* UCMessage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* UCMessage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void UCMessage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
 // -------------------------------------------------------------------
 
 // UCPushMessage
@@ -8299,6 +9512,76 @@ inline void UCPushMessage::set_allocated_packetid(::std::string* packetid) {
   } else {
     clear_has_packetid();
     packetid_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional string bizType = 7;
+inline bool UCPushMessage::has_biztype() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void UCPushMessage::set_has_biztype() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void UCPushMessage::clear_has_biztype() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void UCPushMessage::clear_biztype() {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    biztype_->clear();
+  }
+  clear_has_biztype();
+}
+inline const ::std::string& UCPushMessage::biztype() const {
+  return *biztype_;
+}
+inline void UCPushMessage::set_biztype(const ::std::string& value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void UCPushMessage::set_biztype(const char* value) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(value);
+}
+inline void UCPushMessage::set_biztype(const char* value, size_t size) {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  biztype_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* UCPushMessage::mutable_biztype() {
+  set_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    biztype_ = new ::std::string;
+  }
+  return biztype_;
+}
+inline ::std::string* UCPushMessage::release_biztype() {
+  clear_has_biztype();
+  if (biztype_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = biztype_;
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void UCPushMessage::set_allocated_biztype(::std::string* biztype) {
+  if (biztype_ != &::google::protobuf::internal::kEmptyString) {
+    delete biztype_;
+  }
+  if (biztype) {
+    set_has_biztype();
+    biztype_ = biztype;
+  } else {
+    clear_has_biztype();
+    biztype_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
 }
 

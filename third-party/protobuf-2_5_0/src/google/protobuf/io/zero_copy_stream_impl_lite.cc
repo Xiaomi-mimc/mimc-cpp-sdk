@@ -37,9 +37,8 @@
 #include <google/protobuf/stubs/stl_util.h>
 
 #ifdef _WIN32
-#include <algorithm>
-#endif // _WIN32
-
+#include <Windows.h>
+#endif
 
 namespace google {
 namespace protobuf {

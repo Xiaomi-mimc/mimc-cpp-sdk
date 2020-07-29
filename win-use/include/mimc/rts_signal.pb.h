@@ -23,6 +23,7 @@
 #include <google/protobuf/message_lite.h>
 #include <google/protobuf/repeated_field.h>
 #include <google/protobuf/extension_set.h>
+#include "rts_data.pb.h"
 // @@protoc_insertion_point(includes)
 
 namespace mimc {
@@ -46,6 +47,14 @@ class PingRequest;
 class PingResponse;
 class ByeRequest;
 class ByeResponse;
+class CreateChannelRequest;
+class CreateChannelResponse;
+class JoinChannelRequest;
+class JoinChannelResponse;
+class LeaveChannelRequest;
+class LeaveChannelResponse;
+class UserJoinNotification;
+class UserLeaveNotification;
 class UpdateCallInfo;
 
 enum RTSMessageType {
@@ -59,21 +68,19 @@ enum RTSMessageType {
   PING_RESPONSE = 8,
   BYE_REQUEST = 9,
   BYE_RESPONSE = 10,
-  APP_USER_MESSAGE = 99
+  CREATE_CHANNEL_REQUEST = 11,
+  CREATE_CHANNEL_RESPONSE = 12,
+  JOIN_CHANNEL_REQUEST = 13,
+  JOIN_CHANNEL_RESPONSE = 14,
+  LEAVE_CHANNEL_REQUEST = 15,
+  LEAVE_CHANNEL_RESPONSE = 16,
+  USER_JOIN_NOTIFICATION = 17,
+  USER_LEAVE_NOTIFICATION = 18
 };
 bool RTSMessageType_IsValid(int value);
 const RTSMessageType RTSMessageType_MIN = CREATE_REQUEST;
-const RTSMessageType RTSMessageType_MAX = APP_USER_MESSAGE;
+const RTSMessageType RTSMessageType_MAX = USER_LEAVE_NOTIFICATION;
 const int RTSMessageType_ARRAYSIZE = RTSMessageType_MAX + 1;
-
-enum CallType {
-  SINGLE_CALL = 1,
-  GROUP_CALL = 2
-};
-bool CallType_IsValid(int value);
-const CallType CallType_MIN = SINGLE_CALL;
-const CallType CallType_MAX = GROUP_CALL;
-const int CallType_ARRAYSIZE = CallType_MAX + 1;
 
 enum StreamDataType {
   A_STREAM = 1,
@@ -95,6 +102,10 @@ enum RTSResult {
   INTERNAL_ERROR1 = 6,
   PARAMETER_ERROR = 7,
   INVALID_OPERATION = 8,
+  EXCEED_MAX_LIMIT = 9,
+  ALREADY_IN_SESSION = 10,
+  CONNECT_RELAY_FAILED = 11,
+  BIND_RELAY_FAILED = 12,
   ERROR_USER_DEFINED = 99
 };
 bool RTSResult_IsValid(int value);
@@ -446,6 +457,30 @@ class CallInfo : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
       mutable_members();
 
+  // optional string callKey = 7;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 7;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional bytes extra = 8;
+  inline bool has_extra() const;
+  inline void clear_extra();
+  static const int kExtraFieldNumber = 8;
+  inline const ::std::string& extra() const;
+  inline void set_extra(const ::std::string& value);
+  inline void set_extra(const char* value);
+  inline void set_extra(const void* value, size_t size);
+  inline ::std::string* mutable_extra();
+  inline ::std::string* release_extra();
+  inline void set_allocated_extra(::std::string* extra);
+
   // @@protoc_insertion_point(class_scope:mimc.CallInfo)
  private:
   inline void set_has_callid();
@@ -458,6 +493,10 @@ class CallInfo : public ::google::protobuf::MessageLite {
   inline void clear_has_creatorid();
   inline void set_has_creatorresource();
   inline void clear_has_creatorresource();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_extra();
+  inline void clear_has_extra();
 
   ::google::protobuf::uint64 callid_;
   int calltype_;
@@ -465,9 +504,11 @@ class CallInfo : public ::google::protobuf::MessageLite {
   ::google::protobuf::int64 creatorid_;
   ::std::string* creatorresource_;
   ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo > members_;
+  ::std::string* callkey_;
+  ::std::string* extra_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(6 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
@@ -1788,6 +1829,960 @@ class ByeResponse : public ::google::protobuf::MessageLite {
 };
 // -------------------------------------------------------------------
 
+class CreateChannelRequest : public ::google::protobuf::MessageLite {
+ public:
+  CreateChannelRequest();
+  virtual ~CreateChannelRequest();
+
+  CreateChannelRequest(const CreateChannelRequest& from);
+
+  inline CreateChannelRequest& operator=(const CreateChannelRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const CreateChannelRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const CreateChannelRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(CreateChannelRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  CreateChannelRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const CreateChannelRequest& from);
+  void MergeFrom(const CreateChannelRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional .mimc.UserInfo user = 1;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 1;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // optional uint64 identity = 2;
+  inline bool has_identity() const;
+  inline void clear_identity();
+  static const int kIdentityFieldNumber = 2;
+  inline ::google::protobuf::uint64 identity() const;
+  inline void set_identity(::google::protobuf::uint64 value);
+
+  // optional bytes extra = 3;
+  inline bool has_extra() const;
+  inline void clear_extra();
+  static const int kExtraFieldNumber = 3;
+  inline const ::std::string& extra() const;
+  inline void set_extra(const ::std::string& value);
+  inline void set_extra(const char* value);
+  inline void set_extra(const void* value, size_t size);
+  inline ::std::string* mutable_extra();
+  inline ::std::string* release_extra();
+  inline void set_allocated_extra(::std::string* extra);
+
+  // @@protoc_insertion_point(class_scope:mimc.CreateChannelRequest)
+ private:
+  inline void set_has_user();
+  inline void clear_has_user();
+  inline void set_has_identity();
+  inline void clear_has_identity();
+  inline void set_has_extra();
+  inline void clear_has_extra();
+
+  ::mimc::UserInfo* user_;
+  ::google::protobuf::uint64 identity_;
+  ::std::string* extra_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static CreateChannelRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class CreateChannelResponse : public ::google::protobuf::MessageLite {
+ public:
+  CreateChannelResponse();
+  virtual ~CreateChannelResponse();
+
+  CreateChannelResponse(const CreateChannelResponse& from);
+
+  inline CreateChannelResponse& operator=(const CreateChannelResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const CreateChannelResponse& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const CreateChannelResponse* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(CreateChannelResponse* other);
+
+  // implements Message ----------------------------------------------
+
+  CreateChannelResponse* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const CreateChannelResponse& from);
+  void MergeFrom(const CreateChannelResponse& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional .mimc.RTSResult result = 1;
+  inline bool has_result() const;
+  inline void clear_result();
+  static const int kResultFieldNumber = 1;
+  inline ::mimc::RTSResult result() const;
+  inline void set_result(::mimc::RTSResult value);
+
+  // optional string desc = 2;
+  inline bool has_desc() const;
+  inline void clear_desc();
+  static const int kDescFieldNumber = 2;
+  inline const ::std::string& desc() const;
+  inline void set_desc(const ::std::string& value);
+  inline void set_desc(const char* value);
+  inline void set_desc(const char* value, size_t size);
+  inline ::std::string* mutable_desc();
+  inline ::std::string* release_desc();
+  inline void set_allocated_desc(::std::string* desc);
+
+  // optional uint64 callId = 3;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional string callKey = 4;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 4;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional uint64 identity = 5;
+  inline bool has_identity() const;
+  inline void clear_identity();
+  static const int kIdentityFieldNumber = 5;
+  inline ::google::protobuf::uint64 identity() const;
+  inline void set_identity(::google::protobuf::uint64 value);
+
+  // optional bytes extra = 6;
+  inline bool has_extra() const;
+  inline void clear_extra();
+  static const int kExtraFieldNumber = 6;
+  inline const ::std::string& extra() const;
+  inline void set_extra(const ::std::string& value);
+  inline void set_extra(const char* value);
+  inline void set_extra(const void* value, size_t size);
+  inline ::std::string* mutable_extra();
+  inline ::std::string* release_extra();
+  inline void set_allocated_extra(::std::string* extra);
+
+  // optional .mimc.UserInfo user = 7;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 7;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // @@protoc_insertion_point(class_scope:mimc.CreateChannelResponse)
+ private:
+  inline void set_has_result();
+  inline void clear_has_result();
+  inline void set_has_desc();
+  inline void clear_has_desc();
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_identity();
+  inline void clear_has_identity();
+  inline void set_has_extra();
+  inline void clear_has_extra();
+  inline void set_has_user();
+  inline void clear_has_user();
+
+  ::std::string* desc_;
+  ::google::protobuf::uint64 callid_;
+  ::std::string* callkey_;
+  ::google::protobuf::uint64 identity_;
+  ::std::string* extra_;
+  ::mimc::UserInfo* user_;
+  int result_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static CreateChannelResponse* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class JoinChannelRequest : public ::google::protobuf::MessageLite {
+ public:
+  JoinChannelRequest();
+  virtual ~JoinChannelRequest();
+
+  JoinChannelRequest(const JoinChannelRequest& from);
+
+  inline JoinChannelRequest& operator=(const JoinChannelRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const JoinChannelRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const JoinChannelRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(JoinChannelRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  JoinChannelRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const JoinChannelRequest& from);
+  void MergeFrom(const JoinChannelRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional string callKey = 2;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 2;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional .mimc.UserInfo user = 3;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 3;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // @@protoc_insertion_point(class_scope:mimc.JoinChannelRequest)
+ private:
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_user();
+  inline void clear_has_user();
+
+  ::google::protobuf::uint64 callid_;
+  ::std::string* callkey_;
+  ::mimc::UserInfo* user_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static JoinChannelRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class JoinChannelResponse : public ::google::protobuf::MessageLite {
+ public:
+  JoinChannelResponse();
+  virtual ~JoinChannelResponse();
+
+  JoinChannelResponse(const JoinChannelResponse& from);
+
+  inline JoinChannelResponse& operator=(const JoinChannelResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const JoinChannelResponse& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const JoinChannelResponse* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(JoinChannelResponse* other);
+
+  // implements Message ----------------------------------------------
+
+  JoinChannelResponse* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const JoinChannelResponse& from);
+  void MergeFrom(const JoinChannelResponse& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional .mimc.RTSResult result = 1;
+  inline bool has_result() const;
+  inline void clear_result();
+  static const int kResultFieldNumber = 1;
+  inline ::mimc::RTSResult result() const;
+  inline void set_result(::mimc::RTSResult value);
+
+  // optional string desc = 2;
+  inline bool has_desc() const;
+  inline void clear_desc();
+  static const int kDescFieldNumber = 2;
+  inline const ::std::string& desc() const;
+  inline void set_desc(const ::std::string& value);
+  inline void set_desc(const char* value);
+  inline void set_desc(const char* value, size_t size);
+  inline ::std::string* mutable_desc();
+  inline ::std::string* release_desc();
+  inline void set_allocated_desc(::std::string* desc);
+
+  // optional uint64 callId = 3;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional bytes extra = 4;
+  inline bool has_extra() const;
+  inline void clear_extra();
+  static const int kExtraFieldNumber = 4;
+  inline const ::std::string& extra() const;
+  inline void set_extra(const ::std::string& value);
+  inline void set_extra(const char* value);
+  inline void set_extra(const void* value, size_t size);
+  inline ::std::string* mutable_extra();
+  inline ::std::string* release_extra();
+  inline void set_allocated_extra(::std::string* extra);
+
+  // repeated .mimc.UserInfo users = 5;
+  inline int users_size() const;
+  inline void clear_users();
+  static const int kUsersFieldNumber = 5;
+  inline const ::mimc::UserInfo& users(int index) const;
+  inline ::mimc::UserInfo* mutable_users(int index);
+  inline ::mimc::UserInfo* add_users();
+  inline const ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >&
+      users() const;
+  inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
+      mutable_users();
+
+  // @@protoc_insertion_point(class_scope:mimc.JoinChannelResponse)
+ private:
+  inline void set_has_result();
+  inline void clear_has_result();
+  inline void set_has_desc();
+  inline void clear_has_desc();
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_extra();
+  inline void clear_has_extra();
+
+  ::std::string* desc_;
+  ::google::protobuf::uint64 callid_;
+  ::std::string* extra_;
+  ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo > users_;
+  int result_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(5 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static JoinChannelResponse* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class LeaveChannelRequest : public ::google::protobuf::MessageLite {
+ public:
+  LeaveChannelRequest();
+  virtual ~LeaveChannelRequest();
+
+  LeaveChannelRequest(const LeaveChannelRequest& from);
+
+  inline LeaveChannelRequest& operator=(const LeaveChannelRequest& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const LeaveChannelRequest& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const LeaveChannelRequest* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(LeaveChannelRequest* other);
+
+  // implements Message ----------------------------------------------
+
+  LeaveChannelRequest* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const LeaveChannelRequest& from);
+  void MergeFrom(const LeaveChannelRequest& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional string callKey = 2;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 2;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional .mimc.UserInfo user = 3;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 3;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // @@protoc_insertion_point(class_scope:mimc.LeaveChannelRequest)
+ private:
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_user();
+  inline void clear_has_user();
+
+  ::google::protobuf::uint64 callid_;
+  ::std::string* callkey_;
+  ::mimc::UserInfo* user_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static LeaveChannelRequest* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class LeaveChannelResponse : public ::google::protobuf::MessageLite {
+ public:
+  LeaveChannelResponse();
+  virtual ~LeaveChannelResponse();
+
+  LeaveChannelResponse(const LeaveChannelResponse& from);
+
+  inline LeaveChannelResponse& operator=(const LeaveChannelResponse& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const LeaveChannelResponse& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const LeaveChannelResponse* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(LeaveChannelResponse* other);
+
+  // implements Message ----------------------------------------------
+
+  LeaveChannelResponse* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const LeaveChannelResponse& from);
+  void MergeFrom(const LeaveChannelResponse& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional .mimc.RTSResult result = 1;
+  inline bool has_result() const;
+  inline void clear_result();
+  static const int kResultFieldNumber = 1;
+  inline ::mimc::RTSResult result() const;
+  inline void set_result(::mimc::RTSResult value);
+
+  // optional string desc = 2;
+  inline bool has_desc() const;
+  inline void clear_desc();
+  static const int kDescFieldNumber = 2;
+  inline const ::std::string& desc() const;
+  inline void set_desc(const ::std::string& value);
+  inline void set_desc(const char* value);
+  inline void set_desc(const char* value, size_t size);
+  inline ::std::string* mutable_desc();
+  inline ::std::string* release_desc();
+  inline void set_allocated_desc(::std::string* desc);
+
+  // optional uint64 callId = 3;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 3;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // @@protoc_insertion_point(class_scope:mimc.LeaveChannelResponse)
+ private:
+  inline void set_has_result();
+  inline void clear_has_result();
+  inline void set_has_desc();
+  inline void clear_has_desc();
+  inline void set_has_callid();
+  inline void clear_has_callid();
+
+  ::std::string* desc_;
+  ::google::protobuf::uint64 callid_;
+  int result_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static LeaveChannelResponse* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class UserJoinNotification : public ::google::protobuf::MessageLite {
+ public:
+  UserJoinNotification();
+  virtual ~UserJoinNotification();
+
+  UserJoinNotification(const UserJoinNotification& from);
+
+  inline UserJoinNotification& operator=(const UserJoinNotification& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const UserJoinNotification& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const UserJoinNotification* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(UserJoinNotification* other);
+
+  // implements Message ----------------------------------------------
+
+  UserJoinNotification* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const UserJoinNotification& from);
+  void MergeFrom(const UserJoinNotification& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional string callKey = 2;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 2;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional .mimc.UserInfo user = 3;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 3;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // @@protoc_insertion_point(class_scope:mimc.UserJoinNotification)
+ private:
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_user();
+  inline void clear_has_user();
+
+  ::google::protobuf::uint64 callid_;
+  ::std::string* callkey_;
+  ::mimc::UserInfo* user_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static UserJoinNotification* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class UserLeaveNotification : public ::google::protobuf::MessageLite {
+ public:
+  UserLeaveNotification();
+  virtual ~UserLeaveNotification();
+
+  UserLeaveNotification(const UserLeaveNotification& from);
+
+  inline UserLeaveNotification& operator=(const UserLeaveNotification& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  static const UserLeaveNotification& default_instance();
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  // Returns the internal default instance pointer. This function can
+  // return NULL thus should not be used by the user. This is intended
+  // for Protobuf internal code. Please use default_instance() declared
+  // above instead.
+  static inline const UserLeaveNotification* internal_default_instance() {
+    return default_instance_;
+  }
+  #endif
+
+  void Swap(UserLeaveNotification* other);
+
+  // implements Message ----------------------------------------------
+
+  UserLeaveNotification* New() const;
+  void CheckTypeAndMergeFrom(const ::google::protobuf::MessageLite& from);
+  void CopyFrom(const UserLeaveNotification& from);
+  void MergeFrom(const UserLeaveNotification& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::std::string GetTypeName() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // optional uint64 callId = 1;
+  inline bool has_callid() const;
+  inline void clear_callid();
+  static const int kCallIdFieldNumber = 1;
+  inline ::google::protobuf::uint64 callid() const;
+  inline void set_callid(::google::protobuf::uint64 value);
+
+  // optional string callKey = 2;
+  inline bool has_callkey() const;
+  inline void clear_callkey();
+  static const int kCallKeyFieldNumber = 2;
+  inline const ::std::string& callkey() const;
+  inline void set_callkey(const ::std::string& value);
+  inline void set_callkey(const char* value);
+  inline void set_callkey(const char* value, size_t size);
+  inline ::std::string* mutable_callkey();
+  inline ::std::string* release_callkey();
+  inline void set_allocated_callkey(::std::string* callkey);
+
+  // optional .mimc.UserInfo user = 3;
+  inline bool has_user() const;
+  inline void clear_user();
+  static const int kUserFieldNumber = 3;
+  inline const ::mimc::UserInfo& user() const;
+  inline ::mimc::UserInfo* mutable_user();
+  inline ::mimc::UserInfo* release_user();
+  inline void set_allocated_user(::mimc::UserInfo* user);
+
+  // @@protoc_insertion_point(class_scope:mimc.UserLeaveNotification)
+ private:
+  inline void set_has_callid();
+  inline void clear_has_callid();
+  inline void set_has_callkey();
+  inline void clear_has_callkey();
+  inline void set_has_user();
+  inline void clear_has_user();
+
+  ::google::protobuf::uint64 callid_;
+  ::std::string* callkey_;
+  ::mimc::UserInfo* user_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
+
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto_impl();
+  #else
+  friend void  protobuf_AddDesc_rts_5fsignal_2eproto();
+  #endif
+  friend void protobuf_AssignDesc_rts_5fsignal_2eproto();
+  friend void protobuf_ShutdownFile_rts_5fsignal_2eproto();
+
+  void InitAsDefaultInstance();
+  static UserLeaveNotification* default_instance_;
+};
+// -------------------------------------------------------------------
+
 class UpdateCallInfo : public ::google::protobuf::MessageLite {
  public:
   UpdateCallInfo();
@@ -2577,6 +3572,146 @@ CallInfo::members() const {
 inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
 CallInfo::mutable_members() {
   return &members_;
+}
+
+// optional string callKey = 7;
+inline bool CallInfo::has_callkey() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void CallInfo::set_has_callkey() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void CallInfo::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void CallInfo::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& CallInfo::callkey() const {
+  return *callkey_;
+}
+inline void CallInfo::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void CallInfo::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void CallInfo::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CallInfo::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* CallInfo::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CallInfo::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional bytes extra = 8;
+inline bool CallInfo::has_extra() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void CallInfo::set_has_extra() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void CallInfo::clear_has_extra() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void CallInfo::clear_extra() {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    extra_->clear();
+  }
+  clear_has_extra();
+}
+inline const ::std::string& CallInfo::extra() const {
+  return *extra_;
+}
+inline void CallInfo::set_extra(const ::std::string& value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CallInfo::set_extra(const char* value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CallInfo::set_extra(const void* value, size_t size) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CallInfo::mutable_extra() {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  return extra_;
+}
+inline ::std::string* CallInfo::release_extra() {
+  clear_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = extra_;
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CallInfo::set_allocated_extra(::std::string* extra) {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  if (extra) {
+    set_has_extra();
+    extra_ = extra;
+  } else {
+    clear_has_extra();
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
 }
 
 // -------------------------------------------------------------------
@@ -4169,6 +5304,1352 @@ inline void ByeResponse::set_allocated_reason(::std::string* reason) {
   } else {
     clear_has_reason();
     reason_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// -------------------------------------------------------------------
+
+// CreateChannelRequest
+
+// optional .mimc.UserInfo user = 1;
+inline bool CreateChannelRequest::has_user() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CreateChannelRequest::set_has_user() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CreateChannelRequest::clear_has_user() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CreateChannelRequest::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& CreateChannelRequest::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* CreateChannelRequest::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* CreateChannelRequest::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void CreateChannelRequest::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
+  }
+}
+
+// optional uint64 identity = 2;
+inline bool CreateChannelRequest::has_identity() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CreateChannelRequest::set_has_identity() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CreateChannelRequest::clear_has_identity() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CreateChannelRequest::clear_identity() {
+  identity_ = GOOGLE_ULONGLONG(0);
+  clear_has_identity();
+}
+inline ::google::protobuf::uint64 CreateChannelRequest::identity() const {
+  return identity_;
+}
+inline void CreateChannelRequest::set_identity(::google::protobuf::uint64 value) {
+  set_has_identity();
+  identity_ = value;
+}
+
+// optional bytes extra = 3;
+inline bool CreateChannelRequest::has_extra() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CreateChannelRequest::set_has_extra() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CreateChannelRequest::clear_has_extra() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CreateChannelRequest::clear_extra() {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    extra_->clear();
+  }
+  clear_has_extra();
+}
+inline const ::std::string& CreateChannelRequest::extra() const {
+  return *extra_;
+}
+inline void CreateChannelRequest::set_extra(const ::std::string& value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CreateChannelRequest::set_extra(const char* value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CreateChannelRequest::set_extra(const void* value, size_t size) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CreateChannelRequest::mutable_extra() {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  return extra_;
+}
+inline ::std::string* CreateChannelRequest::release_extra() {
+  clear_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = extra_;
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CreateChannelRequest::set_allocated_extra(::std::string* extra) {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  if (extra) {
+    set_has_extra();
+    extra_ = extra;
+  } else {
+    clear_has_extra();
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// -------------------------------------------------------------------
+
+// CreateChannelResponse
+
+// optional .mimc.RTSResult result = 1;
+inline bool CreateChannelResponse::has_result() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void CreateChannelResponse::set_has_result() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void CreateChannelResponse::clear_has_result() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void CreateChannelResponse::clear_result() {
+  result_ = 0;
+  clear_has_result();
+}
+inline ::mimc::RTSResult CreateChannelResponse::result() const {
+  return static_cast< ::mimc::RTSResult >(result_);
+}
+inline void CreateChannelResponse::set_result(::mimc::RTSResult value) {
+  assert(::mimc::RTSResult_IsValid(value));
+  set_has_result();
+  result_ = value;
+}
+
+// optional string desc = 2;
+inline bool CreateChannelResponse::has_desc() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void CreateChannelResponse::set_has_desc() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void CreateChannelResponse::clear_has_desc() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void CreateChannelResponse::clear_desc() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    desc_->clear();
+  }
+  clear_has_desc();
+}
+inline const ::std::string& CreateChannelResponse::desc() const {
+  return *desc_;
+}
+inline void CreateChannelResponse::set_desc(const ::std::string& value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void CreateChannelResponse::set_desc(const char* value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void CreateChannelResponse::set_desc(const char* value, size_t size) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CreateChannelResponse::mutable_desc() {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  return desc_;
+}
+inline ::std::string* CreateChannelResponse::release_desc() {
+  clear_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = desc_;
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CreateChannelResponse::set_allocated_desc(::std::string* desc) {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  if (desc) {
+    set_has_desc();
+    desc_ = desc;
+  } else {
+    clear_has_desc();
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional uint64 callId = 3;
+inline bool CreateChannelResponse::has_callid() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void CreateChannelResponse::set_has_callid() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void CreateChannelResponse::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void CreateChannelResponse::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 CreateChannelResponse::callid() const {
+  return callid_;
+}
+inline void CreateChannelResponse::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional string callKey = 4;
+inline bool CreateChannelResponse::has_callkey() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void CreateChannelResponse::set_has_callkey() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void CreateChannelResponse::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void CreateChannelResponse::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& CreateChannelResponse::callkey() const {
+  return *callkey_;
+}
+inline void CreateChannelResponse::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void CreateChannelResponse::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void CreateChannelResponse::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CreateChannelResponse::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* CreateChannelResponse::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CreateChannelResponse::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional uint64 identity = 5;
+inline bool CreateChannelResponse::has_identity() const {
+  return (_has_bits_[0] & 0x00000010u) != 0;
+}
+inline void CreateChannelResponse::set_has_identity() {
+  _has_bits_[0] |= 0x00000010u;
+}
+inline void CreateChannelResponse::clear_has_identity() {
+  _has_bits_[0] &= ~0x00000010u;
+}
+inline void CreateChannelResponse::clear_identity() {
+  identity_ = GOOGLE_ULONGLONG(0);
+  clear_has_identity();
+}
+inline ::google::protobuf::uint64 CreateChannelResponse::identity() const {
+  return identity_;
+}
+inline void CreateChannelResponse::set_identity(::google::protobuf::uint64 value) {
+  set_has_identity();
+  identity_ = value;
+}
+
+// optional bytes extra = 6;
+inline bool CreateChannelResponse::has_extra() const {
+  return (_has_bits_[0] & 0x00000020u) != 0;
+}
+inline void CreateChannelResponse::set_has_extra() {
+  _has_bits_[0] |= 0x00000020u;
+}
+inline void CreateChannelResponse::clear_has_extra() {
+  _has_bits_[0] &= ~0x00000020u;
+}
+inline void CreateChannelResponse::clear_extra() {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    extra_->clear();
+  }
+  clear_has_extra();
+}
+inline const ::std::string& CreateChannelResponse::extra() const {
+  return *extra_;
+}
+inline void CreateChannelResponse::set_extra(const ::std::string& value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CreateChannelResponse::set_extra(const char* value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void CreateChannelResponse::set_extra(const void* value, size_t size) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* CreateChannelResponse::mutable_extra() {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  return extra_;
+}
+inline ::std::string* CreateChannelResponse::release_extra() {
+  clear_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = extra_;
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void CreateChannelResponse::set_allocated_extra(::std::string* extra) {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  if (extra) {
+    set_has_extra();
+    extra_ = extra;
+  } else {
+    clear_has_extra();
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .mimc.UserInfo user = 7;
+inline bool CreateChannelResponse::has_user() const {
+  return (_has_bits_[0] & 0x00000040u) != 0;
+}
+inline void CreateChannelResponse::set_has_user() {
+  _has_bits_[0] |= 0x00000040u;
+}
+inline void CreateChannelResponse::clear_has_user() {
+  _has_bits_[0] &= ~0x00000040u;
+}
+inline void CreateChannelResponse::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& CreateChannelResponse::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* CreateChannelResponse::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* CreateChannelResponse::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void CreateChannelResponse::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// JoinChannelRequest
+
+// optional uint64 callId = 1;
+inline bool JoinChannelRequest::has_callid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void JoinChannelRequest::set_has_callid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void JoinChannelRequest::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void JoinChannelRequest::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 JoinChannelRequest::callid() const {
+  return callid_;
+}
+inline void JoinChannelRequest::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional string callKey = 2;
+inline bool JoinChannelRequest::has_callkey() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void JoinChannelRequest::set_has_callkey() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void JoinChannelRequest::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void JoinChannelRequest::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& JoinChannelRequest::callkey() const {
+  return *callkey_;
+}
+inline void JoinChannelRequest::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void JoinChannelRequest::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void JoinChannelRequest::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* JoinChannelRequest::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* JoinChannelRequest::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void JoinChannelRequest::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .mimc.UserInfo user = 3;
+inline bool JoinChannelRequest::has_user() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void JoinChannelRequest::set_has_user() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void JoinChannelRequest::clear_has_user() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void JoinChannelRequest::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& JoinChannelRequest::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* JoinChannelRequest::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* JoinChannelRequest::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void JoinChannelRequest::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// JoinChannelResponse
+
+// optional .mimc.RTSResult result = 1;
+inline bool JoinChannelResponse::has_result() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void JoinChannelResponse::set_has_result() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void JoinChannelResponse::clear_has_result() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void JoinChannelResponse::clear_result() {
+  result_ = 0;
+  clear_has_result();
+}
+inline ::mimc::RTSResult JoinChannelResponse::result() const {
+  return static_cast< ::mimc::RTSResult >(result_);
+}
+inline void JoinChannelResponse::set_result(::mimc::RTSResult value) {
+  assert(::mimc::RTSResult_IsValid(value));
+  set_has_result();
+  result_ = value;
+}
+
+// optional string desc = 2;
+inline bool JoinChannelResponse::has_desc() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void JoinChannelResponse::set_has_desc() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void JoinChannelResponse::clear_has_desc() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void JoinChannelResponse::clear_desc() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    desc_->clear();
+  }
+  clear_has_desc();
+}
+inline const ::std::string& JoinChannelResponse::desc() const {
+  return *desc_;
+}
+inline void JoinChannelResponse::set_desc(const ::std::string& value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void JoinChannelResponse::set_desc(const char* value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void JoinChannelResponse::set_desc(const char* value, size_t size) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* JoinChannelResponse::mutable_desc() {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  return desc_;
+}
+inline ::std::string* JoinChannelResponse::release_desc() {
+  clear_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = desc_;
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void JoinChannelResponse::set_allocated_desc(::std::string* desc) {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  if (desc) {
+    set_has_desc();
+    desc_ = desc;
+  } else {
+    clear_has_desc();
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional uint64 callId = 3;
+inline bool JoinChannelResponse::has_callid() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void JoinChannelResponse::set_has_callid() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void JoinChannelResponse::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void JoinChannelResponse::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 JoinChannelResponse::callid() const {
+  return callid_;
+}
+inline void JoinChannelResponse::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional bytes extra = 4;
+inline bool JoinChannelResponse::has_extra() const {
+  return (_has_bits_[0] & 0x00000008u) != 0;
+}
+inline void JoinChannelResponse::set_has_extra() {
+  _has_bits_[0] |= 0x00000008u;
+}
+inline void JoinChannelResponse::clear_has_extra() {
+  _has_bits_[0] &= ~0x00000008u;
+}
+inline void JoinChannelResponse::clear_extra() {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    extra_->clear();
+  }
+  clear_has_extra();
+}
+inline const ::std::string& JoinChannelResponse::extra() const {
+  return *extra_;
+}
+inline void JoinChannelResponse::set_extra(const ::std::string& value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void JoinChannelResponse::set_extra(const char* value) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(value);
+}
+inline void JoinChannelResponse::set_extra(const void* value, size_t size) {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  extra_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* JoinChannelResponse::mutable_extra() {
+  set_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    extra_ = new ::std::string;
+  }
+  return extra_;
+}
+inline ::std::string* JoinChannelResponse::release_extra() {
+  clear_has_extra();
+  if (extra_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = extra_;
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void JoinChannelResponse::set_allocated_extra(::std::string* extra) {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  if (extra) {
+    set_has_extra();
+    extra_ = extra;
+  } else {
+    clear_has_extra();
+    extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// repeated .mimc.UserInfo users = 5;
+inline int JoinChannelResponse::users_size() const {
+  return users_.size();
+}
+inline void JoinChannelResponse::clear_users() {
+  users_.Clear();
+}
+inline const ::mimc::UserInfo& JoinChannelResponse::users(int index) const {
+  return users_.Get(index);
+}
+inline ::mimc::UserInfo* JoinChannelResponse::mutable_users(int index) {
+  return users_.Mutable(index);
+}
+inline ::mimc::UserInfo* JoinChannelResponse::add_users() {
+  return users_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >&
+JoinChannelResponse::users() const {
+  return users_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::mimc::UserInfo >*
+JoinChannelResponse::mutable_users() {
+  return &users_;
+}
+
+// -------------------------------------------------------------------
+
+// LeaveChannelRequest
+
+// optional uint64 callId = 1;
+inline bool LeaveChannelRequest::has_callid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void LeaveChannelRequest::set_has_callid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void LeaveChannelRequest::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void LeaveChannelRequest::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 LeaveChannelRequest::callid() const {
+  return callid_;
+}
+inline void LeaveChannelRequest::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional string callKey = 2;
+inline bool LeaveChannelRequest::has_callkey() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void LeaveChannelRequest::set_has_callkey() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void LeaveChannelRequest::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void LeaveChannelRequest::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& LeaveChannelRequest::callkey() const {
+  return *callkey_;
+}
+inline void LeaveChannelRequest::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void LeaveChannelRequest::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void LeaveChannelRequest::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* LeaveChannelRequest::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* LeaveChannelRequest::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void LeaveChannelRequest::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .mimc.UserInfo user = 3;
+inline bool LeaveChannelRequest::has_user() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void LeaveChannelRequest::set_has_user() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void LeaveChannelRequest::clear_has_user() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void LeaveChannelRequest::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& LeaveChannelRequest::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* LeaveChannelRequest::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* LeaveChannelRequest::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void LeaveChannelRequest::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// LeaveChannelResponse
+
+// optional .mimc.RTSResult result = 1;
+inline bool LeaveChannelResponse::has_result() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void LeaveChannelResponse::set_has_result() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void LeaveChannelResponse::clear_has_result() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void LeaveChannelResponse::clear_result() {
+  result_ = 0;
+  clear_has_result();
+}
+inline ::mimc::RTSResult LeaveChannelResponse::result() const {
+  return static_cast< ::mimc::RTSResult >(result_);
+}
+inline void LeaveChannelResponse::set_result(::mimc::RTSResult value) {
+  assert(::mimc::RTSResult_IsValid(value));
+  set_has_result();
+  result_ = value;
+}
+
+// optional string desc = 2;
+inline bool LeaveChannelResponse::has_desc() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void LeaveChannelResponse::set_has_desc() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void LeaveChannelResponse::clear_has_desc() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void LeaveChannelResponse::clear_desc() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    desc_->clear();
+  }
+  clear_has_desc();
+}
+inline const ::std::string& LeaveChannelResponse::desc() const {
+  return *desc_;
+}
+inline void LeaveChannelResponse::set_desc(const ::std::string& value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void LeaveChannelResponse::set_desc(const char* value) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(value);
+}
+inline void LeaveChannelResponse::set_desc(const char* value, size_t size) {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  desc_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* LeaveChannelResponse::mutable_desc() {
+  set_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    desc_ = new ::std::string;
+  }
+  return desc_;
+}
+inline ::std::string* LeaveChannelResponse::release_desc() {
+  clear_has_desc();
+  if (desc_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = desc_;
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void LeaveChannelResponse::set_allocated_desc(::std::string* desc) {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  if (desc) {
+    set_has_desc();
+    desc_ = desc;
+  } else {
+    clear_has_desc();
+    desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional uint64 callId = 3;
+inline bool LeaveChannelResponse::has_callid() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void LeaveChannelResponse::set_has_callid() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void LeaveChannelResponse::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void LeaveChannelResponse::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 LeaveChannelResponse::callid() const {
+  return callid_;
+}
+inline void LeaveChannelResponse::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// UserJoinNotification
+
+// optional uint64 callId = 1;
+inline bool UserJoinNotification::has_callid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void UserJoinNotification::set_has_callid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void UserJoinNotification::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void UserJoinNotification::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 UserJoinNotification::callid() const {
+  return callid_;
+}
+inline void UserJoinNotification::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional string callKey = 2;
+inline bool UserJoinNotification::has_callkey() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void UserJoinNotification::set_has_callkey() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void UserJoinNotification::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void UserJoinNotification::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& UserJoinNotification::callkey() const {
+  return *callkey_;
+}
+inline void UserJoinNotification::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void UserJoinNotification::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void UserJoinNotification::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* UserJoinNotification::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* UserJoinNotification::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void UserJoinNotification::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .mimc.UserInfo user = 3;
+inline bool UserJoinNotification::has_user() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void UserJoinNotification::set_has_user() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void UserJoinNotification::clear_has_user() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void UserJoinNotification::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& UserJoinNotification::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* UserJoinNotification::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* UserJoinNotification::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void UserJoinNotification::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
+  }
+}
+
+// -------------------------------------------------------------------
+
+// UserLeaveNotification
+
+// optional uint64 callId = 1;
+inline bool UserLeaveNotification::has_callid() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void UserLeaveNotification::set_has_callid() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void UserLeaveNotification::clear_has_callid() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void UserLeaveNotification::clear_callid() {
+  callid_ = GOOGLE_ULONGLONG(0);
+  clear_has_callid();
+}
+inline ::google::protobuf::uint64 UserLeaveNotification::callid() const {
+  return callid_;
+}
+inline void UserLeaveNotification::set_callid(::google::protobuf::uint64 value) {
+  set_has_callid();
+  callid_ = value;
+}
+
+// optional string callKey = 2;
+inline bool UserLeaveNotification::has_callkey() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void UserLeaveNotification::set_has_callkey() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void UserLeaveNotification::clear_has_callkey() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void UserLeaveNotification::clear_callkey() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    callkey_->clear();
+  }
+  clear_has_callkey();
+}
+inline const ::std::string& UserLeaveNotification::callkey() const {
+  return *callkey_;
+}
+inline void UserLeaveNotification::set_callkey(const ::std::string& value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void UserLeaveNotification::set_callkey(const char* value) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(value);
+}
+inline void UserLeaveNotification::set_callkey(const char* value, size_t size) {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  callkey_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* UserLeaveNotification::mutable_callkey() {
+  set_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    callkey_ = new ::std::string;
+  }
+  return callkey_;
+}
+inline ::std::string* UserLeaveNotification::release_callkey() {
+  clear_has_callkey();
+  if (callkey_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = callkey_;
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void UserLeaveNotification::set_allocated_callkey(::std::string* callkey) {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (callkey) {
+    set_has_callkey();
+    callkey_ = callkey;
+  } else {
+    clear_has_callkey();
+    callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// optional .mimc.UserInfo user = 3;
+inline bool UserLeaveNotification::has_user() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void UserLeaveNotification::set_has_user() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void UserLeaveNotification::clear_has_user() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void UserLeaveNotification::clear_user() {
+  if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+  clear_has_user();
+}
+inline const ::mimc::UserInfo& UserLeaveNotification::user() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return user_ != NULL ? *user_ : *default_instance().user_;
+#else
+  return user_ != NULL ? *user_ : *default_instance_->user_;
+#endif
+}
+inline ::mimc::UserInfo* UserLeaveNotification::mutable_user() {
+  set_has_user();
+  if (user_ == NULL) user_ = new ::mimc::UserInfo;
+  return user_;
+}
+inline ::mimc::UserInfo* UserLeaveNotification::release_user() {
+  clear_has_user();
+  ::mimc::UserInfo* temp = user_;
+  user_ = NULL;
+  return temp;
+}
+inline void UserLeaveNotification::set_allocated_user(::mimc::UserInfo* user) {
+  delete user_;
+  user_ = user;
+  if (user) {
+    set_has_user();
+  } else {
+    clear_has_user();
   }
 }
 

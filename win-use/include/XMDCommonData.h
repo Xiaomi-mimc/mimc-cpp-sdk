@@ -2,6 +2,7 @@
 #define UDPSENDQUEUE_H
 
 #include <queue>
+#include <pthread.h>
 #include <stdint.h>
 #include <vector>
 #include <functional>
@@ -9,41 +10,48 @@
 #include <map>
 #include <string>
 #include <unordered_map>
-
-#include <mutex>
 #include "queue.h"
 #include "map.h"
+#include "block_queue.h"
+#include "common.h"
+#include <set>
 
-#ifdef _WIN32
-#include <windows.h>
-#include "openssl/rsa.h"
-#else
-#include <pthread.h>
-#include <openssl/rsa.h>
-#endif // _WIN32
 
 
 const int SESSION_KEY_LEN = 128;
 const int FIRST_RESEND_INTERVAL = 200;
 const int SECOND_RESEND_INTERVAL = 500;
 const int THIRD_RESEND_INTERVAL = 1000;
+const int DEFAULT_RESEND_INTERVAL = 200;
+const int MAX_RESEND_INTERVAL = 2000;
 const int PING_INTERVAL = 1000; //1s
-const int CALUTE_PACKET_LOSS_DELAY = 200; //200ms
-const int FLOW_CONTROL_MAX_PACKET_SIZE = 2 * 1024;
-const int FLOW_CONTROL_SEND_SPEED = 2;   // 2/ms
+const int CALUTE_PACKET_LOSS_DELAY = 200; //ms
+const int FLOW_CONTROL_MAX_PACKET_SIZE = 10 * 1024;
+const int FLOW_CONTROL_SEND_SPEED = 10;   // /ms
 const int MAX_SEND_TIME = 3;
-const int DEFAULT_CALLBACK_QUEUE_LEN = 10000;
-const int DEFAULT_DATAGRAM_QUEUE_LEN = 10000;
-const int DEFAULT_RESEND_QUEUE_LEN = 10000;
+const int DEFAULT_RESEND_QUEUE_SIZE = 1024 * 1024;  
 const float QUEUE_USAGERAGE_80 = 0.8;
 const float QUEUE_USAGERAGE_90 = 0.9;
 const float QUEUE_USAGERAGE_FULL = 0.999999;
+const int FEC_GROUP_DELETE_INTERVAL = 3000;  //ms
+const int ACK_GROUP_DELETE_INTERVAL = 10000;  //ms
+const int CHECK_CALLBACK_BUFFER_INTERVAL = 5;
+const int SEND_PONG_WAIT_TIME = 100; //ms
+const int CREATE_CONN_RESEND_TIME = 10;
+const float RTT_SMOOTH_FACTOR = 0.125;
+const int NETSTATUS_MIN_PACKETS = 10;
+const int MAX_CALLBACK_DATA_MAP_SIZE = 100;
+const int SOCKET_SENDQUEUE_MAX_SIZE = 1024 * 1024;
+const int WORKER_QUEUE_MAX_SIZE = 1024 * 1024;
+const int DELAY_BATCH_ACK_MS = 30;
+const int BATCH_ACK_MAX_NUM = 150;
 
 
 
 enum StreamType {
     FEC_STREAM = 7,
     ACK_STREAM = 11,
+    BATCH_ACK_STREAM = 13,
 };
 
 enum ConnCloseType {
@@ -74,25 +82,36 @@ struct StreamInfo {
 };
 
 struct ConnInfo {
+    uint64_t connId;
     uint32_t ip;
     int port;
     int timeout;
-    uint32_t created_stream_id;
+    uint32_t pingInterval;
     uint32_t max_stream_id;
     ConnectionState connState;
-    RSA* rsa;
     std::string sessionKey;
     void* ctx;
     std::unordered_map<uint16_t, StreamInfo> streamMap;
+
+    ConnInfo() {
+    }
+    ~ConnInfo() {
+    }
 };
 
 struct netStatus {
     float packetLossRate;
-    int ttl;
+    int rtt;
+    uint32_t totalPackets;
+    uint32_t tmpTotalPackets;
+    uint32_t tmpRecvPackets;
     
-    netStatus() {
+    netStatus() {
         packetLossRate = 0;
-        ttl = 0;
+        rtt = 0;
+        totalPackets = 0;
+        tmpTotalPackets = 0;
+        tmpRecvPackets = 0;
     }
 };
 
@@ -124,6 +143,16 @@ enum PacketType {
     PING = 9,
     PONG = 10,
     ACK_STREAM_DATA = 11,
+    TEST_RTT_PACKET = 12,
+    BATCH_ACK_STREAM_DATA = 13,
+    BATCH_ACK = 14,
+    P2P_PACKET = 20,
+};
+
+struct TestRttPacket {
+    uint64_t connId;
+    unsigned int delayMs;
+    unsigned int packetCount;
 };
 
 
@@ -131,15 +160,30 @@ struct SendQueueData {
     uint32_t ip;
     uint16_t port;
     int len;
+    bool isResend;
+    uint64_t connId;
+    uint64_t packetId;
+    int reSendCount;
+    int reSendInterval;
     unsigned char* data;
-    uint64_t sendTime;
 
     SendQueueData(uint32_t i, uint16_t p, unsigned char* d, int l) {
         ip = i;
         port = p;
         len = l;
         data = d;
-        sendTime = 0;
+        isResend = false;
+    }
+    SendQueueData(uint32_t i, uint16_t p, unsigned char* d, int l, uint64_t cId, uint64_t pId, int rCount, int rInterval) {
+        ip = i;
+        port = p;
+        len = l;
+        data = d;
+        isResend = true;
+        connId = cId;
+        packetId = pId;
+        reSendCount = rCount;
+        reSendInterval = rInterval;
     }
     ~SendQueueData() {
         if (data) {
@@ -149,11 +193,6 @@ struct SendQueueData {
     }
 };
 
-struct DatagramDataCmp {
-    bool operator() (SendQueueData* a, SendQueueData* b) {
-        return a->sendTime > b->sendTime;
-    }
-};
 
 
 struct StreamQueueData {
@@ -260,6 +299,8 @@ struct PacketLossInfo {
     uint64_t maxPacketId;
     uint64_t minPacketId;
     uint64_t caculatePacketId;
+    std::set<uint64_t> oldPakcetSet;
+    std::set<uint64_t> newPakcetSet;
 
     PacketLossInfo() {
         oldPakcetCount = 0;
@@ -276,13 +317,12 @@ struct PongThreadData {
     uint64_t ts;
 };
 
-
+/*
 struct ResendData {
     uint64_t connId;
     uint64_t packetId;
     uint32_t ip;
     int port;
-    uint64_t reSendTime;
     int reSendCount;
     int len;
     unsigned char* data;
@@ -291,130 +331,255 @@ struct ResendData {
         memcpy(data, d, l);
         len = l;
     }
+    ResendData() {
+        data = NULL;
+    }
     ~ResendData() {
         if (data != NULL) { delete[] data; }
     }
 };
+*/
 
 
-struct ResendDataCmp {
-    bool operator() (ResendData* a, ResendData* b) {
-        return a->reSendTime > b->reSendTime;
+struct TimerThreadData {
+    uint64_t time;
+    uint64_t connId;
+    void* data;
+    int len;
+};
+
+struct TimerDataCmp {
+    bool operator() (TimerThreadData* a, TimerThreadData* b) {
+        return a->time > b->time;
     }
 };
 
 
-typedef std::priority_queue<SendQueueData*, std::vector<SendQueueData*>, DatagramDataCmp> DatagramQueue;
+typedef std::priority_queue<TimerThreadData*, std::vector<TimerThreadData*>, TimerDataCmp> TimerThreadQueue;
 
-typedef std::priority_queue<ResendData*, std::vector<ResendData*>, ResendDataCmp> ResendQueue;
 
+enum WorkerThreadDataType {
+    WORKER_CREATE_NEW_CONN,
+    WORKER_CLOSE_CONN,
+    WORKER_CREATE_STREAM,
+    WORKER_CLOSE_STREAM,
+    WORKER_SEND_RTDATA,
+    WORKER_RECV_DATA,
+    WORKER_RESEND_TIMEOUT,
+    WORKER_DATAGREAM_TIMEOUT,
+    WORKER_DELETE_ACKGROUP_TIMEOUT,
+    WORKER_DELETE_FECGROUP_TIMEOUT,
+    WORKER_CHECK_CALLBACK_BUFFER,
+    WORKER_PING_TIMEOUT,
+    WORKER_PONG_TIMEOUT,
+    WORKER_CHECK_CONN_AVAILABLE,
+    WORKER_TEST_RTT,
+    WORKER_BATCH_ACK
+};
+struct WorkerThreadData {
+    WorkerThreadDataType dataType;
+    void* data;
+    int len;
+
+    WorkerThreadData(WorkerThreadDataType type, void* d, int l) {
+        dataType = type;
+        data = d;
+        len = l;
+        //XMDLoggerWrapper::instance()->error("new data len len %d.", len);
+    }
+};
+
+struct NewConnWorkerData {
+    ConnInfo connInfo;
+    unsigned char* data;
+    unsigned int len;
+    NewConnWorkerData(unsigned char* d, unsigned l) {
+        len = l;
+        data = new unsigned char[len];
+        memcpy(data, d, len);
+    }
+    ~NewConnWorkerData() {
+        if (data) {
+            delete[] data;
+            data = NULL;
+        }
+    }
+};
+
+struct WorkerData {
+    uint64_t connId;
+    uint16_t streamId;
+};
+
+struct NewStreamWorkerData {
+    uint64_t connId;
+    uint16_t streamId;
+    int callbackWaitTimeout;
+    bool isEncrypt;
+    StreamType sType;
+};
+
+struct RTWorkerData {
+    uint64_t connId;
+    uint16_t streamId;
+    uint32_t groupId;
+    bool canBeDropped;
+    DataPriority dataPriority;
+    int resendCount;
+    void* ctx;
+    unsigned char* data;
+    unsigned int len;
+    RTWorkerData(unsigned char* d, unsigned int l) {
+        data = new unsigned char[l];
+        memcpy(data, d, l);
+        len = l;
+    }
+    ~RTWorkerData() {
+        if (data) {
+            delete[] data;
+            data = NULL;
+        }
+    }
+};
+
+struct DeleteGroupTimeout {
+    std::string key;
+};
+
+struct CheckCallbackBufferData{
+    uint64_t connId;
+    std::string key;
+};
 
 class XMDCommonData {
 private:
-    DatagramQueue datagramQueue_;
-    ResendQueue resendQueue_;
-    STLSafeQueue<StreamQueueData*> streamQueue_;
-    STLSafeQueue<SendQueueData*> socketSendQueue_;
-    STLSafeQueue<SocketData*> socketRecvQueue_;
-    std::vector<STLSafeQueue<StreamData*>> packetRecoverQueueVec_;
-    STLSafeQueue<CallbackQueueData*> callbackQueue_;
-    STLSafeQueue<PongThreadData> pongThreadQueue_;
-    
-    std::unordered_map<uint64_t, ConnInfo> connectionMap_;
-    std::vector<uint64_t> connVec_;
-    std::unordered_map<uint64_t, uint64_t> packetIdMap_;
+    std::vector<TimerThreadQueue>  timerQueueVec_;
+    STLBlockQueue<SendQueueData*> socketSendQueue_;
+    std::vector<STLBlockQueue<WorkerThreadData*>> workerQueueVec_;
+
     std::unordered_map<std::string, uint32_t> groupIdMap_;
-    std::unordered_map<std::string, CallBackSortBuffer> callbackDataMap_;
-    std::unordered_map<std::string, streamDataSendCallback> streamDataSendCbMap_;
-    std::unordered_map<uint64_t, PacketLossInfo> PacketLossInfoMap_;
-    
-    STLSafeHashMap<std::string, PacketCallbackInfo> packetCallbackInfoMap_;
+    std::unordered_map<uint64_t, uint16_t> streamIdMap_;
+    std::unordered_map<uint64_t, uint16_t> pingIntervalMap_;
+
     STLSafeHashMap<uint64_t, netStatus> netStatusMap_;
-    STLSafeHashMap<std::string, uint64_t> lastPacketTimeMap_;
-    STLSafeHashMap<std::string, uint32_t> lastCallbackGroupIdMap_;
-    STLSafeHashMap<std::string, bool> isPacketRecvAckMap_;
-    STLSafeHashMap<uint64_t, PingPacket>  pingMap_;
+
+    pthread_mutex_t group_id_mutex_;
+    pthread_mutex_t stream_id_mutex_;
+    //pthread_mutex_t socket_send_queue_mutex_;
+    pthread_mutex_t ping_interval_mutex_;
+    std::vector<pthread_mutex_t> timer_queue_mutex_vec_;
+    std::vector<pthread_mutex_t> worker_queue_mutex_vec_;
+    pthread_mutex_t socket_send_queue_mutex_;
     
-
-    static std::mutex resend_queue_mutex_;
-    static std::mutex datagram_queue_mutex_;
-    static std::mutex packetId_mutex_;
-    static std::mutex callback_data_map_mutex_;
-    static std::mutex stream_data_send_callback_map_mutex_;
-    static std::mutex packet_loss_map_mutex_;
-
-	void ReleaseExclusiveLock(void* lock);
-	void ReleaseShareLock(void* lock);
-	void AcquireExclusiveLock(void* lock);
-	void AcquireShareLock(void* lock);
-
-#ifdef _WIN32
-	SRWLOCK conn_mutex_;
-	SRWLOCK group_id_mutex_;
-#else
-	pthread_rwlock_t conn_mutex_;
-	pthread_rwlock_t group_id_mutex_;
-#endif // _WIN32
-
-    unsigned int decodeThreadSize_;
-    unsigned int datagramQueueMaxLen_;
-    unsigned int callbackQueueMaxLen_;
-    unsigned int resendQueueMaxLen_;
+    unsigned int workerThreadSize_;
+    unsigned int timerThreadSize_;
+    std::vector<unsigned int> timerQueueMaxSizeVec_;
+    std::vector<unsigned int> timerQueueSizeVec_;
+    std::vector<unsigned int> workerQueueSizeVec_;
+    std::vector<unsigned int> workerQueueMaxSizeVec_;
+    unsigned int socketSendQueueSize_;
+    unsigned int socketSendQueueMaxSize_;
     
 public:
-    XMDCommonData(int decodeThreadSize);
+    XMDCommonData(unsigned int workerThreadSize, unsigned int timerThreadSize);
     ~XMDCommonData();
-    void streamQueuePush(StreamQueueData* data);
-    StreamQueueData* streamQueuePop();
+    void workerQueuePush(WorkerThreadData* data, uint64_t connid);
+    WorkerThreadData* workerQueuePop(unsigned int id);
+    bool workerQueueEmpty(unsigned int id);
+    bool isWorkerQueueFull(unsigned int id, unsigned int len);
+    void setWorkerQueueMaxSize(int id, int size);
+    int getWorkerQueueUsedSize(int id);
+    int getWorkerQueueMaxSize(int id);
+    float getWorkerQueueUsageRate(int id);
+    void clearWorkerQueue(int id);
 
     void socketSendQueuePush(SendQueueData* data);
     SendQueueData* socketSendQueuePop();
+    bool socketSendQueueEmpty() { return socketSendQueue_.empty(); }
+    bool isSocketSendQueueFull(unsigned int len);
+    void setSocketSendQueueMaxSize(int size);
+    int getSocketSendQueueMaxSize();
+    int getSocketSendQueueUsedSize();
+    float getSocketSendQueueUsageRate();
+    void clearSocketQueue();
 
-    void socketRecvQueuePush(SocketData* data);
-    SocketData* socketRecvQueuePop();
+    bool timerQueuePush(TimerThreadData* data , uint64_t connid);
+    TimerThreadData* timerQueuePop(unsigned int id);
+    TimerThreadData* timerQueuePriorityPop(unsigned int id);
+    bool timerQueueEmpty(unsigned int id); 
+    size_t timerQueueSize(uint64_t connId);
+    void setTimerQueueMaxSize(int queueId, int size);
+    float getTimerQueueUsageRate(int queueId);
+    bool isTimerQueueFull(int queueId, unsigned int len);
+    int getTimerQueueUsedSize(int queueId);
+    int getTimerQueueMaxSize(int queueId);
+    void clearTimerQueue(int queueId);
 
-    void packetRecoverQueuePush(StreamData* data, int id);
-    StreamData* packetRecoverQueuePop(int id);
+    uint32_t getGroupId(uint64_t connId, uint16_t streamId);
+    void deleteGroupId(std::string id);
+    uint32_t getConnStreamId(uint64_t connId);
+    void deleteConnStreamId(uint64_t connId);
+    void addConnStreamId(uint64_t connId, uint16_t streamId);
 
-    bool callbackQueuePush(CallbackQueueData* data);
-    CallbackQueueData* callbackQueuePop();
-    
+    void NotifyBlockQueue();
+    bool SendQueueHasNewData();
 
-    bool datagramQueuePush(SendQueueData* data);
-    SendQueueData* datagramQueuePop();
+    void SetPingIntervalMs(uint64_t connId, uint16_t value);
+    uint16_t GetPingIntervalMs(uint64_t connId);
+    void DeletePingIntervalMap(uint64_t connId);
+
+    netStatus getNetStatus(uint64_t connId);
+    void updateNetStatus(uint64_t connId, netStatus status);
+    void deleteNetStatus(uint64_t connId);
+    void deleteWorkerData(WorkerThreadData* workerThreadData);
+};
 
 
-    bool resendQueuePush(ResendData* data);
-    ResendData* resendQueuePop();
-    bool resendQueueEmpty() { return resendQueue_.empty(); }
-    void updateIsPacketRecvAckMap(std::string key, bool value);
-    bool getIsPacketRecvAckMapValue(std::string key);
-	void insertIsPacketRecvAckMap(std::string key, bool value);
-	bool deleteIsPacketRecvAckMap(std::string key);
 
+class WorkerCommonData {
+private:
+    std::unordered_map<uint64_t, ConnInfo> connectionMap_;
+    std::unordered_map<uint64_t, uint64_t> packetIdMap_;
+    std::unordered_map<std::string, CallBackSortBuffer> callbackDataMap_;
+    std::unordered_map<std::string, streamDataSendCallback> streamDataSendCbMap_;
+    std::unordered_map<uint64_t, PacketLossInfo> PacketLossInfoMap_;
+    std::unordered_map<uint64_t, unsigned int> PacketResendIntervalMap_;
+    STLHashMap<uint64_t, netStatus> netStatusMap_;
+    STLHashMap<std::string, uint64_t> lastPacketTimeMap_;
+    STLHashMap<std::string, uint32_t> lastCallbackGroupIdMap_;
+    STLHashMap<std::string, bool> isPacketRecvAckMap_;
+    STLHashMap<uint64_t, PingPacket>  pingMap_;
+    STLHashMap<std::string, PacketCallbackInfo> packetCallbackInfoMap_;
+    std::unordered_map<uint64_t, std::vector<uint64_t>> batchAckMap_;
+
+    XMDCommonData* commonData_;
+public:
+    WorkerCommonData(XMDCommonData* commonData) {
+        commonData_ = commonData;
+    }
+    ~WorkerCommonData();
     int insertConn(uint64_t connId, ConnInfo connInfo);
     int updateConn(uint64_t connId, ConnInfo connInfo);
     int deleteConn(uint64_t connId);
+    int deleteConnResource(uint64_t connId, uint32_t maxStreamId);
     bool isConnExist(uint64_t connId);
     bool getConnInfo(uint64_t connId, ConnInfo& cInfo);
-    uint32_t getConnStreamId(uint64_t connId);
+    void closeAllConn();
+    
     int updateConnIpInfo(uint64_t connId, uint32_t ip, int port);
-    std::vector<uint64_t> getConnVec();
-    bool deleteFromConnVec(uint64_t connId);
 
     bool isStreamExist(uint64_t connId, uint16_t streamId);
     int insertStream(uint64_t connId, uint16_t streamId, StreamInfo streamInfo);
     int deleteStream(uint64_t connId, uint16_t streamId);
     bool getStreamInfo(uint64_t connId, uint16_t streamId, StreamInfo& sInfo);
-    uint32_t getGroupId(uint64_t connId, uint16_t streamId);
-    void deleteGroupId(std::string id);
-
-    int getDecodeThreadSize() { return decodeThreadSize_; }
-
-    int insertPing(PingPacket packet);
-    bool getPingPacket(uint64_t connId, PingPacket& packet);
 
     uint64_t getPakcetId(uint64_t connId);
+    void deletePacketIdMap(uint64_t connId);
+
+    void updateIsPacketRecvAckMap(std::string key, bool value);
+    bool getIsPacketRecvAckMapValue(std::string key);
+	void insertIsPacketRecvAckMap(std::string key, bool value);
+	bool deleteIsPacketRecvAckMap(std::string key);
 
     uint64_t getLastPacketTime(std::string id);
     void updateLastPacketTime(std::string id, uint64_t value);
@@ -428,32 +593,21 @@ public:
     void updateLastCallbackGroupId(std::string id, uint32_t groupId);
     void deleteLastCallbackGroupId(std::string id);
 
-    void insertCallbackDataMap(std::string key, uint32_t groupId, int waitTime, CallbackQueueData* data);
+    int insertCallbackDataMap(std::string key, uint32_t groupId, int waitTime, CallbackQueueData* data);
     int getCallbackData(std::string key, uint32_t groupId, CallbackQueueData* &data);
     void deletefromCallbackDataMap(std::string key);
+    bool isCallbackBufferMapEmpty(std::string key);
 
-    
     void insertSendCallbackMap(std::string key, uint32_t groupSize);
     int updateSendCallbackMap(std::string key, uint32_t sliceId);
     void deleteSendCallbackMap(std::string key);
     bool SendCallbackMapRecordExist(std::string key);
+    bool getDeleteCallbackMapRecord(std::string key);
 
     void insertPacketCallbackInfoMap(std::string key, PacketCallbackInfo info);
     bool getDeletePacketCallbackInfo(std::string key, PacketCallbackInfo& info);
-
-    void setDatagramQueueSize(int size);
-    float getDatagramQueueUsageRate();
-    void clearDatagramQueue();
-
-    void setResendQueueSize(int size);
-    float getResendQueueUsageRate();
-    void clearResendQueue();
-    int getResendQueueSize();
-
-    void setCallbackQueueSize(int size);
-    float getCallbackQueueUsegeRate();
-    void clearCallbackQueue();
-    int getCallbackQueueSize();
+    bool getPacketCallbackInfo(std::string key, PacketCallbackInfo& info);
+    bool deletePacketCallbackInfo(std::string key);
 
     void insertPacketLossInfoMap(uint64_t connId);
     void updatePacketLossInfoMap(uint64_t connId, uint64_t packetId);
@@ -461,11 +615,20 @@ public:
     bool getPacketLossInfo(uint64_t connId, PacketLossInfo& data);
     void startPacketLossCalucate(uint64_t connId);
 
-    void pongThreadQueuePush(PongThreadData data);
-    bool pongThreadQueuePop(PongThreadData& data);
-};
+    int insertPing(PingPacket packet);
+    bool getPingPacket(uint64_t connId, PingPacket& packet);
 
-int getResendTimeInterval(int sendcount);
+    void startTimer(uint64_t connId, WorkerThreadDataType type, uint64_t time, void* data, int len);
+
+    void updateResendInterval(uint64_t connId, unsigned int rtt);
+    unsigned int getResendInterval(uint64_t connId);
+    void deleteFromResendInterval(uint64_t connId);
+
+    int insertBatchAckMap(uint64_t connId, uint64_t packetId);
+    bool getBatchAckVec(uint64_t connId, std::vector<uint64_t>& ackVec);
+    void deleteBatchAckMap(uint64_t connId);
+
+};
 
 
 #endif //UDPSENDQUEUE_H

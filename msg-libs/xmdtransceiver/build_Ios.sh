@@ -1,0 +1,27 @@
+mv CMakeLists_Ios.txt CMakeLists.txt
+rm -rf build
+mkdir build
+cd build
+echo "start build for arm64 armv7 armv7s..."
+cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake -DPLATFORM=OS
+cmake --build . --config Release
+mv Release/libxmdtransceiver.a ../libxmdtransceiver_arm.a
+echo "build for arm64 armv7 armv7s sucess"
+cd ..
+
+rm -rf build
+mkdir build
+mv libxmdtransceiver_arm.a build/
+cd build
+echo "start build for x86_64..."
+cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake -DPLATFORM=SIMULATOR64
+cmake --build . --config Release
+echo "build for x86_64 success"
+mv Release/libxmdtransceiver.a libxmdtransceiver_x86.a
+
+lipo -create libxmdtransceiver_arm.a libxmdtransceiver_x86.a -output libxmdtransceiver.a
+rm libxmdtransceiver_arm.a
+rm libxmdtransceiver_x86.a
+echo "build for x86_64 arm64 armv7 armv7s success"
+cd ..
+mv CMakeLists.txt CMakeLists_Ios.txt

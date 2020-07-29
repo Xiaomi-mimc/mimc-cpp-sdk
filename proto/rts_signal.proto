@@ -1,0 +1,233 @@
+package mimc;
+option java_package = "com.xiaomi.mimc.rts.proto";
+
+enum RTSMessageType {
+//=================== SINGLE_CALL ===================
+    CREATE_REQUEST				= 1;
+    CREATE_RESPONSE				= 2;
+    INVITE_REQUEST				= 3;
+    INVITE_RESPONSE				= 4;
+    UPDATE_REQUEST				= 5;
+    UPDATE_RESPONSE				= 6;
+    PING_REQUEST				= 7;
+    PING_RESPONSE				= 8;
+    BYE_REQUEST					= 9;
+    BYE_RESPONSE				= 10;
+
+//=================== CHANNEL_CALL ===================
+    CREATE_CHANNEL_REQUEST      = 11;
+    CREATE_CHANNEL_RESPONSE     = 12;
+    JOIN_CHANNEL_REQUEST        = 13;
+    JOIN_CHANNEL_RESPONSE       = 14;
+    LEAVE_CHANNEL_REQUEST       = 15;
+    LEAVE_CHANNEL_RESPONSE      = 16;
+    USER_JOIN_NOTIFICATION      = 17;
+    USER_LEAVE_NOTIFICATION     = 18;  
+}
+
+enum CallType {
+    SINGLE_CALL   = 1;
+    CHANNEL_CALL  = 2;
+}
+
+enum StreamDataType {
+    A_STREAM =  1;
+    V_STREAM =  2;
+    AV_STREAM = 3;
+}
+
+message UserInfo {
+    optional int64 uuid                       = 1;
+    optional string resource                  = 2;
+    optional int64 appId                      = 3;
+    optional string appAccount                = 4;
+
+    optional string intranetIp                = 5;
+    optional uint32 intranetPort              = 6;
+    optional string internetIp                = 7;
+    optional uint32 internetPort              = 8;
+    optional string relayIp                   = 9;
+    optional uint32 relayPort                 = 10;
+    optional uint64 connId                    = 11;
+    optional bool is_tcp                      = 12;
+}
+
+enum RTSResult {
+    SUCC                                      = 0;
+    PEER_REFUSE                               = 1;
+    PEER_OFFLINE                              = 2;
+    CALLID_EXIST                              = 3;
+    CALLID_NOT_EXIST                          = 4;
+    SDP_FAIL                                  = 5;
+    INTERNAL_ERROR1                           = 6;
+    PARAMETER_ERROR                           = 7;
+    INVALID_OPERATION                         = 8;
+
+    EXCEED_MAX_LIMIT                          = 9;
+    ALREADY_IN_SESSION                        = 10;
+    CONNECT_RELAY_FAILED                      = 11;
+    BIND_RELAY_FAILED                         = 12;
+
+    ERROR_USER_DEFINED                        = 99;
+}
+
+enum CallStatus {
+    CREATING                                  = 1;
+    IN_PROCESS                                = 2;
+    FINISH                                    = 3;
+}
+
+//=================== storage message ===================
+message CallInfo {
+    optional uint64 callId                   = 1;
+
+    optional CallType callType               = 2;
+    optional CallStatus callStatus           = 3;
+
+    optional int64 creatorId                 = 4;
+    optional string creatorResource          = 5;
+
+    repeated UserInfo members                = 6;
+    optional string callKey                  = 7;
+    optional bytes extra                     = 8;
+}
+
+//=========================  xmq<->callCenter  =================
+message XmqRTSExchange {
+    optional string packetId       = 1;
+    optional string package        = 2;
+    optional int64 toUuid          = 3;
+    optional string toResource     = 4;
+    optional RTSMessage message    = 5;
+    optional int64 timestamp       = 6;
+}
+
+message RTSMessage {
+    optional RTSMessageType type    = 1;
+    optional uint64 callId          = 2;
+    optional CallType callType      = 3;
+    optional int64 uuid             = 4;
+    optional string resource        = 5;
+    optional bytes payload          = 6;
+    optional int64 region_bucket    = 7;
+}
+
+//========== SINGLE_CALL ========
+message CreateRequest {
+    optional StreamDataType streamType = 1;
+    repeated UserInfo members          = 2;
+    optional string sdp                = 3;
+    optional bytes appContent          = 4;
+}
+
+message InviteRequest {
+    optional StreamDataType streamType = 1;
+    repeated UserInfo members          = 2;
+    optional string sdp                = 3;
+    optional bytes appContent          = 4;
+}
+
+message InviteResponse {
+    optional RTSResult result        = 1;
+    optional string errmsg           = 2;
+    optional string sdp              = 3;
+    optional UserInfo user           = 4;
+}
+
+message CreateResponse {
+    optional RTSResult result        = 1;
+    optional string errmsg           = 2;
+    optional string sdp              = 3;
+    repeated UserInfo members        = 4;
+}
+
+message UpdateRequest {
+    optional UserInfo user           = 1;
+}
+
+message UpdateResponse {
+    optional RTSResult result        = 1;
+}
+
+message PingRequest {
+
+}
+
+message PingResponse {
+
+}
+
+message ByeRequest {
+    optional string reason       = 1;
+}
+
+message ByeResponse {
+    optional RTSResult result    = 1;
+    optional string reason       = 2;
+}
+
+//========== CHANNEL_CALL ========
+message CreateChannelRequest {
+    optional UserInfo user       = 1;
+    optional uint64 identity     = 2; //用于sdk和callId对应
+    optional bytes extra         = 3; //用于sdk和callId对应
+}
+
+message CreateChannelResponse {
+    optional RTSResult result    = 1;
+    optional string desc         = 2;
+    optional uint64 callId       = 3;
+    optional string callKey      = 4;
+    optional uint64 identity     = 5;
+    optional bytes extra         = 6;
+    optional UserInfo user       = 7;
+}
+
+message JoinChannelRequest {
+    optional uint64 callId       = 1;
+    optional string callKey      = 2;
+    optional UserInfo user       = 3;
+}
+
+message JoinChannelResponse {
+    optional RTSResult result    = 1;
+    optional string desc         = 2;
+    optional uint64 callId       = 3;
+    optional bytes extra         = 4;
+    repeated UserInfo users      = 5;
+}
+
+message LeaveChannelRequest {
+     optional uint64 callId       = 1;
+     optional string callKey      = 2;
+     optional UserInfo user       = 3;
+}
+
+message LeaveChannelResponse {
+     optional RTSResult result    = 1;
+     optional string desc         = 2;
+     optional uint64 callId       = 3;
+}
+
+message UserJoinNotification {
+    optional uint64 callId         = 1;
+    optional string callKey        = 2;
+    optional UserInfo user         = 3;
+}
+
+message UserLeaveNotification {
+    optional uint64 callId         = 1;
+    optional string callKey        = 2;
+    optional UserInfo user         = 3;
+}
+
+//================callCenter-->router========================
+enum UpdateType {
+    UPDATE                         = 1;
+    DELETE                         = 2;
+}
+
+message UpdateCallInfo {
+    optional uint64 callId          = 1;
+    optional UpdateType  type       = 2;
+}

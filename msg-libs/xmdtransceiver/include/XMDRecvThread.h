@@ -1,7 +1,7 @@
 #ifndef RECVTHREAD_H
 #define RECVTHREAD_H
 
-#include "xmd_thread.h"
+#include "Thread.h"
 #include "PacketDispatcher.h"
 #include "PacketDecoder.h"
 #include "XMDCommonData.h"
@@ -14,14 +14,12 @@ public:
     ~XMDRecvThread();
 
     void stop();
-	int listenfd() { return listenfd_; }
-    
+    int listenfd() { return listenfd_; }
     void setTestPacketLoss(int value) { testPacketLoss_ = value; }
     int InitSocket();
 
 private:
-	int listenfd_; // socket to int?
-
+    int listenfd_;
     bool stopFlag_;
     uint32_t port_;
     uint32_t testPacketLoss_;

@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 2.6)
+
+
+project(mimc-cpp-sdk)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+add_definitions("-Os -D_GLIBCXX_USE_NANOSLEEP -DHAVE_CONFIG_H -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -pthread")
+
+
+# json-c
+include_directories(${PROJECT_SOURCE_DIR}/third-party/json-c/)
+file(GLOB JSON_SRC ${PROJECT_SOURCE_DIR}/third-party/json-c/json-c/*.c)
+add_library(json-c SHARED ${JSON_SRC})
+
+
+# curl
+include_directories(
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include/
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/lib/
+    )
+file(GLOB CURL_SRC
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/lib/*.c
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/lib/vauth/*.c
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/lib/vtls/*.c
+    ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/src/*.c
+    )
+add_library(curl SHARED ${CURL_SRC})
+
+
+# protobuf
+include_directories(
+    ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/
+    ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/
+    ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/gtest/include
+    )
+file(GLOB PROTOBUF_SRC
+     ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/*.cc
+     ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/*.cc
+    )
+add_library(protobuf SHARED ${PROTOBUF_SRC})
+
+
+# xmd
+include_directories(${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include/)
+aux_source_directory(${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/src/ XMD_SRC)
+add_library(xmdtransceiver SHARED ${XMD_SRC})
+
+
+# mimc
+include_directories(${PROJECT_SOURCE_DIR}/include/)
+aux_source_directory(${PROJECT_SOURCE_DIR}/src/ MIMC_SRC)
+add_library(mimc-sdk SHARED ${MIMC_SRC})
+
+
+#target_link_libraries(mimc-sdk curl json-c protobuf xmdtransceiver)

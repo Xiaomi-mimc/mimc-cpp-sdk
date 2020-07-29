@@ -4,7 +4,7 @@ PROJECT(curl-7-59-0)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(NDK_STANDALONE_TOOLCHAIN /home/houminjiang/codes/sdk/android-standalone-toolchain/ndk13b-arm)
 set(CMAKE_SYSTEM_NAME Android)
 set(CMAKE_SYSTEM_VERSION 19)
 set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
@@ -19,6 +19,6 @@ add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -D_GLIBCXX_US
 
 file(GLOB CURL_FILES ${PROJECT_SOURCE_DIR}/lib/*.c ${PROJECT_SOURCE_DIR}/lib/vauth/*.c ${PROJECT_SOURCE_DIR}/lib/vtls/*.c ${PROJECT_SOURCE_DIR}/src/*.c)
 
-include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/lib /home/work/codes/openssl/android-19/include)
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/lib ${PROJECT_SOURCE_DIR}/../openssl/include)
 
 add_library(curl-7-59-0 SHARED ${CURL_FILES})

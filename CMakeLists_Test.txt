@@ -1,0 +1,37 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(mimc_effci)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(TOOL_CHAIN_GCC_ROOT /home/work/codes/mijia_camera_v3/toolchain/mips-gcc472-glibc216-64bit)
+add_definitions("-Os -D_GLIBCXX_USE_NANOSLEEP -fno-exceptions -ffunction-sections -fdata-sections -fno-omit-frame-pointer -fPIC -pthread")
+
+set(CMAKE_SYSTEM_NAME Linux)
+#set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_AR             ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-ar)
+set(CMAKE_ASM_COMPILER   ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-as)
+set(CMAKE_RANLIB         ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-ranlib)
+set(CMAKE_C_COMPILER     ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-gcc)
+set(CMAKE_CXX_COMPILER   ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-g++)
+set(CMAKE_STRIP          ${TOOL_CHAIN_GCC_ROOT}/bin/mips-linux-uclibc-gnu-strip)
+
+set(CMAKE_FIND_ROOT_PATH ${TOOL_CHAIN_GCC_ROOT})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+include_directories(${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src ${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include ${PROJECT_SOURCE_DIR}/third-party/openssl/include ${PROJECT_SOURCE_DIR}/third-party/openssl/include/openssl)
+aux_source_directory(${PROJECT_SOURCE_DIR}/src LIB_SRC)
+
+add_executable(test_effci  ./test/test_effciency.cpp)
+target_link_libraries(test_effci m /home/work/codes/mimc/mimc-cpp-sdk/so/libmimc_sdk.so
+/home/work/codes/mimc/mimc-cpp-sdk/so/libprotobuf.so
+/home/work/codes/mimc/mimc-cpp-sdk/so/libxmdtransceiver.so
+/home/work/codes/mimc/mimc-cpp-sdk/so/libcurl.so
+/home/work/codes/mimc/mimc-cpp-sdk/so/libjson-c.so
+/home/work/codes/mijia_camera_v3/toolchain/mips-gcc472-glibc216-64bit/mips-linux-gnu/libc/lib/librt.so.1
+/home/work/codes/mijia_camera_v3/toolchain/mips-gcc472-glibc216-64bit/mips-linux-gnu/libc/lib/libc.so.6
+pthread
+c
+dl)

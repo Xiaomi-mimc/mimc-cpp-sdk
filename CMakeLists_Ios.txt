@@ -1,0 +1,28 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(mimc_sdk)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+add_definitions("-Os -D_GLIBCXX_USE_NANOSLEEP -fno-exceptions -fno-omit-frame-pointer -fPIC -pthread")
+add_definitions("-D _IOS_MIMC_USE_")
+
+
+file(GLOB MIMC_FILES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.cc)
+file(GLOB JSONC_FILES ${PROJECT_SOURCE_DIR}/third-party/json-c/json-c/*.c)
+file(GLOB XMDTRANSCEIVER_FILES ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/src/*.cpp)
+
+set(
+        SOURCE_FILES
+        ${MIMC_FILES}
+        ${XMDTRANSCEIVER_FILES}
+        ${JSONC_FILES}
+)
+
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c
+${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0 ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src
+${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include ${PROJECT_SOURCE_DIR}/third-party/openssl/include)
+
+add_library(mimc_sdk STATIC ${SOURCE_FILES})
+
+
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build) 

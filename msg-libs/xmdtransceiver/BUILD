@@ -10,24 +10,22 @@ cc_library(
 		"include/*.hpp",
 	]),
 	copts = [
-		"-Os",
-		"-fno-exceptions",
-		"-ffunction-sections",
-		"-fdata-sections",
+		"-g",
+		"-gdwarf-2",
+		"-O2",
 		"-fno-omit-frame-pointer",
 		"-Wall",
-		"-D_GLIBCXX_USE_NANOSLEEP",
 		"-D_REENTRANT",
 		"-Wno-deprecated",
 		"-DVERSION=" + version,
 		"-DBUILD_DATE=UNKNOWN", # TODO: fix this
 	],
 	linkopts = [
-				"-lm",
-				"-pthread",
-				"-Wl,--gc-sections",
+		"-pthread",
+                "-lm",
+                "-ldl",
 	],
-
+	linkstatic = 1,
 	srcs = glob([
 		"src/*.cpp",
                 "src/*.c",
@@ -45,7 +43,6 @@ cc_test(
 	"-O2",
 	"-Wall",
 	"-pthread",
-	"-D_GLIBCXX_USE_NANOSLEEP",
 	"-D_REENTRANT",
 	"-Wno-unused-variable",
 	"-Wno-deprecated-declarations",
@@ -59,14 +56,12 @@ cc_test(
 cc_binary(
   name = "xmdtransceiver_server",
   srcs = glob([
-		"test/server/*.h",
-		"test/server/*.cpp",
+		"test/server/*.*",
   ]),
   copts = [
 	"-O2",
 	"-Wall",
 	"-pthread",
-	"-D_GLIBCXX_USE_NANOSLEEP",
 	"-D_REENTRANT",
 	"-Wno-unused-variable",
 	"-Wno-deprecated-declarations",
@@ -79,14 +74,12 @@ cc_binary(
 cc_binary(
   name = "xmdtransceiver_client",
   srcs = glob([
-		"test/client/*.h",
-		"test/client/*.cpp",
+		"test/client/*.*",
   ]),
   copts = [
 	"-O2",
 	"-Wall",
 	"-pthread",
-	"-D_GLIBCXX_USE_NANOSLEEP",
 	"-D_REENTRANT",
 	"-Wno-unused-variable",
 	"-Wno-deprecated-declarations",
@@ -95,3 +88,58 @@ cc_binary(
 	":xmdtransceiver",
   ],
 ) # cc_binary:xmdtransceiver_client
+
+cc_binary(
+  name = "StressSender2",
+  srcs = glob([
+		"test/stress/Sender2.cpp",
+  ]),
+  copts = [
+	"-O2",
+	"-Wall",
+	"-pthread",
+	"-D_REENTRANT",
+	"-Wno-unused-variable",
+	"-Wno-deprecated-declarations",
+  ],
+  deps = [
+	":xmdtransceiver",
+  ],
+) # cc_binary:xmdtransceiver_server
+
+cc_binary(
+  name = "StressSender",
+  srcs = glob([
+		"test/stress/Sender.cpp",
+  ]),
+  copts = [
+	"-O2",
+	"-Wall",
+	"-pthread",
+	"-D_REENTRANT",
+	"-Wno-unused-variable",
+	"-Wno-deprecated-declarations",
+  ],
+  deps = [
+	":xmdtransceiver",
+  ],
+) # cc_binary:xmdtransceiver_server
+
+cc_binary(
+  name = "StressReceiver",
+  srcs = glob([
+		"test/stress/Receiver.cpp",
+  ]),
+  copts = [
+	"-O2",
+	"-Wall",
+	"-pthread",
+	"-D_REENTRANT",
+	"-Wno-unused-variable",
+	"-Wno-deprecated-declarations",
+  ],
+  deps = [
+	":xmdtransceiver",
+  ],
+) # cc_binary:xmdtransceiver_server
+

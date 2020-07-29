@@ -1,0 +1,149 @@
+package mimc;
+
+// for java
+// import "rts_signal.proto";
+// for cpp
+import "messaging-protobuf/xiaomi-mimc/src/main/proto/rts_signal.proto";
+
+// option optimize_for = LITE_RUNTIME;
+
+enum PKT_TYPE {
+    BIND_RELAY_REQUEST                  = 1;
+    BIND_RELAY_RESPONSE                 = 2;
+    PING_RELAY_REQUEST                  = 3;
+    PING_RELAY_RESPONSE                 = 4;
+    RELAY_KICK_REQUEST                  = 5;
+    RELAY_KICK_RESPONSE                 = 6;
+    USER_DATA_AUDIO                     = 7;
+    USER_DATA_VIDEO                     = 8;
+    RELAY_CONN_REQUEST                  = 9;
+    INTRANET_CONN_REQUEST               = 10;
+    INTERNET_CONN_REQUEST               = 11;
+    USER_DATA_FILE                      = 12;
+}
+
+enum STREAM_STRATEGY {
+    FEC_STRATEGY                         = 1;
+    ACK_STRATEGY                         = 2;
+    BATCH_ACK_STRATEGY                   = 3;
+}
+
+message UserPacket {
+    optional uint32 version             = 1;
+    required PKT_TYPE pkt_type          = 2;
+    required uint64 uuid                = 3;
+    required string resource            = 4;
+    optional uint64 call_id             = 5;
+    optional bytes payload              = 6;
+    optional int64 region_bucket        = 7;
+    optional string from_app_account         = 8;
+
+}
+
+message BindRelayRequest {
+    required uint64 uuid                = 1;
+    required string resource            = 2;
+    optional string intranet_ip         = 3;    //终端设备IP
+    optional int32 intranet_port        = 4;    //终端设备PORT
+    optional string token               = 5;    //用户token
+    optional  StreamConfig audio_stream_default_config  = 6;
+    optional  StreamConfig video_stream_default_config  = 7;
+    optional  StreamConfig file_stream_default_config  = 8;
+}
+
+message StreamConfig {
+    required STREAM_STRATEGY stream_strategy    = 1;
+    optional uint32 ack_stream_wait_time_ms     = 2;   // time for sorting stream; 200ms default
+    optional uint32 resend_count                = 3;   // packet resend count
+    optional bool   stream_is_encrypt           = 4;   // whether stream is encryped, set false default
+}
+
+message BindRelayResponse {
+    required bool result                = 1;
+    required string internet_ip         = 2;    //终端设备经过NAT转换后的IP
+    required int32  internet_port       = 3;    //终端设备经过NAT转换后的PORT
+    optional string relay_ip            = 4;    //终端设备接入的relay服务器的内网IP
+    optional int32 relay_port           = 5;    //终端设备接入的relay服务器的backend port
+    optional uint32 errorno             = 6;
+}
+
+// enum CallType {
+//     SINGLE_CALL   = 1;
+//     CHANNEL_CALL  = 2;
+// }
+
+message PingRelayRequest {
+    required uint64 uuid                = 1;
+    required string resource            = 2;
+    optional mimc.CallType callType     = 3;
+}
+
+message PingRelayResponse {
+    required bool result                = 1;
+    required string internet_ip         = 2;    //终端设备经过NAT转换后的IP
+    required int32  internet_port       = 3;    //终端设备经过NAT转换后的PORT
+    optional uint32 errorno             = 4;
+}
+
+message UnBindRelayRequest {
+    required uint64 uuid                = 1;
+    required string resource            = 2;
+    optional string token               = 3;    //用户token
+}
+
+message UnBindRelayResponse {
+    required bool is_ok                 = 1;
+}
+
+enum KICK_REASON {
+    REALY_CHEANGED                  = 1;    //relay上没有device的注册信息，可能device_ip/device_nat_ip更新或者后台服务出现异常
+}
+
+message RelayKickRequest {
+
+    required KICK_REASON reason         = 1;
+}
+
+message RelayKickResponse {                     //可以不实现
+    required bool is_ok                 = 1;
+}
+
+enum STREAM_TYPE {
+   SIGNAL_STREAM                        = 1;
+   AUDIO_STREAM                         = 2;
+   VIDEO_STREAM                         = 3;
+   FILE_STREAM                          = 4;
+}
+
+message RouterPacket {
+    required uint64 call_id             = 1;
+    optional uint64 from_uuid           = 2;
+    optional string from_resource       = 3;
+    optional uint64 to_uuid             = 4;
+    optional string to_resource         = 5;
+    optional uint64 to_conn_id          = 6;
+    optional STREAM_TYPE stream_type    = 7;
+    optional bytes payload              = 8;
+    optional int64 region_bucket        = 9;
+    optional string from_app_account    = 10;
+}
+
+enum CHANNEL_TYPE {
+    RELAY                                = 1;
+    P2P                                  = 2;
+}
+
+enum BURROW_TYPE {
+    INTRANET_BURROW_REQUEST                      = 1;
+    INTRANET_BURROW_RESPONSE                     = 2;
+    INTERNET_BURROW_REQUEST                      = 3;
+    INTERNET_BURROW_RESPONSE                     = 4;
+}
+
+message BurrowPacket {
+    required uint64 uuid                = 1;
+    required string resource            = 2;
+    required uint64 call_id             = 3;
+    required uint64 burrow_id           = 4;
+    required BURROW_TYPE burrow_type    = 5;
+}

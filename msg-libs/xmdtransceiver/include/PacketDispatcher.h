@@ -29,9 +29,9 @@ public:
         socketErrorHander_ = NULL;
     }
     void registerRecvDatagramHandler(DatagramRecvHandler* handler) { datagramRecvHandler_ = handler; }
-    void handleRecvDatagram(char * ip, int port, char * data, uint32_t len) {
+    void handleRecvDatagram(char * ip, int port, char * data, uint32_t len, unsigned char packetType) {
         if (datagramRecvHandler_) {
-            datagramRecvHandler_->handle(ip, port, data, len);
+            datagramRecvHandler_->handle(ip, port, data, len, packetType);
         }
     }
     void registerConnHanlder(ConnectionHandler* handler) { connectionHandler_ = handler; }

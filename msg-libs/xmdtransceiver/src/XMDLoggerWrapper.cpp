@@ -4,12 +4,13 @@
 #include <cstdarg>
 #include <cstdio>
 #include <iostream>
-#include <mutex> 
+#include <ctime>
+
 
 using namespace std;
 
 XMDLoggerWrapper* XMDLoggerWrapper::_instance = NULL;
-mutex XMDLoggerWrapper::_mutex;
+pthread_mutex_t XMDLoggerWrapper::_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 XMDLoggerWrapper::XMDLoggerWrapper() {
     _externalLog = NULL;
@@ -54,7 +55,12 @@ void XMDLoggerWrapper::debug(const char* format, ...) {
         _externalLog->debug(buf);
         return;
     }
-    std::cout<<buf<<std::endl;
+    time_t nowtime;
+    nowtime = time(NULL); //获取日历时间   
+    char tmp[64];
+    strftime(tmp,sizeof(tmp),"%Y-%m-%d %H:%M:%S",localtime(&nowtime));
+
+    std::cout<<tmp <<"[MIMC] [DEBUG]"<<buf<<std::endl;
 }
 
 void XMDLoggerWrapper::info(const char* format, ...) {
@@ -76,7 +82,12 @@ void XMDLoggerWrapper::info(const char* format, ...) {
         _externalLog->info(buf);
         return;
     }
-    std::cout<<buf<<std::endl;
+    time_t nowtime;
+    nowtime = time(NULL); //获取日历时间   
+    char tmp[64];
+    strftime(tmp,sizeof(tmp),"%Y-%m-%d %H:%M:%S",localtime(&nowtime));
+
+    std::cout<<tmp <<"[MIMC] [INFO]"<<buf<<std::endl;
 }
 
 void XMDLoggerWrapper::warn(const char* format, ...) {
@@ -98,7 +109,12 @@ void XMDLoggerWrapper::warn(const char* format, ...) {
         _externalLog->warn(buf);
         return;
     }
-    std::cout<<buf<<std::endl;
+    time_t nowtime;
+    nowtime = time(NULL); //获取日历时间   
+    char tmp[64];
+    strftime(tmp,sizeof(tmp),"%Y-%m-%d %H:%M:%S",localtime(&nowtime));
+
+    std::cout<<tmp <<"[MIMC] [WARN]"<<buf<<std::endl;
 }
 
 void XMDLoggerWrapper::error(const char* format, ...) {
@@ -120,6 +136,11 @@ void XMDLoggerWrapper::error(const char* format, ...) {
         _externalLog->error(buf);
         return;
     }
-    std::cout<<buf<<std::endl;
+    time_t nowtime;
+    nowtime = time(NULL); //获取日历时间   
+    char tmp[64];
+    strftime(tmp,sizeof(tmp),"%Y-%m-%d %H:%M:%S",localtime(&nowtime));
+
+    std::cout<<tmp <<"[MIMC] [ERROR]"<<buf<<std::endl;
 }
 

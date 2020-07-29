@@ -1,0 +1,22 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+
+PROJECT(json-c)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_COMPILER "/usr/bin/g++")
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+
+
+add_definitions("-Os -fPIC -fno-exceptions -ffunction-sections -fdata-sections -Wall -Werror -D_GNU_SOURCE -D_REENTRANT -Wno-error=deprecated-declarations -Wextra -Wwrite-strings -Wno-implicit-fallthrough -Wno-unused-parameter")
+
+file(GLOB C_FILES_IN_JSONC "${PROJECT_SOURCE_DIR}/json-c/*.c")
+set(
+        SOURCE_FILES
+        ${C_FILES_IN_JSONC}
+)
+include_directories(${PROJECT_SOURCE_DIR})
+add_library(json-c SHARED ${SOURCE_FILES})

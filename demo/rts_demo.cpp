@@ -1,6 +1,6 @@
 #include <string>
 #include <mimc/user.h>
-#include <mimc/threadsafe_queue.h>
+#include "include/ring_queue.h"
 #include <mimc/utils.h>
 #include <mimc/mimc_group_message.h>
 #include <fstream>
@@ -94,38 +94,48 @@ private:
 
 class AVOnlineStatusHandler : public OnlineStatusHandler {
 public:
-	void statusChange(OnlineStatus status, std::string type, std::string reason, std::string desc) {
+	void statusChange(OnlineStatus status, const std::string& type, const std::string& reason, const std::string& desc) {
 		XMDLoggerWrapper::instance()->info("In statusChange, status is %d, type is %s, reason is %s, desc is %s", status, type.c_str(), reason.c_str(), desc.c_str());
 	}
 };
 
 class AVMessageHandler : public MessageHandler {
 public:
-	void handleMessage(std::vector<MIMCMessage> packets) {
-		std::vector<MIMCMessage>::iterator it = packets.begin();
+	bool handleMessage(const std::vector<MIMCMessage>& packets) {
+		std::vector<MIMCMessage>::const_iterator it = packets.begin();
 		for (; it != packets.end(); ++it) {
 			messages.push(*it);
 		}
+
+		return true;
 	}
 
-	void handleGroupMessage(std::vector<MIMCGroupMessage> packets) {
+	bool handleGroupMessage(const std::vector<MIMCGroupMessage>& packets) {
+		return true;
+	}
+
+	void handleServerAck(const MIMCServerAck &serverAck)
+	{
+	}
+
+	void handleSendMsgTimeout(const MIMCMessage& message) {
 
 	}
 
-	void handleServerAck(std::string packetId, int64_t sequence, time_t timestamp, std::string desc) {
-
-	}
-
-	void handleSendMsgTimeout(MIMCMessage message) {
-
-	}
-
-	void handleSendGroupMsgTimeout(MIMCGroupMessage groupMessage) {
+	void handleSendGroupMsgTimeout(const MIMCGroupMessage& groupMessage) {
 
 	}
 
 	bool pollMessage(MIMCMessage& message) {
 		return messages.pop(message);
+	}
+	
+	void handleOnlineMessage(const MIMCMessage &packets) {
+
+	}
+	
+	bool onPullNotification() {
+		return true;
 	}
 
 private:
@@ -134,14 +144,14 @@ private:
 
 class AVRTSCallEventHandler : public RTSCallEventHandler {
 public:
-	virtual LaunchedResponse onLaunched(uint64_t callId, const std::string fromAccount, const std::string appContent, const std::string fromResource) {
+	virtual LaunchedResponse onLaunched(uint64_t callId, const std::string& fromAccount, const std::string& appContent, const std::string& fromResource) {
 		LaunchedResponse response = LaunchedResponse(true, LAUNCH_OK);
 		callIds.push_back(callId);
 
 		return response;
 	}
 
-	virtual void onAnswered(uint64_t callId, bool accepted, const std::string desc) {
+	virtual void onAnswered(uint64_t callId, bool accepted, const std::string& desc) {
 		if (accepted) {
 			callIds.push_back(callId);
 		} else {
@@ -149,7 +159,7 @@ public:
 		}
 	}
 
-	virtual void onClosed(uint64_t callId, const std::string desc) {
+	virtual void onClosed(uint64_t callId, const std::string& desc) {
 		XMDLoggerWrapper::instance()->info("onClosed: callId is %llu, desc is %s", callId, desc.c_str());
 		for (list<uint64_t>::iterator iter = callIds.begin(); iter != callIds.end(); iter++) {
 			if (*iter == callId) {
@@ -159,7 +169,7 @@ public:
 		}
 	}
 
-	virtual void onData(uint64_t callId, const std::string fromAccount, const std::string resource, const std::string data, RtsDataType dataType, RtsChannelType channelType) {
+	virtual void onData(uint64_t callId, const std::string& fromAccount, const std::string& resource, const std::string& data, RtsDataType dataType, RtsChannelType channelType) {
 		user->sendRtsData(callId, data, dataType, channelType);
 		if (callDataMap.count(callId) == 0) {
 			list<string> dataList;
@@ -171,11 +181,11 @@ public:
 		}
 	}
 
-	virtual void onSendDataSuccess(uint64_t callId, int dataId, const std::string ctx) {
+	virtual void onSendDataSuccess(uint64_t callId, int dataId, const std::string& ctx) {
         XMDLoggerWrapper::instance()->info("onSendDataSuccess: callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 
-    virtual void onSendDataFailure(uint64_t callId, int dataId, const std::string ctx) {
+    virtual void onSendDataFailure(uint64_t callId, int dataId, const std::string& ctx) {
         XMDLoggerWrapper::instance()->warn("onSendDataFailure: callId is %llu, dataId is %d, ctx is %s", callId, dataId, ctx.c_str());
     }
 

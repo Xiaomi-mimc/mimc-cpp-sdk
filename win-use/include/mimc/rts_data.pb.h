@@ -56,11 +56,12 @@ enum PKT_TYPE {
   USER_DATA_VIDEO = 8,
   RELAY_CONN_REQUEST = 9,
   INTRANET_CONN_REQUEST = 10,
-  INTERNET_CONN_REQUEST = 11
+  INTERNET_CONN_REQUEST = 11,
+  USER_DATA_FILE = 12
 };
 bool PKT_TYPE_IsValid(int value);
 const PKT_TYPE PKT_TYPE_MIN = BIND_RELAY_REQUEST;
-const PKT_TYPE PKT_TYPE_MAX = INTERNET_CONN_REQUEST;
+const PKT_TYPE PKT_TYPE_MAX = USER_DATA_FILE;
 const int PKT_TYPE_ARRAYSIZE = PKT_TYPE_MAX + 1;
 
 enum STREAM_STRATEGY {
@@ -71,6 +72,15 @@ bool STREAM_STRATEGY_IsValid(int value);
 const STREAM_STRATEGY STREAM_STRATEGY_MIN = FEC_STRATEGY;
 const STREAM_STRATEGY STREAM_STRATEGY_MAX = ACK_STRATEGY;
 const int STREAM_STRATEGY_ARRAYSIZE = STREAM_STRATEGY_MAX + 1;
+
+enum CallType {
+  SINGLE_CALL = 1,
+  CHANNEL_CALL = 2
+};
+bool CallType_IsValid(int value);
+const CallType CallType_MIN = SINGLE_CALL;
+const CallType CallType_MAX = CHANNEL_CALL;
+const int CallType_ARRAYSIZE = CallType_MAX + 1;
 
 enum KICK_REASON {
   REALY_CHEANGED = 1
@@ -83,11 +93,12 @@ const int KICK_REASON_ARRAYSIZE = KICK_REASON_MAX + 1;
 enum STREAM_TYPE {
   SIGNAL_STREAM = 1,
   AUDIO_STREAM = 2,
-  VIDEO_STREAM = 3
+  VIDEO_STREAM = 3,
+  FILE_STREAM = 4
 };
 bool STREAM_TYPE_IsValid(int value);
 const STREAM_TYPE STREAM_TYPE_MIN = SIGNAL_STREAM;
-const STREAM_TYPE STREAM_TYPE_MAX = VIDEO_STREAM;
+const STREAM_TYPE STREAM_TYPE_MAX = FILE_STREAM;
 const int STREAM_TYPE_ARRAYSIZE = STREAM_TYPE_MAX + 1;
 
 enum CHANNEL_TYPE {
@@ -401,6 +412,15 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
   inline ::mimc::StreamConfig* release_video_stream_default_config();
   inline void set_allocated_video_stream_default_config(::mimc::StreamConfig* video_stream_default_config);
 
+  // optional .mimc.StreamConfig file_stream_default_config = 8;
+  inline bool has_file_stream_default_config() const;
+  inline void clear_file_stream_default_config();
+  static const int kFileStreamDefaultConfigFieldNumber = 8;
+  inline const ::mimc::StreamConfig& file_stream_default_config() const;
+  inline ::mimc::StreamConfig* mutable_file_stream_default_config();
+  inline ::mimc::StreamConfig* release_file_stream_default_config();
+  inline void set_allocated_file_stream_default_config(::mimc::StreamConfig* file_stream_default_config);
+
   // @@protoc_insertion_point(class_scope:mimc.BindRelayRequest)
  private:
   inline void set_has_uuid();
@@ -417,6 +437,8 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
   inline void clear_has_audio_stream_default_config();
   inline void set_has_video_stream_default_config();
   inline void clear_has_video_stream_default_config();
+  inline void set_has_file_stream_default_config();
+  inline void clear_has_file_stream_default_config();
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
@@ -424,10 +446,11 @@ class BindRelayRequest : public ::google::protobuf::MessageLite {
   ::std::string* token_;
   ::mimc::StreamConfig* audio_stream_default_config_;
   ::mimc::StreamConfig* video_stream_default_config_;
+  ::mimc::StreamConfig* file_stream_default_config_;
   ::google::protobuf::int32 intranet_port_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(7 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(8 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -509,12 +532,12 @@ class StreamConfig : public ::google::protobuf::MessageLite {
   inline ::google::protobuf::uint32 ack_stream_wait_time_ms() const;
   inline void set_ack_stream_wait_time_ms(::google::protobuf::uint32 value);
 
-  // optional uint32 stream_timeout_s = 3;
-  inline bool has_stream_timeout_s() const;
-  inline void clear_stream_timeout_s();
-  static const int kStreamTimeoutSFieldNumber = 3;
-  inline ::google::protobuf::uint32 stream_timeout_s() const;
-  inline void set_stream_timeout_s(::google::protobuf::uint32 value);
+  // optional uint32 resend_count = 3;
+  inline bool has_resend_count() const;
+  inline void clear_resend_count();
+  static const int kResendCountFieldNumber = 3;
+  inline ::google::protobuf::uint32 resend_count() const;
+  inline void set_resend_count(::google::protobuf::uint32 value);
 
   // optional bool stream_is_encrypt = 4;
   inline bool has_stream_is_encrypt() const;
@@ -529,14 +552,14 @@ class StreamConfig : public ::google::protobuf::MessageLite {
   inline void clear_has_stream_strategy();
   inline void set_has_ack_stream_wait_time_ms();
   inline void clear_has_ack_stream_wait_time_ms();
-  inline void set_has_stream_timeout_s();
-  inline void clear_has_stream_timeout_s();
+  inline void set_has_resend_count();
+  inline void clear_has_resend_count();
   inline void set_has_stream_is_encrypt();
   inline void clear_has_stream_is_encrypt();
 
   int stream_strategy_;
   ::google::protobuf::uint32 ack_stream_wait_time_ms_;
-  ::google::protobuf::uint32 stream_timeout_s_;
+  ::google::protobuf::uint32 resend_count_;
   bool stream_is_encrypt_;
 
   mutable int _cached_size_;
@@ -770,18 +793,28 @@ class PingRelayRequest : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
+  // optional .mimc.CallType callType = 3;
+  inline bool has_calltype() const;
+  inline void clear_calltype();
+  static const int kCallTypeFieldNumber = 3;
+  inline ::mimc::CallType calltype() const;
+  inline void set_calltype(::mimc::CallType value);
+
   // @@protoc_insertion_point(class_scope:mimc.PingRelayRequest)
  private:
   inline void set_has_uuid();
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
+  inline void set_has_calltype();
+  inline void clear_has_calltype();
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
+  int calltype_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -2265,6 +2298,48 @@ inline void BindRelayRequest::set_allocated_video_stream_default_config(::mimc::
   }
 }
 
+// optional .mimc.StreamConfig file_stream_default_config = 8;
+inline bool BindRelayRequest::has_file_stream_default_config() const {
+  return (_has_bits_[0] & 0x00000080u) != 0;
+}
+inline void BindRelayRequest::set_has_file_stream_default_config() {
+  _has_bits_[0] |= 0x00000080u;
+}
+inline void BindRelayRequest::clear_has_file_stream_default_config() {
+  _has_bits_[0] &= ~0x00000080u;
+}
+inline void BindRelayRequest::clear_file_stream_default_config() {
+  if (file_stream_default_config_ != NULL) file_stream_default_config_->::mimc::StreamConfig::Clear();
+  clear_has_file_stream_default_config();
+}
+inline const ::mimc::StreamConfig& BindRelayRequest::file_stream_default_config() const {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  return file_stream_default_config_ != NULL ? *file_stream_default_config_ : *default_instance().file_stream_default_config_;
+#else
+  return file_stream_default_config_ != NULL ? *file_stream_default_config_ : *default_instance_->file_stream_default_config_;
+#endif
+}
+inline ::mimc::StreamConfig* BindRelayRequest::mutable_file_stream_default_config() {
+  set_has_file_stream_default_config();
+  if (file_stream_default_config_ == NULL) file_stream_default_config_ = new ::mimc::StreamConfig;
+  return file_stream_default_config_;
+}
+inline ::mimc::StreamConfig* BindRelayRequest::release_file_stream_default_config() {
+  clear_has_file_stream_default_config();
+  ::mimc::StreamConfig* temp = file_stream_default_config_;
+  file_stream_default_config_ = NULL;
+  return temp;
+}
+inline void BindRelayRequest::set_allocated_file_stream_default_config(::mimc::StreamConfig* file_stream_default_config) {
+  delete file_stream_default_config_;
+  file_stream_default_config_ = file_stream_default_config;
+  if (file_stream_default_config) {
+    set_has_file_stream_default_config();
+  } else {
+    clear_has_file_stream_default_config();
+  }
+}
+
 // -------------------------------------------------------------------
 
 // StreamConfig
@@ -2314,26 +2389,26 @@ inline void StreamConfig::set_ack_stream_wait_time_ms(::google::protobuf::uint32
   ack_stream_wait_time_ms_ = value;
 }
 
-// optional uint32 stream_timeout_s = 3;
-inline bool StreamConfig::has_stream_timeout_s() const {
+// optional uint32 resend_count = 3;
+inline bool StreamConfig::has_resend_count() const {
   return (_has_bits_[0] & 0x00000004u) != 0;
 }
-inline void StreamConfig::set_has_stream_timeout_s() {
+inline void StreamConfig::set_has_resend_count() {
   _has_bits_[0] |= 0x00000004u;
 }
-inline void StreamConfig::clear_has_stream_timeout_s() {
+inline void StreamConfig::clear_has_resend_count() {
   _has_bits_[0] &= ~0x00000004u;
 }
-inline void StreamConfig::clear_stream_timeout_s() {
-  stream_timeout_s_ = 0u;
-  clear_has_stream_timeout_s();
+inline void StreamConfig::clear_resend_count() {
+  resend_count_ = 0u;
+  clear_has_resend_count();
 }
-inline ::google::protobuf::uint32 StreamConfig::stream_timeout_s() const {
-  return stream_timeout_s_;
+inline ::google::protobuf::uint32 StreamConfig::resend_count() const {
+  return resend_count_;
 }
-inline void StreamConfig::set_stream_timeout_s(::google::protobuf::uint32 value) {
-  set_has_stream_timeout_s();
-  stream_timeout_s_ = value;
+inline void StreamConfig::set_resend_count(::google::protobuf::uint32 value) {
+  set_has_resend_count();
+  resend_count_ = value;
 }
 
 // optional bool stream_is_encrypt = 4;
@@ -2684,6 +2759,29 @@ inline void PingRelayRequest::set_allocated_resource(::std::string* resource) {
     clear_has_resource();
     resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional .mimc.CallType callType = 3;
+inline bool PingRelayRequest::has_calltype() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PingRelayRequest::set_has_calltype() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PingRelayRequest::clear_has_calltype() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PingRelayRequest::clear_calltype() {
+  calltype_ = 1;
+  clear_has_calltype();
+}
+inline ::mimc::CallType PingRelayRequest::calltype() const {
+  return static_cast< ::mimc::CallType >(calltype_);
+}
+inline void PingRelayRequest::set_calltype(::mimc::CallType value) {
+  assert(::mimc::CallType_IsValid(value));
+  set_has_calltype();
+  calltype_ = value;
 }
 
 // -------------------------------------------------------------------

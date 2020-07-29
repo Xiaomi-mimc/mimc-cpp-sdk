@@ -1,25 +1,28 @@
-#include <mimc/rts_send_signal.h>
-#include <mimc/user.h>
-#include <mimc/packet_manager.h>
-#include <mimc/p2p_callsession.h>
-#include <mimc/rts_data.pb.h>
-#include <XMDTransceiver.h>
+#include "mimc/rts_send_signal.h"
+#include "mimc/user.h"
+#include "mimc/packet_manager.h"
+#include "mimc/p2p_callsession.h"
+#include "mimc/rts_data.pb.h"
+#include "XMDTransceiver.h"
 
-bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
+bool RtsSendSignal::sendCreateRequest(User* user, uint64_t callId,P2PCallSession& callSession) {
+    int64_t ts = Utils::currentTimeMillis();
+    XMDLoggerWrapper::instance()->info("create request timecost begin time=%llu", ts);
 	const mimc::BindRelayResponse* bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse) {
-		
 		return false;
 	}
 
 	std::string localIp;
 	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
-		
 		return false;
 	}
 
-	P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+	/* P2PCallSession callSession;
+    if (! user->getCallSession(callId, callSession)) {
+        return false;
+    } */
 	mimc::CreateRequest createRequest;
 	mimc::UserInfo* fromUser = createRequest.add_members();
 	fromUser->set_uuid(user->getUuid());
@@ -52,18 +55,35 @@ bool RtsSendSignal::sendCreateRequest(const User* user, uint64_t callId) {
 
 	callSession.setCallState(WAIT_CREATE_RESPONSE);
 	callSession.setLatestLegalCallStateTs(time(NULL));
+	//user->updateCurrentCallsMap(callId, callSession);
 
 	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendCreateRequest has called, user is %s, callId is %llu", user->getAppAccount().c_str(), callId);
 	delete[] createRequestBytes;
 
 	return true;
 }
+void RtsSendSignal::sendExceptInviteResponse(User* user, mimc::RTSResult result, std::string errMsg) {
+	pthread_rwlock_rdlock(&user->getCallsRwlock());
+	std::vector<uint64_t> &tmpCallVec = user->getCallVec();
+	for (std::vector<uint64_t>::iterator iter = tmpCallVec.begin(); iter != tmpCallVec.end(); iter++) {
+		const uint64_t callId = *iter;
+		P2PCallSession p2pCallSession;
+		if (!user->getCallSessionNoSafe(callId, p2pCallSession)) {
+			continue;
+		}
+		
+		if(p2pCallSession.getCallState() == WAIT_CALL_ONLAUNCHED || p2pCallSession.getCallState() ==  WAIT_INVITEE_RESPONSE){
+			RtsSendSignal::sendInviteResponse(user, callId, p2pCallSession.getCallType(), result, "conn relay failed");
+		}
+	}
+	pthread_rwlock_unlock(&user->getCallsRwlock());
+
+}
 
 bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::CallType callType, mimc::RTSResult result, std::string errMsg) {
 	std::string localIp;
 	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
-		
 		return false;
 	}
 
@@ -96,14 +116,22 @@ bool RtsSendSignal::sendInviteResponse(const User* user, uint64_t callId, mimc::
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::INVITE_RESPONSE, callType, inviteResponseBytesStr);
 
+	int64_t ts = Utils::currentTimeMillis();
+    XMDLoggerWrapper::instance()->info("send invite response timecost end time=%llu", ts);
+
 	XMDLoggerWrapper::instance()->info("RtsSendSignal::sendInviteResponse has called, user is %s, callId is %llu, result is %d, errMsg is %s", user->getAppAccount().c_str(), callId, result, errMsg.c_str());
 	delete[] inviteResponseBytes;
 	return true;
 }
 
-bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::string byeReason) {
-	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::string byeReason,const P2PCallSession &callSession) {
+	/* P2PCallSession callSession;
+	if (!user->getCallSession(callId, callSession)) {
+	    XMDLoggerWrapper::instance()->error("sendByeRequest callid not exist %llu", callId);
+	    return false;
+	} */
 	if (callSession.getCallState() != RUNNING && callSession.getCallState() != WAIT_SEND_UPDATE_REQUEST && callSession.getCallState() != WAIT_UPDATE_RESPONSE) {
+		XMDLoggerWrapper::instance()->error("sendByeRequest state error,state is %d",callSession.getCallState());
 		return false;
 	}
 	mimc::ByeRequest byeRequest;
@@ -125,8 +153,12 @@ bool RtsSendSignal::sendByeRequest(const User* user, uint64_t callId, std::strin
 	return true;
 }
 
-bool RtsSendSignal::sendByeResponse(const User* user, uint64_t callId, mimc::RTSResult result) {
-	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+bool RtsSendSignal::sendByeResponse(const User* user, uint64_t callId, mimc::RTSResult result,const P2PCallSession &callSession) {
+	/* P2PCallSession callSession;
+	if (!user->getCallSession(callId, callSession)) {
+	    XMDLoggerWrapper::instance()->error("sendByeResponse callid not exist %llu", callId);
+	    return false;
+	} */
 	mimc::ByeResponse byeResponse;
 	byeResponse.set_result(result);
 	int bye_response_size = byeResponse.ByteSize();
@@ -140,17 +172,15 @@ bool RtsSendSignal::sendByeResponse(const User* user, uint64_t callId, mimc::RTS
 	return true;
 }
 
-bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
+bool RtsSendSignal::sendUpdateRequest(User* user, uint64_t callId, P2PCallSession& callSession) {
 	const mimc::BindRelayResponse* bindRelayResponse = user->getBindRelayResponse();
 	if (!bindRelayResponse) {
-		
 		return false;
 	}
 
 	std::string localIp;
 	uint16_t localPort;
 	if (user->getXmdTransceiver()->getLocalInfo(localIp, localPort) < 0) {
-		
 		return false;
 	}
 	mimc::UpdateRequest updateRequest;
@@ -173,12 +203,16 @@ bool RtsSendSignal::sendUpdateRequest(const User* user, uint64_t callId) {
 	updateRequest.SerializeToArray(updateRequestBytes, update_request_size);
 	std::string updateRequestBytesStr(updateRequestBytes, update_request_size);
 
-	P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+	/* P2PCallSession callSession;
+    if (! user->getCallSession(callId, callSession)) {
+        return false;
+    } */
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_REQUEST, callSession.getCallType(), updateRequestBytesStr);
 	
 	callSession.setCallState(WAIT_UPDATE_RESPONSE);
 	callSession.setLatestLegalCallStateTs(time(NULL));
+	//user->updateCurrentCallsMap(callId, callSession);
 	delete[] updateRequestBytes;
 
 	return true;
@@ -194,7 +228,11 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::
 	updateResponse.SerializeToArray(updateResponseBytes, update_response_size);
 	std::string updateResponseBytesStr(updateResponseBytes, update_response_size);
 
-	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+	P2PCallSession callSession;
+	if (!user->getCallSession(callId, callSession)) {
+	    XMDLoggerWrapper::instance()->error("sendUpdateResponse callid not exist %llu", callId);
+	    return false;
+	}
 
 	std::string packetId = sendRtsMessage(user, callId, mimc::UPDATE_RESPONSE, callSession.getCallType(), updateResponseBytesStr);
 	
@@ -202,8 +240,12 @@ bool RtsSendSignal::sendUpdateResponse(const User* user, uint64_t callId, mimc::
 	return true;
 }
 
-bool RtsSendSignal::pingCallCenter(const User* user, uint64_t callId) {
-	const P2PCallSession& callSession = user->getCurrentCalls()->at(callId);
+bool RtsSendSignal::pingCallCenter(const User* user, uint64_t callId,const P2PCallSession &callSession) {
+	/* P2PCallSession callSession;
+	if (!user->getCallSession(callId, callSession)) {
+	    XMDLoggerWrapper::instance()->error("pingCallCenter callid not exist %llu", callId);
+	    return false;
+	} */
 	mimc::PingRequest pingRequest;
 	int ping_request_size = pingRequest.ByteSize();
 	char* pingRequestBytes = new char[ping_request_size];
@@ -245,7 +287,7 @@ std::string RtsSendSignal::sendRtsMessage(const User* user, uint64_t callId, mim
 	mimc_obj.cmd = BODY_CLIENTHEADER_CMD_SECMSG;
 	mimc_obj.type = C2S_SINGLE_DIRECTION;
 	mimc_obj.message = v6payload;
-	(user->getPacketManager()->packetsWaitToSend).push(mimc_obj);
+	(user->getPacketManager()->packetsWaitToSend).Push(mimc_obj);
 
 	delete[] messageBytes;
 	return packetId;

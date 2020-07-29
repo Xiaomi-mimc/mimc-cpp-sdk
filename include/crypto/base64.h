@@ -13,7 +13,23 @@
 
 MSG_CRYPTO_LIB_NS_BEGIN
 
-	class Base64Util {
+#ifdef WIN_USE_DLL
+#ifdef MIMCAPI_EXPORTS
+#define MIMCAPI __declspec(dllexport)
+#else
+#define MIMCAPI __declspec(dllimport)
+#endif // MIMCAPI_EXPORTS
+#else
+#define MIMCAPI
+#endif
+
+#ifdef _WIN32
+class MIMCAPI Base64Util {
+#else
+class Base64Util {
+#endif // _WIN32
+
+	
 	public:
 		static int Encode(const std::string& message, std::string& output);
 		static int Decode(const std::string& b64message, std::string& output);

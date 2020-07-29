@@ -12,4 +12,15 @@ const char* const SEND_BIND_RELAY_REQUEST_FAIL = "SEND_BIND_RELAY_REQUEST_FAIL";
 const char* const CREATE_RELAY_CONN_FAIL = "CREATE_RELAY_CONN_FAIL";
 const char* const ALL_DATA_CHANNELS_CLOSED = "ALL_DATA_CHANNELS_CLOSED";
 
+class MimcError {
+
+public:
+    static const int INPUT_PARAMS_ERROR            = -2001;
+    static const int CALLSESSION_NOT_FOUND         = -2002;
+    static const int CALLSESSION_NOT_RUNNING       = -2003;
+    static const int DIAL_USER_NOT_LINE            = -2004;
+    static const int RELAY_CONNID_ERROR            = -2005;
+};
+
+
 #endif

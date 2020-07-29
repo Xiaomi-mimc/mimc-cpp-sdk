@@ -159,10 +159,14 @@ bool Utils::createDirIfNotExist(const std::string& pDir) {
     char* pszDir = NULL;
 
     if (pDir.empty()) {
-        return true;
+        return false;
     }
 
     pszDir = strdup(pDir.c_str());
+    if (!pszDir) {
+        return false;    
+    }
+
     iLen = strlen(pszDir);
 
     for (int i = 1; i < iLen; i++) {
@@ -175,6 +179,7 @@ bool Utils::createDirIfNotExist(const std::string& pDir) {
             if (iRet != 0) {
                 iRet = MKDIR(pszDir);
                 if (iRet != 0) {
+                    free(pszDir);
                     return false;
                 }
             }

@@ -6,13 +6,13 @@
 #include <cstdio>
 #include <time.h>
 #include <sstream>
-#include <openssl/sha.h>
-#include <openssl/crypto.h>
 #include <string.h>
 #include <crypto/base64.h>
 
 #ifdef _WIN32
-#include <pthread.h>
+#include "pthread.h"
+#include "openssl/sha.h"
+#include "openssl/crypto.h"
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #else
@@ -23,9 +23,16 @@ typedef SSIZE_T ssize_t;
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <net/if.h>
+#include <openssl/sha.h>
+#include <openssl/crypto.h>
 #endif
 
 #ifdef __linux
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
+
+#ifdef _IOS_MIMC_USE_
 #include <sys/types.h>
 #include <sys/stat.h>
 #endif
@@ -44,9 +51,29 @@ typedef SSIZE_T ssize_t;
 #define MKDIR(a) _mkdir((a))
 #endif
 
+#ifdef _IOS_MIMC_USE_
+#define ACCESS access
+#define MKDIR(a) mkdir((a), 0755)
+#endif
+
 const int MAXPATHLEN = 80;
 
+#ifdef WIN_USE_DLL
+#ifdef MIMCAPI_EXPORTS
+#define MIMCAPI __declspec(dllexport)
+#else
+#define MIMCAPI __declspec(dllimport)
+#endif // MIMCAPI_EXPORTS
+#else
+#define MIMCAPI
+#endif
+
+#ifdef _WIN32
+class MIMCAPI Utils {
+#else
 class Utils {
+#endif // _WIN32
+
 public:
     static std::string generateRandomString(int length);
     static int64_t generateRandomLong();

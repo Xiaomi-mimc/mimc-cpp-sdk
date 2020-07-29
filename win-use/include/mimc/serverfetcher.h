@@ -2,8 +2,6 @@
 #define MIMC_CPP_SDK_SERVERFETCHER_H
 
 #include <string>
-#include <curl/curl.h>
-#include <json-c/json.h>
 
 class ServerFetcher {
 public:

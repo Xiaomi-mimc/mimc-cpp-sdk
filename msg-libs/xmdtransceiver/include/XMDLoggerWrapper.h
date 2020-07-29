@@ -1,7 +1,7 @@
 #ifndef XMD_LOGGER_WRAPPER_H
 #define XMD_LOGGER_WRAPPER_H
 
-#include <mutex>
+#include <pthread.h>
 #include "ExternalLog.h"
 
 enum XMDLogLevel {
@@ -13,7 +13,7 @@ enum XMDLogLevel {
 
 class XMDLoggerWrapper {
 private:
-    static std::mutex _mutex;
+    static pthread_mutex_t _mutex;
     static XMDLoggerWrapper* _instance;
     ExternalLog* _externalLog;
     XMDLoggerWrapper();

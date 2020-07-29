@@ -104,11 +104,11 @@ int XMDPacketManager::buildConnClose(uint64_t connId) {
 }
 
 
-int XMDPacketManager::buildDatagram(unsigned char* data, int len) {
+int XMDPacketManager::buildDatagram(unsigned char* data, int len, unsigned char packetType) {
     len_ = sizeof(XMDPacket) + len + XMD_CRC_LEN;
     XMDPacket* xmdPakcet_t = (XMDPacket*) ::operator new(len_);
     xmdPakcet_t->SetMagic();
-    xmdPakcet_t->SetSign(DATAGRAM, 0, 0);
+    xmdPakcet_t->SetSign(DATAGRAM, packetType, 0);
     xmdPakcet_t->SetPayload(len, data);
     
     char* crc32 = (char*)xmdPakcet_t + len_ - XMD_CRC_LEN;
@@ -212,11 +212,11 @@ int XMDPacketManager::buildFECStreamData(XMDFECStreamData stData, unsigned char*
     return 0;
 }
 
-int XMDPacketManager::buildAckStreamData(XMDACKStreamData stData, unsigned char* data, int len, bool isEncrypt, std::string key) {
+int XMDPacketManager::buildAckStreamData(XMDACKStreamData stData, unsigned char* data, int len, bool isEncrypt, std::string key, PacketType type) {
     int packetLen = sizeof(XMDPacket) + sizeof(XMDACKStreamData) + XMD_CRC_LEN + len;
     XMDPacket* xmdPakcet_t = (XMDPacket*) ::operator new(packetLen);
     xmdPakcet_t->SetMagic();
-    xmdPakcet_t->SetSign(STREAM, ACK_STREAM_DATA, isEncrypt);
+    xmdPakcet_t->SetSign(STREAM, type, isEncrypt);
 
     XMDACKStreamData* streamData = (XMDACKStreamData*)((char*)xmdPakcet_t + sizeof(XMDPacket));
     streamData->SetConnId(stData.connId);
@@ -340,6 +340,47 @@ int XMDPacketManager::buildXMDPing(uint64_t connId, bool isEncrypt, std::string 
     
     return 0;
 }
+
+int XMDPacketManager::buildXMDTestRttPacket(uint64_t connId, bool isEncrypt, std::string key, uint64_t packetid) { 
+    int packetLen = sizeof(XMDPacket) + sizeof(XMDPing) + XMD_CRC_LEN;
+    XMDPacket* xmdPakcet_t = (XMDPacket*) ::operator new(packetLen);
+    xmdPakcet_t->SetMagic();
+    xmdPakcet_t->SetSign(STREAM, TEST_RTT_PACKET, isEncrypt);
+
+    XMDPing* ping = (XMDPing*)((char*)xmdPakcet_t + sizeof(XMDPacket));
+    ping->SetConnId(connId);
+    //packetid = PACKET_ID;
+    ping->SetPacketId(packetid);
+
+    if (isEncrypt) {
+        std::string tmpMSg((char*)xmdPakcet_t + sizeof(XMDPacket) + CONN_LEN, 
+                           packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
+    
+        std::string encryptedData;
+        if (CryptoRC4Util::Encrypt(tmpMSg, encryptedData, key) != 0) {
+            XMDLoggerWrapper::instance()->warn("buildXMDPing rc4 encrypt failed.");
+            return -1;
+        }
+    
+        memcpy((char*)xmdPakcet_t + sizeof(XMDPacket) + CONN_LEN, 
+               encryptedData.c_str(), 
+               packetLen - sizeof(XMDPacket) - CONN_LEN - XMD_CRC_LEN);
+    }
+
+    char* crc32 = (char*)xmdPakcet_t + packetLen - XMD_CRC_LEN;
+    uint32_t crc32_val = adler32(1L, (unsigned char*)xmdPakcet_t, packetLen - XMD_CRC_LEN);
+    uint32_t real_crc32 = htonl(crc32_val);
+    char* tmp_char_crc = (char*)&real_crc32;
+    for (int i = 0; i < XMD_CRC_LEN; i++) {
+        crc32[i] = tmp_char_crc[i];
+    }
+
+    xmdPacket_ = xmdPakcet_t;
+    len_ = packetLen;
+    
+    return 0;
+}
+
 
 int XMDPacketManager::buildXMDPong(XMDPong pongData, bool isEncrypt, std::string key) {
     int packetLen = sizeof(XMDPacket) + sizeof(XMDPong) + XMD_CRC_LEN;
@@ -608,7 +649,7 @@ XMDPacket* XMDPacketManager::decode(char* data, int len) {
         return NULL;
     }
     
-    if (len < int(sizeof(XMDPacket))) {
+    if (len < (int(sizeof(XMDPacket)) + XMD_CRC_LEN)) {
         XMDLoggerWrapper::instance()->warn("recevie packet err, len=%d", len);
         return NULL;
     }

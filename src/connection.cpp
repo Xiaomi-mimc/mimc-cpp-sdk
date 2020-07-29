@@ -1,11 +1,12 @@
-#include <mimc/connection.h>
-#include <mimc/constant.h>
+#include "mimc/connection.h"
+#include "mimc/constant.h"
 #include <string.h>
 #include <sys/types.h>
 #include <cerrno>
 #include <cstdlib>
 #include <time.h>
-#include <crypto/rc4_crypto.h>
+#include "crypto/rc4_crypto.h"
+#include "mimc/mutex_lock.h"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -26,42 +27,45 @@ void Connection::resetSock() {
 #ifdef _WIN32
 	closesocket(socketfd);
 #else
+	shutdown(socketfd, SHUT_RDWR);
 	close(socketfd);
 #endif // _WIN32
 
     setState(NOT_CONNECTED);
     user->setLastLoginTimestamp(0);
-    user->setLastCreateConnTimestamp(0);
+    //user->setLastCreateConnTimestamp(0);
     user->setOnlineStatus(Offline);
-    user->getStatusHandler()->statusChange(Offline, "", "NETWORK_RESET", "NETWORK_RESET");
     challenge = "";
     body_key = "";
     clearNextResetSockTs();
+	user->getStatusHandler()->statusChange(Offline, "", "NETWORK_RESET", "NETWORK_RESET");
+	XMDLoggerWrapper::instance()->info("Connection::resetSock");
 }
 
 bool Connection::connect() {
     struct sockaddr_in dest_addr;
     memset(&dest_addr, 0, sizeof(dest_addr));
     dest_addr.sin_family = AF_INET;
-
+  {
 #ifndef STAGING
-	pthread_mutex_lock(&user->getAddressMutex());
+	MIMCMutexLock mutexLock(&user->getAddressMutex());
 	std::vector<std::string>& feAddresses = user->getFeAddresses();
-	for (std::vector<std::string>::iterator iter = feAddresses.begin(); iter != feAddresses.end(); iter++) {
+	for (std::vector<std::string>::iterator iter = feAddresses.begin(); iter != feAddresses.end(); ) {
 
 #ifdef _WIN32
 		WORD sockVersion = MAKEWORD(2, 2);
 		WSADATA data;
 		if (WSAStartup(sockVersion, &data) != 0){
-			continue;
+		    return false;
 		}
 		socketfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (socketfd == INVALID_SOCKET){
-			continue;
+		    return false;
 		}
 #else
 		if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-			continue;
+		    XMDLoggerWrapper::instance()->error("Connection::connect create socket fd failed");
+		    return false;
 		}
 #endif // _WIN32
 
@@ -69,6 +73,7 @@ bool Connection::connect() {
 		std::string& feAddr = *iter;
 		int pos = feAddr.find(":");
 		if (pos == std::string::npos) {
+		    iter++;
 			continue;
 		}
 		std::string feIp = feAddr.substr(0, pos);
@@ -82,9 +87,9 @@ bool Connection::connect() {
 		if (::connect(socketfd, (sockaddr *)&dest_addr, sizeof(dest_addr)) == SOCKET_ERROR){  //连接失败 
 			closesocket(socketfd);
 			iter = feAddresses.erase(iter);
+			//iter--;
 		}
 		else {
-			pthread_mutex_unlock(&user->getAddressMutex());
 			return true;
 		}
 
@@ -93,19 +98,21 @@ bool Connection::connect() {
 		dest_addr.sin_port = htons(atoi(fePort.c_str()));
 		if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
 			close(socketfd);
+			XMDLoggerWrapper::instance()->error("Connection::connect failed ip=%s,port=%s", feIp.c_str(), fePort.c_str());
 			iter = feAddresses.erase(iter);
+            //iter--;
 		}
 		else {
-			pthread_mutex_unlock(&user->getAddressMutex());
+			XMDLoggerWrapper::instance()->info("Connection::connect success ip=%s,port=%s", feIp.c_str(), fePort.c_str());
 			return true;
 		}
 #endif // _WIN32
 
-}
+   }
 
 #ifdef _WIN32
 	user->setAddressInvalid(true);
-	pthread_mutex_unlock(&user->getAddressMutex());
+  }
 	WORD sockVersion = MAKEWORD(2, 2);
 	WSADATA data;
 	if (WSAStartup(sockVersion, &data) != 0) {
@@ -117,11 +124,18 @@ bool Connection::connect() {
 	}
 
 	struct hostent *pHostEnt = NULL;
-	pHostEnt = gethostbyname(FE_DOMAIN);
+	pHostEnt = gethostbyname(user->getFeDomain().c_str());
+	if (pHostEnt == NULL)
+	{
+		closesocket(socketfd);
+		XMDLoggerWrapper::instance()->error("Connection::connect gethostbyname failed");
+		return false;
+	}
 	dest_addr.sin_addr.S_un.S_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
 	dest_addr.sin_port = htons(FE_PORT);
 	if (::connect(socketfd, (sockaddr *)&dest_addr, sizeof(dest_addr)) == SOCKET_ERROR) {
 		closesocket(socketfd);
+		XMDLoggerWrapper::instance()->error("Connection::connect domain failed");
 		return false;
 	}
 	else {
@@ -129,16 +143,23 @@ bool Connection::connect() {
 	}
 #else
 	user->setAddressInvalid(true);
-	pthread_mutex_unlock(&user->getAddressMutex());
-	if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		return false;
+  }
+   if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+	  return false;
 	}
 	struct hostent *pHostEnt = NULL;
-	pHostEnt = gethostbyname(FE_DOMAIN);
+	pHostEnt = gethostbyname(user->getFeDomain().c_str());
+	if (pHostEnt == NULL) {
+		close(socketfd);
+		XMDLoggerWrapper::instance()->error("Connection::connect gethostbyname failed");
+		return false;
+	}
 	dest_addr.sin_addr.s_addr = *((unsigned long *)pHostEnt->h_addr_list[0]);
 	dest_addr.sin_port = htons(FE_PORT);
 	if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
 		close(socketfd);
+		XMDLoggerWrapper::instance()->error("Connection::connect default ip failed");
 		return false;
 	}
 	else {
@@ -149,7 +170,7 @@ bool Connection::connect() {
 	
     
 #else
-
+  }
 #ifdef _WIN32
 	WORD sockVersion = MAKEWORD(2, 2);
 	WSADATA data;
@@ -174,7 +195,7 @@ bool Connection::connect() {
 #else
 	if ((socketfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		return false;
-}
+    }
 	dest_addr.sin_addr.s_addr = inet_addr(FE_IP);
 	dest_addr.sin_port = htons(FE_PORT);
 	if (::connect(socketfd, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
@@ -261,7 +282,7 @@ ssize_t Connection::readn(void *buf, size_t nbytes) {
 
 void Connection::trySetNextResetTs() {
     if (this->nextResetSockTimestamp > 0) {
-        return;
+		return;
     }
     this->nextResetSockTimestamp = time(NULL) + RESETSOCK_TIMEOUT;
 }

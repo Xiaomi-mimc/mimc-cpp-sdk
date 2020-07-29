@@ -21,7 +21,7 @@
 const static unsigned char XMDPACKET_MAGIC[2] = {0x0C, 0x2D};
 const uint16_t XMD_VERSION = 1;
 const int XMD_CRC_LEN = 4;
-const int MAX_PACKET_SIZE = 1320;  //与sdk保持一致
+const int MAX_PACKET_SIZE = 1320;  //1398 与sdk保持一致
 const int MAX_ORIGIN_PACKET_NUM_IN_PARTITION = 40; //40
 const int STREAM_LEN_SIZE = 2;
 const int CONN_LEN = 8;
@@ -70,34 +70,33 @@ PACK(
 });
 #else
 struct __attribute__((__packed__)) XMDPacket {
-	unsigned char magic[2];
-	unsigned char sign;
-	unsigned char data[0];
+    unsigned char magic[2];
+    unsigned char sign;
+    unsigned char data[0];
 
-	inline void  SetMagic() {
-		memcpy(magic, XMDPACKET_MAGIC, 2);
-	}
-	inline void SetSign(unsigned char type, unsigned char packetType, bool encrypt) {
-		sign = 0;
-		sign += (type << 7);
-		sign += (packetType << 1);
-		sign += encrypt;
-	}
-	inline void SetPayload(int len, unsigned char* d) {
-		memcpy(data, d, len);
-	}
-	inline bool getEncryptSign() {
-		return sign & 0X01;
-	}
-	inline unsigned char getType() {
-		return ((sign & 0x80) >> 7);
-	}
-	inline unsigned char getPacketType() {
-		return ((sign & 0x7E) >> 1);
-	}
+    inline void  SetMagic() {
+        memcpy(magic, XMDPACKET_MAGIC, 2);
+    }
+    inline void SetSign(unsigned char type, unsigned char packetType, bool encrypt) {
+        sign = 0;
+        sign += (type << 7);
+        sign += (packetType << 1);
+        sign += encrypt;
+    }
+    inline void SetPayload(int len, unsigned char* d) {
+        memcpy(data, d, len);
+    }
+    inline bool getEncryptSign() {
+        return sign & 0X01;
+    }
+    inline unsigned char getType() {
+        return ((sign & 0x80) >> 7);
+    }
+    inline unsigned char getPacketType() {
+        return ((sign & 0x7E) >> 1);
+    }
 };
 #endif // _WIN32
-
 
 /*  PT=0, connection packet:
     0        1        2       3        4        5        6         …  12
@@ -229,6 +228,7 @@ struct __attribute__((__packed__)) XMDConnection {
     inline unsigned char* GetData() {
         return data + GetNLen() + GetELen();
     }
+    
 };
 #endif // _WIN32
 
@@ -300,7 +300,7 @@ PACK(
 	uint64_t connId;
 	inline void SetConnId(uint64_t id) {
 		connId = xmd_htonll(id);
-}
+	}
 	inline uint64_t GetConnId() {
 		return xmd_ntohll(connId);
 	}
@@ -318,7 +318,6 @@ struct __attribute__((__packed__)) XMDConnClose {
 #endif // _WIN32
 
 /*
-
 PT=4 CONNECTION RESET
 0         1        2        3        4        5     …  10
 +--------+--------+--------+--------+--------+--------+---  --+
@@ -545,58 +544,57 @@ PACK(
 });
 #else
 struct __attribute__((__packed__)) XMDFECStreamData {
-    uint64_t connId;
-    uint64_t packetId;
-    uint16_t streamId;
-    uint16_t timeout;
-    uint32_t groupId;
-    uint8_t PSize;
-    uint8_t PId;
-    uint16_t sliceId;
-    uint16_t FECOPN;
-    uint16_t FECPN;
-    uint8_t flags;
-    unsigned char data[0];
+	uint64_t connId;
+	uint64_t packetId;
+	uint16_t streamId;
+	uint16_t timeout;
+	uint32_t groupId;
+	uint8_t PSize;
+	uint8_t PId;
+	uint16_t sliceId;
+	uint16_t FECOPN;
+	uint16_t FECPN;
+	uint8_t flags;
+	unsigned char data[0];
 
-    inline void SetConnId(uint64_t id) {
-        connId = xmd_htonll(id);
-    }
-    inline void SetPacketId(uint64_t id) {
-        packetId = xmd_htonll(id);
-    }
-    inline void SetStreamId(uint16_t id) {
-        streamId = htons(id);
-    }
+	inline void SetConnId(uint64_t id) {
+		connId = xmd_htonll(id);
+	}
+	inline void SetPacketId(uint64_t id) {
+		packetId = xmd_htonll(id);
+	}
+	inline void SetStreamId(uint16_t id) {
+		streamId = htons(id);
+	}
 
 	inline void SetTimeout(uint16_t t) {
 		timeout = htons(t);
 	}
 
-    inline void SetGroupId(uint32_t id) {
-        groupId = htonl(id);
-    }
-    inline void SetSliceId(uint16_t id) {
-        sliceId = htons(id);
-    }
-    inline void SetFECOPN(uint16_t n) {
-        FECOPN = htons(n);
-    }
-    inline void SetFECPN(uint16_t n) {
-        FECPN = htons(n);
-    }
-    inline void SetPayload(unsigned char* d, int len) {
-        memcpy(data, d, len);
-    }
-    inline void SetFlags(bool canBeDropped, uint8_t dataType, uint8_t payloadType) {
-        flags = 0;
-        flags += payloadType;
-        flags += (dataType << 4);
-        flags += (canBeDropped << 7);
-    }
-    inline void SetFlags(uint8_t value) {
-        flags = value;
-    }
-    
+	inline void SetGroupId(uint32_t id) {
+		groupId = htonl(id);
+	}
+	inline void SetSliceId(uint16_t id) {
+		sliceId = htons(id);
+	}
+	inline void SetFECOPN(uint16_t n) {
+		FECOPN = htons(n);
+	}
+	inline void SetFECPN(uint16_t n) {
+		FECPN = htons(n);
+	}
+	inline void SetPayload(unsigned char* d, int len) {
+		memcpy(data, d, len);
+	}
+	inline void SetFlags(bool canBeDropped, uint8_t dataType, uint8_t payloadType) {
+		flags = 0;
+		flags += payloadType;
+		flags += (dataType << 4);
+		flags += (canBeDropped << 7);
+	}
+	inline void SetFlags(uint8_t value) {
+		flags = value;
+	}
     inline uint64_t GetConnId() {
         return xmd_ntohll(connId);
     }
@@ -609,9 +607,9 @@ struct __attribute__((__packed__)) XMDFECStreamData {
     inline uint32_t GetGroupId() {
         return ntohl(groupId);
     }
-	inline uint16_t GetTimeout() {
-		return ntohs(timeout);
-	}
+    inline uint16_t GetTimeout() {
+        return ntohs(timeout);
+    }
     inline uint16_t GetSliceId() {
         return ntohs(sliceId);
     }
@@ -711,6 +709,71 @@ struct __attribute__((__packed__)) XMDStreamDataAck {
     }
 };
 #endif // _WIN32
+
+/*
+BATCH STREAM DATA ACK
+PT=14
+0         1        2        3        4        5     …  10
++--------+--------+--------+--------+--------+--------+---  --+
+|     Public Flags(24)     |       Connection ID (64)…        | ->
++--------+--------+--------+--------+--------+--------+---  --+
+11       12       13        14      15       16       17       18
++--------+--------+--------+--------+--------+--------+--------+--------+
+|                              Packet ID(64)                            | ->
++--------+--------+--------+--------+--------+--------+--------+--------+
+19       20       21        22        23       24       25       26
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+| Packet Size(16) |                           Acked Packet ID(64)                         | ->
++--------+--------+--------+--------+--------+--------+--------+--------+--------+--------+
+
++--------+--------+--------+--------+--------+--------+--------+--------+
+|                           Acked Packet ID(64)                         |
++--------+--------+--------+--------+--------+--------+--------+--------+
+
+......
+
++--------+--------+--------+--------+
+|               CRC(32)             |
++--------+--------+--------+--------+
+*/
+#ifdef _WIN32
+PACK(
+	struct XMDBatchAck {
+        uint64_t connId;
+        uint64_t packetId;
+
+        inline void SetConnId(uint64_t id) {
+            connId = xmd_htonll(id);
+        }  
+		inline void SetPacketId(uint64_t id) {
+			packetId = xmd_htonll(id);
+		}
+		inline uint64_t GetConnId() {
+			return xmd_ntohll(connId);
+		}
+		inline uint64_t GetPacketId() {
+			return xmd_ntohll(packetId);
+		}
+});
+#else
+struct __attribute__((__packed__)) XMDBatchAck {
+    uint64_t connId;
+    uint64_t packetId;
+
+    inline void SetConnId(uint64_t id) {
+        connId = xmd_htonll(id);
+    }  
+    inline void SetPacketId(uint64_t id) {
+        packetId = xmd_htonll(id);
+    }
+    inline uint64_t GetConnId() {
+        return xmd_ntohll(connId);
+    }
+    inline uint64_t GetPacketId() {
+        return xmd_ntohll(packetId);
+    }
+};
+#endif
 
 /**
  * PT=9 PING
@@ -847,57 +910,57 @@ PACK(
 	}
 });
 #else
- struct __attribute__((__packed__)) XMDPong {
-    uint64_t connId;
-    uint64_t packetId;
-    uint64_t ackedPacketId;
-    uint64_t timeStamp1;
-    uint64_t timeStamp2;
-    uint32_t totalPackets;
-    uint32_t recvPackets;
+struct __attribute__((__packed__)) XMDPong {
+	uint64_t connId;
+	uint64_t packetId;
+	uint64_t ackedPacketId;
+	uint64_t timeStamp1;
+	uint64_t timeStamp2;
+	uint32_t totalPackets;
+	uint32_t recvPackets;
 
-    inline void SetConnId(uint64_t id) {
-        connId = xmd_htonll(id);
-    }  
-    inline void SetPacketId(uint64_t id) {
-        packetId = xmd_htonll(id);
-    }
-    inline void SetAckedPacketId(uint64_t id) {
-        ackedPacketId = xmd_htonll(id);
-    }
-    inline void SetTimeStamp1(uint64_t ts) {
-        timeStamp1 = xmd_htonll(ts);
-    } 
-    inline void SetTimeStamp2(uint64_t ts) {
-        timeStamp2 = xmd_htonll(ts);
-    } 
-    inline void SetTotalPackets(uint32_t value) {
-        totalPackets = htonl(value);
-    }
-    inline void SetRecvPackets(uint32_t value) {
-        recvPackets = htonl(value);
-    }
-    inline uint64_t GetConnId() {
-        return xmd_ntohll(connId);
-    }
-    inline uint64_t GetPacketId() {
-        return xmd_ntohll(packetId);
-    }
-    inline uint64_t GetAckedPacketId() {
-        return xmd_ntohll(ackedPacketId);
-    }
-    inline uint64_t GetTimestamp1() {
-        return xmd_ntohll(timeStamp1);
-    }
-    inline uint64_t GetTimestamp2() {
-        return xmd_ntohll(timeStamp2);
-    }
-    inline uint32_t GetTotalPackets() {
-        return ntohl(totalPackets);
-    }
-    inline uint32_t GetRecvPackets() {
-        return ntohl(recvPackets);
-    }
+	inline void SetConnId(uint64_t id) {
+		connId = xmd_htonll(id);
+	}
+	inline void SetPacketId(uint64_t id) {
+		packetId = xmd_htonll(id);
+	}
+	inline void SetAckedPacketId(uint64_t id) {
+		ackedPacketId = xmd_htonll(id);
+	}
+	inline void SetTimeStamp1(uint64_t ts) {
+		timeStamp1 = xmd_htonll(ts);
+	}
+	inline void SetTimeStamp2(uint64_t ts) {
+		timeStamp2 = xmd_htonll(ts);
+	}
+	inline void SetTotalPackets(uint32_t value) {
+		totalPackets = htonl(value);
+	}
+	inline void SetRecvPackets(uint32_t value) {
+		recvPackets = htonl(value);
+	}
+	inline uint64_t GetConnId() {
+		return xmd_ntohll(connId);
+	}
+	inline uint64_t GetPacketId() {
+		return xmd_ntohll(packetId);
+	}
+	inline uint64_t GetAckedPacketId() {
+		return xmd_ntohll(ackedPacketId);
+	}
+	inline uint64_t GetTimestamp1() {
+		return xmd_ntohll(timeStamp1);
+	}
+	inline uint64_t GetTimestamp2() {
+		return xmd_ntohll(timeStamp2);
+	}
+	inline uint32_t GetTotalPackets() {
+		return ntohl(totalPackets);
+	}
+	inline uint32_t GetRecvPackets() {
+		return ntohl(recvPackets);
+	}
 };
 #endif // _WIN32
 
@@ -1015,90 +1078,90 @@ PACK(
 });
 #else
 struct __attribute__((__packed__)) XMDACKStreamData {
-    uint64_t connId;
-    uint64_t packetId;
-    uint16_t streamId;
-    uint16_t timeout;
-    uint16_t waitTimeMs;
-    uint32_t groupId;
-    uint32_t groupSize;
-    uint32_t sliceId;
-    uint8_t flags;
-    unsigned char data[0];
-    
-    inline void SetConnId(uint64_t id) {
-        connId = xmd_htonll(id);
-    } 
-    inline void SetPacketId(uint64_t id) {
-        packetId = xmd_htonll(id);
-    }
-    inline void SetStreamId(uint16_t id) {
-        streamId = htons(id);
-    }
+	uint64_t connId;
+	uint64_t packetId;
+	uint16_t streamId;
+	uint16_t timeout;
+	uint16_t waitTimeMs;
+	uint32_t groupId;
+	uint32_t groupSize;
+	uint32_t sliceId;
+	uint8_t flags;
+	unsigned char data[0];
+
+	inline void SetConnId(uint64_t id) {
+		connId = xmd_htonll(id);
+	}
+	inline void SetPacketId(uint64_t id) {
+		packetId = xmd_htonll(id);
+	}
+	inline void SetStreamId(uint16_t id) {
+		streamId = htons(id);
+	}
 	inline void SetTimeout(uint16_t t) {
 		timeout = htons(t);
 	}
-    inline void SetWaitTime(uint16_t t) {
-        waitTimeMs = htons(t);
-    }
-    inline void SetGroupId(uint32_t id) {
-        groupId = htonl(id);
-    }
-    inline void SetGroupSize(uint32_t size) {
-        groupSize = htonl(size);
-    }
-    inline void SetSliceId(uint32_t id) {
-        sliceId = htonl(id);
-    }
-    inline void SetFlags(bool canBeDropped, uint8_t dataType, uint8_t payloadType) {
-        flags = 0;
-        flags += payloadType;
-        flags += (dataType << 4);
-        flags += (canBeDropped << 7);
-    }
-    inline void SetFlags(uint8_t value) {
-        flags = value;
-    }
-    inline void SetPayload(unsigned char* d, int len) {
-        memcpy(data, d, len);
-    }
-    inline uint64_t GetConnId() {
-        return xmd_ntohll(connId);
-    }
-    inline uint64_t GetPacketId() {
-        return xmd_ntohll(packetId);
-    }
-    inline uint16_t GetStreamId() {
-        return ntohs(streamId);
-    }
+	inline void SetWaitTime(uint16_t t) {
+		waitTimeMs = htons(t);
+	}
+	inline void SetGroupId(uint32_t id) {
+		groupId = htonl(id);
+	}
+	inline void SetGroupSize(uint32_t size) {
+		groupSize = htonl(size);
+	}
+	inline void SetSliceId(uint32_t id) {
+		sliceId = htonl(id);
+	}
+	inline void SetFlags(bool canBeDropped, uint8_t dataType, uint8_t payloadType) {
+		flags = 0;
+		flags += payloadType;
+		flags += (dataType << 4);
+		flags += (canBeDropped << 7);
+	}
+	inline void SetFlags(uint8_t value) {
+		flags = value;
+	}
+	inline void SetPayload(unsigned char* d, int len) {
+		memcpy(data, d, len);
+	}
+	inline uint64_t GetConnId() {
+		return xmd_ntohll(connId);
+	}
+	inline uint64_t GetPacketId() {
+		return xmd_ntohll(packetId);
+	}
+	inline uint16_t GetStreamId() {
+		return ntohs(streamId);
+	}
 	inline uint16_t GetTimeout() {
 		return ntohs(timeout);
 	}
-    inline uint16_t GetWaitTime() {
-        return ntohs(waitTimeMs);
-    }
-    inline uint32_t GetGroupId() {
-        return ntohl(groupId);
-    }
-    inline uint32_t GetGroupSize() {
-        return ntohl(groupSize);
-    }
-    inline uint32_t GetSliceId() {
-        return ntohl(sliceId);
-    }
-    inline bool GetIsLost() {
-        bool result = flags & 0x80;
-        return result;
-    }
-    inline uint8_t getDataType() {
-        return ((flags & 0x70) >> 4);
-    }
-    inline uint8_t getPayloadType() {
-        return (flags & 0x0F);
-    }
-    inline unsigned char* GetPayload() {
-        return data;
-    }
+	inline uint16_t GetWaitTime() {
+		return ntohs(waitTimeMs);
+	}
+	inline uint32_t GetGroupId() {
+		return ntohl(groupId);
+	}
+	inline uint32_t GetGroupSize() {
+		return ntohl(groupSize);
+	}
+	inline uint32_t GetSliceId() {
+		return ntohl(sliceId);
+	}
+	inline bool GetIsLost() {
+		bool result = flags & 0x80;
+		return result;
+	}
+	inline uint8_t getDataType() {
+		return ((flags & 0x70) >> 4);
+	}
+	inline uint8_t getPayloadType() {
+		return (flags & 0x0F);
+	}
+	inline unsigned char* GetPayload() {
+		return data;
+	}
 };
 #endif // _WIN32
 
@@ -1112,12 +1175,13 @@ public:
     int buildConnReset(uint64_t connId, ConnResetType type);
     int buildConnResp(uint64_t connId, unsigned char* key, int len);
     int buildConnClose(uint64_t connId);
-    int buildDatagram(unsigned char* data, int len);
+    int buildDatagram(unsigned char* data, int len, unsigned char packetType);
     int buildStreamClose(uint64_t connId, uint16_t streamId, bool isEncrypt, std::string key);
     int buildFECStreamData(XMDFECStreamData stData, unsigned char* data, int len, bool isEncrypt, std::string key);
-    int buildAckStreamData(XMDACKStreamData stData, unsigned char* data, int len, bool isEncrypt, std::string key);
+    int buildAckStreamData(XMDACKStreamData stData, unsigned char* data, int len, bool isEncrypt, std::string key, PacketType type);
     int buildStreamDataAck(uint64_t connId, uint64_t packetid, uint64_t ackPacketId, bool isEncrypt, std::string key);
     int buildXMDPing(uint64_t connId, bool isEncrypt, std::string key, uint64_t packetid);
+    int buildXMDTestRttPacket(uint64_t connId, bool isEncrypt, std::string key, uint64_t packetid);
     int buildXMDPong(XMDPong pongData, bool isEncrypt, std::string key);
     XMDConnection* decodeNewConn(unsigned char* data, int len);
     XMDConnResp* decodeConnResp(unsigned char* data, int len);

@@ -1,63 +1,56 @@
 #ifdef _WIN32
 #include <ws2tcpip.h>
-
 #else
-#include <arpa/inet.h>
+
 #include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #endif // _WIN32
+#include <sstream>
+#include <string.h>
 
 #include "XMDTransceiver.h"
 #include "common.h"
-#include <string.h>
-#include <thread>
-#include <chrono>
-#include <sstream>
+#include "sleep_define.h"
+
 
 int XMDTransceiver::start() {
-    commonData_ = new XMDCommonData(decodeThreadSize_);
+    commonData_ = new XMDCommonData(workerThreadSize_, timerThreadSize_);
     packetDispatcher_ = new PacketDispatcher();
     recvThread_ = new XMDRecvThread(port_, commonData_, packetDispatcher_, this);
     sendThread_ = new XMDSendThread(commonData_, packetDispatcher_, this);
-    packetbuildThreadPool_ = new XMDPacketBuildThreadPool(1, commonData_, packetDispatcher_);
-    packetRecoverThreadPool_ = new XMDPacketRecoverThreadPool(decodeThreadSize_, commonData_);
-    packetDecodeThreadPool_ = new XMDPacketDecodeThreadPool(1, commonData_, packetDispatcher_);
-    callbackThread_ = new XMDCallbackThread(packetDispatcher_, commonData_);
-    pingThread_ = new PingThread(packetDispatcher_, commonData_);
-    pongThread_ = new PongThread(commonData_);
+    workerThreadPool_ = new XMDWorkerThreadPool(workerThreadSize_, commonData_, packetDispatcher_);
+    timerThreadPool_ = new XMDTimerThreadPool(timerThreadSize_, commonData_);
+
+    bufferMaxSize_ = DEFAULT_RESEND_QUEUE_SIZE + SOCKET_SENDQUEUE_MAX_SIZE + WORKER_QUEUE_MAX_SIZE;
         
     int ret = recvThread_->InitSocket();
     if (ret != 0) {
         return ret;
     }
     sendThread_->SetListenFd(recvThread_->listenfd());
-	
-#ifdef _WIN32
-		WSADATA wsaData;
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-			XMDLoggerWrapper::instance()->error("WSAStartup(MAKEWORD(2, 2), &wsaData) execute failed!");
-			return -1;
-		}
-#endif // _WIN32
 
     return 0;
 }
 
+pthread_mutex_t XMDTransceiver::reset_socket_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+
 int XMDTransceiver::resetSocket() {
-    /*reset_socket_mutex_.lock();
+    /*pthread_mutex_lock(&reset_socket_mutex_);
     XMDLoggerWrapper::instance()->error("XMD reset socket");
     int ret = recvThread_->InitSocket();
     if (ret != 0) {
         packetDispatcher_->handleSocketError(ret, "reset socket err");
         XMDLoggerWrapper::instance()->error("XMD reset socket failed");
-        reset_socket_mutex_.unlock();
+        pthread_mutex_unlock(&reset_socket_mutex_);
         return ret;
     }
     sendThread_->SetListenFd(recvThread_->listenfd());
-    reset_socket_mutex_.unlock();*/
+    pthread_mutex_unlock(&reset_socket_mutex_);*/
     return 0;
 }
 
-int XMDTransceiver::sendDatagram(char* ip, uint16_t port, char* data, int len, uint64_t delay_ms) {
+int XMDTransceiver::buildAndSendDatagram(char* ip, uint16_t port, char* data, unsigned int len, uint64_t delay_ms, unsigned char packetType) {
     if (len > MAX_PACKET_LEN) {
         XMDLoggerWrapper::instance()->warn("packet too large,len=%d.", len);
         return -1;
@@ -67,171 +60,145 @@ int XMDTransceiver::sendDatagram(char* ip, uint16_t port, char* data, int len, u
         XMDLoggerWrapper::instance()->warn("input invalid, ip or data is null.");
         return -1;
     }
+
+    if (commonData_->isTimerQueueFull(0, len)) {
+        XMDLoggerWrapper::instance()->warn("timer queue full drop datagram packet");
+        return -1;
+    }
     XMDPacketManager packetMan;
-    packetMan.buildDatagram((unsigned char*)data, len);
+    packetMan.buildDatagram((unsigned char*)data, len, packetType);
     XMDPacket *xmddata = NULL;
     int packetLen = 0;
     if (packetMan.encode(xmddata, packetLen) != 0) {
         return 0;
     }
 
-    SendQueueData* queueData = new SendQueueData((uint32_t)inet_addr(ip), port, (unsigned char*)xmddata, packetLen);
+    SendQueueData* queueData = new SendQueueData((in_addr_t)inet_addr(ip), port, (unsigned char*)xmddata, packetLen);
 
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_DATAGREAM_TIMEOUT, (void*)queueData, sizeof(SendQueueData) + packetLen);
+
+    TimerThreadData* timerThreadData = new TimerThreadData();
+    timerThreadData->connId = 0;
     if (0 == delay_ms) {
-        queueData->sendTime = 0;
+        timerThreadData->time = 0;
     } else {
-        queueData->sendTime = delay_ms + current_ms();
+        timerThreadData->time = delay_ms + current_ms();
     }
+    timerThreadData->data = (void*)workerThreadData;
+    timerThreadData->len = sizeof(WorkerThreadData) + sizeof(SendQueueData) + packetLen;
+    
+    commonData_->timerQueuePush(timerThreadData, 0);
 
-    commonData_->datagramQueuePush(queueData);
 
     return 0;
 }
 
-pthread_mutex_t XMDTransceiver::create_conn_mutex_ = PTHREAD_MUTEX_INITIALIZER;
 
-uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, int len, uint16_t timeout, void* ctx) {
+int XMDTransceiver::sendDatagram(char* ip, uint16_t port, char* data, unsigned int len, uint64_t delay_ms) {
+    unsigned char tmp = 0;
+    return buildAndSendDatagram(ip, port, data, len, delay_ms, tmp);
+}
+
+int XMDTransceiver::sendTestRttPacket(uint64_t connId, unsigned int delayMs, unsigned int packetCount) {
+    if (commonData_->isTimerQueueFull(0, sizeof(TestRttPacket) + sizeof(TimerThreadData) + sizeof(WorkerThreadData))) {
+        XMDLoggerWrapper::instance()->warn("timer queue full drop test rtt packet");
+        return -1;
+    }
+    TestRttPacket* testRtt = new TestRttPacket();
+    testRtt->connId = connId;
+    testRtt->delayMs = delayMs;
+    testRtt->packetCount = packetCount;
+
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_TEST_RTT, (void*)testRtt, sizeof(TestRttPacket));
+
+    TimerThreadData* timerThreadData = new TimerThreadData();
+    timerThreadData->connId = 0;
+    timerThreadData->time = delayMs + current_ms();
+    timerThreadData->data = (void*)workerThreadData;
+    timerThreadData->len = sizeof(WorkerThreadData) + sizeof(TestRttPacket);
+    commonData_->timerQueuePush(timerThreadData, connId);
+
+    return 0;
+}
+
+
+
+uint64_t XMDTransceiver::createConnection(char* ip, uint16_t port, char* data, unsigned int len, uint16_t timeout, void* ctx) {
     if (NULL == ip || (NULL == data && len != 0)) {
         XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return 0;
     }
-    //uint32_t ip_int = (uint32_t)inet_addr(ip);
-    //uint64_t conn_id = rand64(ip_int, port);
-	uint64_t conn_id = rand64();
     
-    //uint32_t local_ip = 0;
-    //uint16_t local_port = 0;
-    //getLocalInfo(local_ip, local_port);
-    //uint64_t conn_id = rand64(local_ip, local_port);
+    uint32_t local_ip = 0;
+    uint16_t local_port = 0;
+    getLocalInfo(local_ip, local_port);
+    uint64_t conn_id = rand64(local_ip, local_port);
 
-    
-    ConnInfo connInfo;
-    connInfo.ip = (in_addr_t)inet_addr(ip);
-    connInfo.port = port;
-    connInfo.timeout = timeout;
-    connInfo.connState = CONNECTING;
-    connInfo.created_stream_id = 0;  
-    connInfo.max_stream_id = 0;
-    connInfo.ctx = ctx;
-    commonData_->insertConn(conn_id, connInfo);
+    NewConnWorkerData* connData = new NewConnWorkerData((unsigned char*)data, len);
+    connData->connInfo.connId = conn_id;
+    connData->connInfo.ip = (in_addr_t)inet_addr(ip);
+    connData->connInfo.port = port;
+    connData->connInfo.timeout = timeout;
+    connData->connInfo.connState = CONNECTING;
+    connData->connInfo.max_stream_id = 0;
+    connData->connInfo.ctx = ctx;
 
-    XMDPacketManager packetMan;
-    packetMan.buildConn(conn_id, (unsigned char*)data, len, timeout, 0, NULL, 0, NULL, false);
-    XMDPacket *xmddata = NULL;
-    int packetLen = 0;
-    if (packetMan.encode(xmddata, packetLen) != 0) {
-        return 0;
-    }
+    uint16_t pingInterval = (unsigned int)(timeout / 2.5) * 1000;
+    connData->connInfo.pingInterval = pingInterval < PING_INTERVAL ? PING_INTERVAL : pingInterval;
+    commonData_->SetPingIntervalMs(conn_id, pingInterval);
 
-    SendQueueData* sendData = new SendQueueData((in_addr_t)inet_addr(ip), port, (unsigned char*)xmddata, packetLen);
-    commonData_->socketSendQueuePush(sendData);
+    WorkerThreadData* workerData = new WorkerThreadData(WORKER_CREATE_NEW_CONN, (void*)connData, sizeof(NewConnWorkerData) + len);
+    commonData_->workerQueuePush(workerData, conn_id);
 
-
-    ResendData* resendData = new ResendData((unsigned char*)xmddata, packetLen);
-    resendData->connId = conn_id;
-    resendData->packetId = 0;
-    resendData->ip = connInfo.ip;
-    resendData->port = connInfo.port;
-    resendData->reSendTime = current_ms() + commonData_->getResendTimeInterval();
-    resendData->reSendCount = CONN_RESEND_TIME;
-    commonData_->resendQueuePush(resendData);
-
-    std::stringstream ss_ack;
-    ss_ack << conn_id << 0;
-    std::string ackpacketKey = ss_ack.str();
-    commonData_->insertIsPacketRecvAckMap(ackpacketKey, false);
-
-    PacketCallbackInfo packetInfo;
-    packetInfo.connId = conn_id;
-    packetInfo.streamId = 0;
-    packetInfo.packetId = 0;
-    packetInfo.groupId = 0;
-    packetInfo.sliceId = 0;
-    packetInfo.ctx = ctx;
-    commonData_->insertPacketCallbackInfoMap(ackpacketKey, packetInfo);
-
+    commonData_->addConnStreamId(conn_id, 0);
 
     return conn_id;
 }
 
 int XMDTransceiver::closeConnection(uint64_t connId) {
-    ConnInfo connInfo;
-    if(!commonData_->getConnInfo(connId, connInfo)){
-        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
-        return -1;
-    }
-    
-    if (commonData_->deleteConn(connId) != 0) {
-        return -1;
-    }
+    WorkerData* workerData = new WorkerData();
+    workerData->connId = connId;
+    workerData->streamId = 0;
 
-    XMDPacketManager packetMan;
-    packetMan.buildConnClose(connId);
-    XMDPacket *xmddata = NULL;
-    int packetLen = 0;
-    if (packetMan.encode(xmddata, packetLen) != 0) {
-        return 0;
-    }
-
-    SendQueueData* sendData = new SendQueueData(connInfo.ip, connInfo.port, (unsigned char*)xmddata, packetLen);
-    commonData_->socketSendQueuePush(sendData);
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_CLOSE_CONN, (void*)workerData, sizeof(WorkerData));
+    commonData_->workerQueuePush(workerThreadData, connId);
 
     return 0;
 }
 
 uint16_t XMDTransceiver::createStream(uint64_t connId, StreamType streamType, uint16_t waitTime, bool isEncrypt) {  
-    ConnInfo connInfo;
-    if(!commonData_->getConnInfo(connId, connInfo)){
-        return 0;
-    }
-    
     uint16_t streamId = commonData_->getConnStreamId(connId);
-    StreamInfo streamInfo;
-    streamInfo.sType = streamType;
-    streamInfo.isEncrypt = isEncrypt;
-    streamInfo.callbackWaitTimeout = waitTime;
-    if (commonData_->insertStream(connId, streamId, streamInfo) != 0) {
-        return 0;
-    }
+    
+    NewStreamWorkerData* workerData = new NewStreamWorkerData();
+    workerData->connId = connId;
+    workerData->streamId = streamId;
+    workerData->callbackWaitTimeout = waitTime;
+    workerData->sType = streamType;
+    workerData->isEncrypt = isEncrypt;
+
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_CREATE_STREAM, (void*)workerData, sizeof(NewStreamWorkerData));
+    commonData_->workerQueuePush(workerThreadData, connId);
     
     return streamId;
 }
 
 int XMDTransceiver::closeStream(uint64_t connId, uint16_t streamId) {
-    if (commonData_->deleteStream(connId, streamId) != 0) {
-        return -1;
-    }
+    WorkerData* workerData = new WorkerData();
+    workerData->connId = connId;
+    workerData->streamId = streamId;
 
-    ConnInfo connInfo;
-    if(!commonData_->getConnInfo(connId, connInfo)){
-        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
-        return -1;
-    }
-    if (connInfo.connState != CONNECTED) {
-        XMDLoggerWrapper::instance()->warn("connection(%ld) has not been established.", connId);
-        return -1;
-    }
-
-    XMDPacketManager packetMan;
-    packetMan.buildStreamClose(connId, streamId, false, connInfo.sessionKey);
-    XMDPacket *xmddata = NULL;
-    int packetLen = 0;
-    if (packetMan.encode(xmddata, packetLen) != 0) {
-        return -1;
-    }
-
-    SendQueueData* sendData = new SendQueueData(connInfo.ip, connInfo.port, (unsigned char*)xmddata, packetLen);
-    commonData_->socketSendQueuePush(sendData);
-
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_CLOSE_STREAM, (void*)workerData, sizeof(WorkerData));
+    commonData_->workerQueuePush(workerThreadData, connId);
+    
     return 0;
 }
 
-int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, void* ctx) {
+int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, unsigned int len, void* ctx) {
     return sendRTData(connId, streamId, data, len, false, P1, 2, ctx);
 }
 
 
-int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx) {
+int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, unsigned int len, bool canBeDropped, DataPriority priority, int resendCount, void* ctx) {
     if (len > MAX_PACKET_LEN) {
         XMDLoggerWrapper::instance()->warn("packet too large,len=%d.", len);
         return -1;
@@ -242,47 +209,42 @@ int XMDTransceiver::sendRTData(uint64_t connId, uint16_t streamId, char* data, i
         return -1;
     }
 
-    /*ConnInfo connInfo;
-    if(!commonData_->getConnInfo(connId, connInfo)){
-        XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
+    if (resendCount != -1 && commonData_->isWorkerQueueFull(connId % workerThreadSize_, len)) {
+        XMDLoggerWrapper::instance()->warn("worker queue size %d + %d > %d.", 
+                                           commonData_->getWorkerQueueUsedSize(connId % workerThreadSize_),  len,
+                                           commonData_->getWorkerQueueMaxSize(connId % workerThreadSize_));
         return -1;
     }
-
-    StreamInfo sInfo;
-    if(!commonData_->getStreamInfo(connId, streamId, sInfo)) {
-        XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
-        return -1;
-    }*/
 
     uint32_t groupId = commonData_->getGroupId(connId, streamId);
-    StreamQueueData* queueData = new StreamQueueData(len);
-    queueData->connId = connId;
-    queueData->streamId = streamId;
-    queueData->groupId = groupId;
-    queueData->len = len;
-    queueData->canBeDropped = canBeDropped;
-    queueData->dataPriority = priority;
-    queueData->ctx = ctx;
-    if (resendCount >= 0) {
-        queueData->resendCount = resendCount + 1;
-    }
-    memcpy(queueData->data, data, len);
-    commonData_->streamQueuePush(queueData);
+    RTWorkerData* workerData = new RTWorkerData((unsigned char*)data, len);
+    workerData->connId = connId;
+    workerData->streamId = streamId;
+    workerData->groupId = groupId;
+    workerData->canBeDropped = canBeDropped;
+    workerData->dataPriority = priority;
+    workerData->resendCount = resendCount;
+    workerData->ctx = ctx;
+
+    WorkerThreadData* workerThreadData = new WorkerThreadData(WORKER_SEND_RTDATA, workerData, sizeof(RTWorkerData) + len);
+    commonData_->workerQueuePush(workerThreadData, connId);
+
     return groupId;
 }
 
 
 int XMDTransceiver::updatePeerInfo(uint64_t connId, char* ip, uint16_t port) {
-    if (NULL == ip) {
+    /*if (NULL == ip) {
         XMDLoggerWrapper::instance()->warn("input invalid, ip is null");
         return -1;
     }
 
-    return commonData_->updateConnIpInfo(connId, (in_addr_t)inet_addr(ip), port);
+    return commonData_->updateConnIpInfo(connId, (in_addr_t)inet_addr(ip), port);*/
+    return 0;
 }
 
 int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int32_t& port) {
-    ConnInfo connInfo;
+    /*ConnInfo connInfo;
     if(!commonData_->getConnInfo(connId, connInfo)){
         XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return -1;
@@ -303,152 +265,123 @@ int XMDTransceiver::getPeerInfo(uint64_t connId, std::string &ip, int32_t& port)
     char cIP[ipLen];
     memcpy(cIP, ipStr, ipLen);
     std::string tmpIp(cIP, ipLen);
-    ip = tmpIp;
+    ip = tmpIp;*/
 
     return 0;
 }
 
+
+
 int XMDTransceiver::getLocalInfo(std::string &ip, uint16_t& port) {
-    struct sockaddr_in  loc_addr;  
-    socklen_t len = sizeof(loc_addr);  
-    memset(&loc_addr, 0, len); 
-    if (-1 == getsockname(recvThread_->listenfd(), (struct sockaddr *)&loc_addr, &len)) {
-        XMDLoggerWrapper::instance()->error("get ip failed.");
-        return -1;
+    if (local_ip_ == 0) {
+        local_ip_ = getLocalIntIp();
+        struct in_addr tmp_addr;
+        tmp_addr.s_addr = local_ip_;
+        local_ip_str_ = inet_ntoa(tmp_addr);
     }
 
-    port = ntohs(loc_addr.sin_port);
-
-    uint32_t ipv4;
-    int err = get_eth0_ipv4(&ipv4);
-    if (err) {
-      ipv4 = 0;
+    if (local_port_ == 0) {
+        local_port_ = getLocalPort(recvThread_->listenfd());
     }
-    const int IP_STR_LEN = 16;
-    char ip_chars[IP_STR_LEN];
-    inet_ntop(AF_INET, &ipv4, ip_chars, IP_STR_LEN);
-    int ipLen = 0;
-    for (ipLen = 0; ipLen < IP_STR_LEN; ipLen++) {
-        if (ip_chars[ipLen] == '\0') {
-            break;
-        }
-    }
-    char cIP[ipLen];
-    memcpy(cIP, ip_chars, ipLen);
-    std::string tmpIp(cIP, ipLen);
 
-    ip = tmpIp;
+    ip = local_ip_str_;
+    port = local_port_;
 
     return 0;
 }
 
 int XMDTransceiver::getLocalInfo(uint32_t &ip, uint16_t& port) {
-    struct sockaddr_in  loc_addr;  
-    socklen_t len = sizeof(loc_addr);  
-    memset(&loc_addr, 0, len); 
-    if (-1 == getsockname(recvThread_->listenfd(), (struct sockaddr *)&loc_addr, &len)) {
-        XMDLoggerWrapper::instance()->error("get ip failed.");
-        return -1;
+    if (local_ip_ == 0) {
+        local_ip_ = getLocalIntIp();
+        struct in_addr tmp_addr;
+        tmp_addr.s_addr = local_ip_;
+        local_ip_str_ = inet_ntoa(tmp_addr);
     }
 
-    port = ntohs(loc_addr.sin_port);
-
-    uint32_t ipv4;
-    int err = get_eth0_ipv4(&ipv4);
-    if (err) {
-      ipv4 = 0;
+    if (local_port_ == 0) {
+        local_port_ = getLocalPort(recvThread_->listenfd());
     }
-
-    ip = ipv4;
+    
+    ip = local_ip_;
+    port = local_port_;
 
     return 0;
 }
 
 
+
 void XMDTransceiver::setSendBufferSize(int size) {
-    commonData_->setResendQueueSize(size);
+    bufferMaxSize_ = size;
+    int timerQueueSize = size * 0.5;
+    int workerQueueSize = size * 0.35;
+    int socketQueueSize = bufferMaxSize_ - timerQueueSize - workerQueueSize;
+    
+    commonData_->setTimerQueueMaxSize(0, timerQueueSize);
+    commonData_->setWorkerQueueMaxSize(0, workerQueueSize);
+    commonData_->setSocketSendQueueMaxSize(socketQueueSize);
 }
 
-void XMDTransceiver::setRecvBufferSize(int size) {
-    commonData_->setCallbackQueueSize(size);
+int XMDTransceiver::getSendBufferUsedSize() {
+    return commonData_->getTimerQueueUsedSize(0) + commonData_->getWorkerQueueUsedSize(0) + getSocketSendQueueUsedSize();
 }
 
-int XMDTransceiver::getSendBufferSize() {
-    return commonData_->getResendQueueSize();
+int XMDTransceiver::getSendBufferMaxSize() {
+    return bufferMaxSize_;
 }
-
-int XMDTransceiver::getRecvBufferSize() {
-    return commonData_->getCallbackQueueSize();
-}
-
 
 float XMDTransceiver::getSendBufferUsageRate() {
-    return commonData_->getResendQueueUsageRate();
+    float maxUsageRate = commonData_->getWorkerQueueUsageRate(0);
+    float timerQueueUsageRate = commonData_->getTimerQueueUsageRate(0);
+    float socketQueueUsageRate = commonData_->getSocketSendQueueUsageRate();
+    if (maxUsageRate < timerQueueUsageRate) {
+        maxUsageRate = timerQueueUsageRate;
+    }
+    if (maxUsageRate < socketQueueUsageRate) {
+        maxUsageRate = socketQueueUsageRate;
+    }
+
+    return maxUsageRate;
 }
 
-
-float XMDTransceiver::getRecvBufferUsageRate() {
-    return commonData_->getCallbackQueueUsegeRate();
-}
 
 void XMDTransceiver::clearSendBuffer() {
-    commonData_->clearResendQueue();
-}
-
-void XMDTransceiver::clearRecvBuffer() {
-    commonData_->clearCallbackQueue();
+    //commonData_->clearTimerQueue(0);
 }
 
 ConnectionState XMDTransceiver::getConnState(uint64_t connId) {
-    ConnInfo connInfo;
+    /*ConnInfo connInfo;
     if(!commonData_->getConnInfo(connId, connInfo)){
         XMDLoggerWrapper::instance()->warn("connection(%ld) not exist.", connId);
         return CLOSED;
     }
 
-    return connInfo.connState;
+    return connInfo.connState;*/
+    return CONNECTED;
 }
 
 
 void XMDTransceiver::run() {
     sendThread_->run();
     recvThread_->run();
-    packetbuildThreadPool_->run();
-    packetDecodeThreadPool_->run();
-    packetRecoverThreadPool_->run();
-    callbackThread_->run();
-    pingThread_->run();
-    pongThread_->run();
+    workerThreadPool_->run();
+    timerThreadPool_->run();
 }
 
 void XMDTransceiver::join() {
-    packetbuildThreadPool_->join();
     sendThread_->join();
     recvThread_->join();
-    packetDecodeThreadPool_->join();
-    packetRecoverThreadPool_->join();
-    callbackThread_->join();
-    pingThread_->join();
-    pongThread_->join();
+    workerThreadPool_->join();
+    timerThreadPool_->join();
 }
 
-void XMDTransceiver::stop() {
-    std::vector<uint64_t> connVec = commonData_->getConnVec();
-    for (size_t i = 0; i < connVec.size(); i++) {
-        closeConnection(connVec[i]);
-    }
-    //usleep(1000);
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    packetbuildThreadPool_->stop();
-
+void XMDTransceiver::stop() {    
+    //CLOSE CONN
     sendThread_->stop();
     recvThread_->stop();
-    packetDecodeThreadPool_->stop();
-    packetRecoverThreadPool_->stop();
-    callbackThread_->stop();
-    pingThread_->stop();
-    pongThread_->stop();
-    //usleep(1000);
-	commonData_->NotifyBlockQueue();
-	std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    timerThreadPool_->stop();
+    workerThreadPool_->stop();
+    
+    commonData_->NotifyBlockQueue();
+    usleep(XMD_TRANS_STOP_SLEEP_MS);
 }
+

@@ -2,623 +2,366 @@
 #include "XMDLoggerWrapper.h"
 #include "common.h"
 #include <sstream>
-
-std::mutex XMDCommonData::resend_queue_mutex_;
-std::mutex XMDCommonData::datagram_queue_mutex_;
-std::mutex XMDCommonData::packetId_mutex_;
-std::mutex XMDCommonData::callback_data_map_mutex_;
-std::mutex XMDCommonData::stream_data_send_callback_map_mutex_;
-std::mutex XMDCommonData::packet_loss_map_mutex_;
-std::mutex XMDCommonData::conn_mutex_;
-std::mutex XMDCommonData::group_id_mutex_;
-std::mutex XMDCommonData::socket_send_queue_mutex_;
+#include "MutexLock.h"
 
 
-XMDCommonData::XMDCommonData(int decodeThreadSize) {
-    decodeThreadSize_ = decodeThreadSize;
-    for (int i = 0; i < decodeThreadSize; i++) {
-        STLSafeQueue<StreamData*> tmpQueue;
-        packetRecoverQueueVec_.push_back(tmpQueue);
+XMDCommonData::XMDCommonData(unsigned int workerThreadSize, unsigned int timerThreadSize) {
+    workerThreadSize_ = workerThreadSize;
+    for (unsigned int i = 0; i < workerThreadSize; i++) {
+        STLBlockQueue<WorkerThreadData*> tmpQueue;
+        workerQueueVec_.push_back(tmpQueue);
+        workerQueueSizeVec_.push_back(0);
+        pthread_mutex_t worker_queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        worker_queue_mutex_vec_.push_back(worker_queue_mutex_);
+        workerQueueMaxSizeVec_.push_back(WORKER_QUEUE_MAX_SIZE);
     }
 
-    connVec_.clear();
 
-    datagramQueueMaxLen_ = DEFAULT_DATAGRAM_QUEUE_LEN;
-    callbackQueueMaxLen_ = DEFAULT_CALLBACK_QUEUE_LEN;
-    resendQueueMaxLen_ = DEFAULT_RESEND_QUEUE_LEN;
-    ping_interval_ = PING_INTERVAL / 1000;
-    resend_interval_ = FIRST_RESEND_INTERVAL;
+    timerThreadSize_ = timerThreadSize;
+    for (unsigned int i = 0; i < timerThreadSize_; i++) {
+        TimerThreadQueue timerqueue;
+        timerQueueVec_.push_back(timerqueue);
+        pthread_mutex_t timer_queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+        timer_queue_mutex_vec_.push_back(timer_queue_mutex_);
+        timerQueueMaxSizeVec_.push_back(DEFAULT_RESEND_QUEUE_SIZE);
+        timerQueueSizeVec_.push_back(0);
+        
+    }
+
+    socketSendQueueSize_ = 0;
+    socketSendQueueMaxSize_ = SOCKET_SENDQUEUE_MAX_SIZE;
+
+    group_id_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+    stream_id_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+    ping_interval_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+    socket_send_queue_mutex_ = PTHREAD_MUTEX_INITIALIZER;
+
 }
 
 XMDCommonData::~XMDCommonData() {
-    connVec_.clear();
+    while(!socketSendQueueEmpty()) {
+        SendQueueData* sendData = socketSendQueuePop();
+        if (NULL != sendData) {
+            delete sendData;
+        }
+    }
+
+    for (size_t i = 0; i < workerQueueVec_.size(); i++) {
+        while (!workerQueueEmpty(i)) {
+            WorkerThreadData* workerThreadData = workerQueuePop(i);
+            deleteWorkerData(workerThreadData);
+        }
+        workerQueueSizeVec_[i] = 0;
+    }
+
+    for (size_t j = 0; j < timerQueueVec_.size(); j++) {
+        while (!timerQueueEmpty(j)) {
+            TimerThreadData* timerThreadData = timerQueuePop(j);
+            if (timerThreadData != NULL) {
+                deleteWorkerData((WorkerThreadData*)timerThreadData->data);
+                delete timerThreadData;
+            }
+        }
+        timerQueueSizeVec_[j] = 0;
+    }
 }
 
-
-void XMDCommonData::streamQueuePush(StreamQueueData * data) {
-    streamQueue_.Push(data);
+void XMDCommonData::workerQueuePush(WorkerThreadData* data, uint64_t connid) {
+    unsigned int id = connid % workerThreadSize_;
+    {
+    MutexLock lock(&worker_queue_mutex_vec_[id]);
+    workerQueueSizeVec_[id] += (data->len + sizeof(WorkerThreadData));
+    }
+    workerQueueVec_[id].Push(data);
 }
-
-StreamQueueData* XMDCommonData::streamQueuePop() {
-    StreamQueueData* data = NULL;
-    bool result = streamQueue_.Pop(data);
+WorkerThreadData* XMDCommonData::workerQueuePop(unsigned int id) {
+    WorkerThreadData* data = NULL;
+    if (id >= workerThreadSize_) {
+        XMDLoggerWrapper::instance()->warn("workerQueuePop invalid thread id:%d, queue size=%d", 
+                                                id, workerThreadSize_);
+        return NULL;
+    }
+    bool result = workerQueueVec_[id].Pop(data);
     if (result) {
+        MutexLock lock(&worker_queue_mutex_vec_[id]);
+        workerQueueSizeVec_[id] -= (data->len + sizeof(WorkerThreadData));
         return data;
     } else {
         return NULL;
     }
+
+}
+bool XMDCommonData::workerQueueEmpty(unsigned int id) {
+    if (id >= workerThreadSize_) {
+        XMDLoggerWrapper::instance()->warn("workerQueueEmpty invalid thread id:%d, queue size=%d", 
+                                                id, workerThreadSize_);
+        return false;
+    }
+    bool result = workerQueueVec_[id].empty();
+    return result;
 }
 
-bool XMDCommonData::streamQueueEmpty() {
-    return streamQueue_.empty();
+bool XMDCommonData::isWorkerQueueFull(unsigned int id, unsigned int len) {
+    return workerQueueSizeVec_[id] + len > workerQueueMaxSizeVec_[id];
 }
+
+int XMDCommonData::getWorkerQueueUsedSize(int id) {
+    MutexLock lock(&worker_queue_mutex_vec_[id]);
+    return workerQueueSizeVec_[id];
+}
+
+void XMDCommonData::setWorkerQueueMaxSize(int id, int size) {
+    MutexLock lock(&worker_queue_mutex_vec_[id]);
+    workerQueueMaxSizeVec_[id] = size;
+}
+
+
+int XMDCommonData::getWorkerQueueMaxSize(int id) {
+    MutexLock lock(&worker_queue_mutex_vec_[id]);
+    return workerQueueMaxSizeVec_[id];
+}
+
+float XMDCommonData::getWorkerQueueUsageRate(int id) {
+    MutexLock lock(&worker_queue_mutex_vec_[id]);
+    return float(workerQueueSizeVec_[id]) /  float(workerQueueMaxSizeVec_[id]);
+}
+
+void XMDCommonData::clearWorkerQueue(int id) {
+}
+
+
+
+void XMDCommonData::setTimerQueueMaxSize(int queueId, int size) {
+    MutexLock lock(&timer_queue_mutex_vec_[queueId]);
+    timerQueueMaxSizeVec_[queueId] = size;
+}
+
+float XMDCommonData::getTimerQueueUsageRate(int queueId) {
+    MutexLock lock(&timer_queue_mutex_vec_[queueId]);
+    return float(timerQueueSizeVec_[queueId]) /  float(timerQueueMaxSizeVec_[queueId]);
+}
+
+bool XMDCommonData::isTimerQueueFull(int queueId, unsigned int len) {
+    return timerQueueSizeVec_[queueId] + len > timerQueueMaxSizeVec_[queueId];
+}
+
+int XMDCommonData::getTimerQueueUsedSize(int queueId) {
+    MutexLock lock(&timer_queue_mutex_vec_[queueId]);
+    return timerQueueSizeVec_[queueId];
+}
+
+int XMDCommonData::getTimerQueueMaxSize(int queueId) {
+    MutexLock lock(&timer_queue_mutex_vec_[queueId]);
+    return timerQueueMaxSizeVec_[queueId];
+}
+
+
+void XMDCommonData::clearTimerQueue(int queueId) {
+    MutexLock lock(&timer_queue_mutex_vec_[queueId]);
+    std::vector<TimerThreadData*> tmpVec;
+    while (!timerQueueVec_[queueId].empty()) {
+        TimerThreadData* timerData = timerQueueVec_[queueId].top();
+        timerQueueVec_[queueId].pop();
+        WorkerThreadData* workerData = (WorkerThreadData*)timerData->data;
+        if (workerData->dataType == WORKER_RESEND_TIMEOUT || workerData->dataType == WORKER_DATAGREAM_TIMEOUT) {
+            SendQueueData* queueData = (SendQueueData*)workerData->data;
+            delete queueData;
+            delete workerData;
+            delete timerData;
+        } else {
+            tmpVec.push_back(timerData);
+        }
+    }
+
+    timerQueueSizeVec_[queueId] = 0;
+
+    for (size_t i = 0; i < tmpVec.size(); i++) {
+        timerQueueVec_[queueId].push(tmpVec[i]);
+        timerQueueSizeVec_[queueId] += tmpVec[i]->len;
+    }
+
+}
+
+
+bool XMDCommonData::timerQueuePush(TimerThreadData* data , uint64_t connid) {
+    unsigned int id = connid % timerThreadSize_;
+    MutexLock lock(&timer_queue_mutex_vec_[id]);
+    timerQueueSizeVec_[id] += data->len;
+    timerQueueVec_[id].push(data);
+    return true;
+}
+
+size_t XMDCommonData::timerQueueSize(uint64_t connId) {
+    unsigned int id = connId % timerThreadSize_;
+    MutexLock lock(&timer_queue_mutex_vec_[id]);
+    return timerQueueSizeVec_[id];
+}
+
+
+TimerThreadData* XMDCommonData::timerQueuePop(unsigned int id) {
+    TimerThreadData* data = NULL;
+    if (id >= timerThreadSize_) {
+        XMDLoggerWrapper::instance()->warn("timerQueuePop invalid thread id:%d, queue size=%d", 
+                                                id, timerThreadSize_);
+        return NULL;
+    }
+
+    MutexLock lock(&timer_queue_mutex_vec_[id]);
+    if (timerQueueVec_[id].empty()) {
+        return NULL;
+    }
+    
+    data = timerQueueVec_[id].top();
+    timerQueueVec_[id].pop();
+    timerQueueSizeVec_[id] -= data->len;
+    return data;
+
+}
+
+TimerThreadData* XMDCommonData::timerQueuePriorityPop(unsigned int id) {
+    TimerThreadData* data = NULL;
+    if (id >= timerThreadSize_) {
+        XMDLoggerWrapper::instance()->warn("timerQueuePriorityPop invalid thread id:%d, queue size=%d", 
+                                                id, timerThreadSize_);
+        return NULL;
+    }
+    MutexLock lock(&timer_queue_mutex_vec_[id]);
+    if (timerQueueVec_[id].empty()) {
+        return NULL;
+    }
+    data = timerQueueVec_[id].top();
+    uint64_t currentMs = current_ms();
+    if (data->time <= currentMs) {
+        timerQueueVec_[id].pop();
+        timerQueueSizeVec_[id] -= data->len;
+    } else {
+        data = NULL;
+    }
+    return data;
+}
+
+bool XMDCommonData::timerQueueEmpty(unsigned int id) {
+    if (id >= timerThreadSize_) {
+        XMDLoggerWrapper::instance()->warn("timerQueueEmpty invalid thread id:%d, queue size=%d", 
+                                                id, timerThreadSize_);
+        return false;
+    }
+    MutexLock lock(&timer_queue_mutex_vec_[id]);
+    bool result = timerQueueVec_[id].empty();
+    return result;
+}
+
+
+bool XMDCommonData::isSocketSendQueueFull(unsigned int len) {
+    MutexLock lock(&socket_send_queue_mutex_);
+    return socketSendQueueSize_ + len > socketSendQueueMaxSize_;
+}
+
+void XMDCommonData::setSocketSendQueueMaxSize(int size) {
+    MutexLock lock(&socket_send_queue_mutex_);
+    socketSendQueueMaxSize_ = size;
+}
+
+int XMDCommonData::getSocketSendQueueMaxSize() {
+    MutexLock lock(&socket_send_queue_mutex_);
+    return socketSendQueueMaxSize_;
+}
+
+int XMDCommonData::getSocketSendQueueUsedSize() {
+    MutexLock lock(&socket_send_queue_mutex_);
+    return socketSendQueueSize_;
+}
+
+float XMDCommonData::getSocketSendQueueUsageRate() {
+    MutexLock lock(&socket_send_queue_mutex_);
+    return float(socketSendQueueSize_) /  float(socketSendQueueMaxSize_);
+}
+
+
 
 void XMDCommonData::socketSendQueuePush(SendQueueData* data) {
-    socket_send_queue_mutex_.lock();
-    socketSendQueue_.push(data);
-    socket_send_queue_mutex_.unlock();
+    {
+    MutexLock lock(&socket_send_queue_mutex_);
+    socketSendQueueSize_ += (sizeof(SendQueueData) + data->len);
+    }
+    socketSendQueue_.Push(data);
 }
 
 SendQueueData* XMDCommonData::socketSendQueuePop() {
     SendQueueData* data = NULL;
-    socket_send_queue_mutex_.lock();
-    if (socketSendQueue_.empty()) {
-        socket_send_queue_mutex_.unlock();
-        return NULL;
+    socketSendQueue_.Pop(data);
+    if (data != NULL) {
+        MutexLock lock(&socket_send_queue_mutex_);
+        socketSendQueueSize_ -= (sizeof(SendQueueData) + data->len);
     }
-    data = socketSendQueue_.front();
-    socketSendQueue_.pop();
-    socket_send_queue_mutex_.unlock();
-
     return data;
 }
 
-void XMDCommonData::socketRecvQueuePush(SocketData* data) {
-    socketRecvQueue_.Push(data);
+void XMDCommonData::clearSocketQueue() {
 }
 
-SocketData* XMDCommonData::socketRecvQueuePop() {
-    SocketData* data = NULL;
-    bool result = socketRecvQueue_.Pop(data);
-    if (result) {
-        return data;
+
+uint32_t XMDCommonData::getGroupId(uint64_t connId, uint16_t streamId) {
+    uint32_t groupId = 0;
+    std::stringstream ss;
+    ss << connId << streamId;
+    std::string key = ss.str();
+    MutexLock lock(&group_id_mutex_);
+    std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(key);
+    if (it != groupIdMap_.end()) {
+        groupId = it->second;
+        it->second = groupId + 1;
     } else {
-        return NULL;
+        groupIdMap_[key] = 1;
+    }
+    return groupId;
+}
+
+void XMDCommonData::deleteGroupId(std::string id) {
+    MutexLock lock(&group_id_mutex_);
+    std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(id);
+    if (it != groupIdMap_.end()) {
+        groupIdMap_.erase(it);
     }
 }
 
-bool XMDCommonData::socketRecvQueueEmpty() {
-    return socketRecvQueue_.empty();
-}
-
-
-
-
-void XMDCommonData::packetRecoverQueuePush(StreamData* data, int id) {
-    if (id >= (int)packetRecoverQueueVec_.size()) {
-        XMDLoggerWrapper::instance()->warn("packetRecoverQueuePush invalid thread id:%d", id);
-        delete data;
-        return;
-    }
-    packetRecoverQueueVec_[id].Push(data);
-}
-
-StreamData* XMDCommonData::packetRecoverQueuePop(int id) {
-    StreamData* data = NULL;
-    if (id >= (int)packetRecoverQueueVec_.size()) {
-        XMDLoggerWrapper::instance()->warn("packetRecoverQueuePop invalid thread id:%d, queue size=%d", 
-                                            id, packetRecoverQueueVec_.size());
-        return NULL;
-    }
-
-    bool result = packetRecoverQueueVec_[id].Pop(data);
-    if (result) {
-        return data;
-    } else {
-        return NULL;
-    }
-}
-
-bool XMDCommonData::packetRecoverQueueEmpty(int id) {
-    return packetRecoverQueueVec_[id].empty();
-}
-
-
-bool XMDCommonData::callbackQueuePush(CallbackQueueData* data) {
-    if (callbackQueue_.Size() >= callbackQueueMaxLen_) {
-        XMDLoggerWrapper::instance()->warn("callbackQueue size(%d) bigger than queue max len(%d)", 
-                                           callbackQueue_.Size(), callbackQueueMaxLen_);
-        delete data;
-        return false;
-    }
-    callbackQueue_.Push(data);
-    return true;
-}
-
-CallbackQueueData* XMDCommonData::callbackQueuePop() {
-    CallbackQueueData* data = NULL;
-    bool result = callbackQueue_.Pop(data);
-    if (result) {
-        return data;
-    } else {
-        return NULL;
-    }
-}
-
-bool XMDCommonData::callbackQueueEmpty() {
-    return callbackQueue_.empty();
-}
-
-
-void XMDCommonData::setCallbackQueueSize(int size) {
-    callbackQueueMaxLen_ = size;
-}
-
-int XMDCommonData::getCallbackQueueSize() {
-    return callbackQueueMaxLen_;
-}
-
-
-float XMDCommonData::getCallbackQueueUsegeRate() {
-    return float(callbackQueue_.Size()) / float(callbackQueueMaxLen_);
-}
-
-void XMDCommonData::clearCallbackQueue() {
-    CallbackQueueData* data = NULL;
-    while (!callbackQueue_.empty()) {
-        callbackQueue_.Pop(data);
-    }
-}
-
-
-bool XMDCommonData::datagramQueuePush(SendQueueData* data) {
-	datagram_queue_mutex_.lock();
-	if (datagramQueue_.size() >= datagramQueueMaxLen_) {
-		XMDLoggerWrapper::instance()->warn("datagramQueue size(%d) bigger than queue max len(%d)",
-											datagramQueue_.size(), datagramQueueMaxLen_);
-        datagram_queue_mutex_.unlock();
-        delete data;
-        return false;
-    }
-    datagramQueue_.push(data);
-    datagram_queue_mutex_.unlock();
-    return true;
-}
-
-SendQueueData* XMDCommonData::datagramQueuePriorityPop() {
-    SendQueueData* data = NULL;
-    datagram_queue_mutex_.lock();
-    if (datagramQueue_.empty()) {
-        datagram_queue_mutex_.unlock();
-        return NULL;
-    }
-    data = datagramQueue_.top();
-    uint64_t currentMs = current_ms();
-    if (data->sendTime <= currentMs) {
-        datagramQueue_.pop();
-    } else {
-        data = NULL;
-    }
-    datagram_queue_mutex_.unlock();
-    return data;
-}
-
-SendQueueData* XMDCommonData::datagramQueuePop() {
-    SendQueueData* data = NULL;
-    datagram_queue_mutex_.lock();
-    if (datagramQueue_.empty()) {
-        datagram_queue_mutex_.unlock();
-        return NULL;
-    }
-    data = datagramQueue_.top();
-    datagramQueue_.pop();
-    datagram_queue_mutex_.unlock();
-
-    return data;
-}
-
-
-
-void XMDCommonData::setDatagramQueueSize(int size) {
-    datagramQueueMaxLen_ = size;
-}
-
-float XMDCommonData::getDatagramQueueUsageRate() {
-    return float(datagramQueue_.size()) / float(datagramQueueMaxLen_);
-}
-
-void XMDCommonData::clearDatagramQueue() {
-    datagram_queue_mutex_.lock();
-    while (!datagramQueue_.empty()) {
-        datagramQueue_.pop();
-    }
-    datagram_queue_mutex_.unlock();
-}
-
-
-bool XMDCommonData::isConnExist(uint64_t connId) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("isConnExist connection(%ld) not exist", connId);
-		conn_mutex_.unlock();
-        return false;
-    }
-	conn_mutex_.unlock();
-    return true;
-}
-
-
-int XMDCommonData::insertConn(uint64_t connId, ConnInfo connInfo) {
-	conn_mutex_.lock();
-    connectionMap_[connId] = connInfo;
-    connVec_.push_back(connId);
-	conn_mutex_.unlock();
-    return 0;
-}
-int XMDCommonData::updateConn(uint64_t connId, ConnInfo connInfo) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-		conn_mutex_.unlock();
-        return -1;
-    }
-    
-    connectionMap_[connId] = connInfo;
-	conn_mutex_.unlock();
-    return 0;
-}
-
-int XMDCommonData::deleteConn(uint64_t connId) {
-    uint32_t maxStreamId = 0;
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it != connectionMap_.end()) {
-        maxStreamId = it->second.max_stream_id;
-    }
-    
-	conn_mutex_.unlock();
-
-    deleteFromConnVec(connId);
-
-    pingMap_.deleteMapVaule(connId);
-
-    deletePacketLossInfoMap(connId);
-
-    deleteNetStatus(connId);
-
-    packetId_mutex_.lock();
-    std::unordered_map<uint64_t, uint64_t>::iterator packetIdIt = packetIdMap_.find(connId);
-    if (packetIdIt != packetIdMap_.end()) {
-        packetIdMap_.erase(packetIdIt);
-    } 
-    packetId_mutex_.unlock();
-
-    std::stringstream ss_conn;
-    ss_conn << connId;
-    std::string connKey = ss_conn.str();
-    deleteLastPacketTime(connKey);
-    for (unsigned int i = 0; i <= maxStreamId; i++) {
-        std::stringstream ss;
-        ss << connId << i;
-        std::string key = ss.str();
-        deleteLastPacketTime(key);
-        deleteGroupId(key);
-        deleteLastCallbackGroupId(key);
-        deletefromCallbackDataMap(key);
-    }
-    
-    return 0;
-}
-
-bool XMDCommonData::getConnInfo(uint64_t connId, ConnInfo& cInfo) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("getConnInfo connection(%ld) not exist", connId);
-		conn_mutex_.unlock();
-        return false;
-    }
-    cInfo = connectionMap_[connId];
-	conn_mutex_.unlock();
-    return true;
+void XMDCommonData::addConnStreamId(uint64_t connId, uint16_t streamId) {
+    MutexLock lock(&group_id_mutex_);
+    streamIdMap_[connId] = streamId;
 }
 
 uint32_t XMDCommonData::getConnStreamId(uint64_t connId) {
-    uint32_t streamId = 0;
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it != connectionMap_.end()) {
-        ConnInfo& info = it->second;
-        streamId = info.created_stream_id + 2;
-        info.created_stream_id = streamId;
+    uint16_t streamId = 0;
+    MutexLock lock(&group_id_mutex_);
+    std::unordered_map<uint64_t, uint16_t>::iterator it = streamIdMap_.find(connId);
+    if (it != streamIdMap_.end()) {
+        uint16_t& tmpId = it->second;
+        tmpId += 2;
+        streamId = tmpId;
     }
-	conn_mutex_.unlock();
+    
     return streamId;
 }
 
-int XMDCommonData::updateConnIpInfo(uint64_t connId, uint32_t ip, int port) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it != connectionMap_.end()) {
-        ConnInfo& info = it->second;
-        info.ip = ip;
-        info.port = port;
-    } else {
-		conn_mutex_.unlock();
-        return -1;
+void XMDCommonData::deleteConnStreamId(uint64_t connId) {
+    MutexLock lock(&group_id_mutex_);
+    std::unordered_map<uint64_t, uint16_t>::iterator it = streamIdMap_.find(connId);
+    if (it != streamIdMap_.end()) {
+        streamIdMap_.erase(it);
     }
-    
-	conn_mutex_.unlock();
-    return 0;
 }
 
 
-
-std::vector<uint64_t> XMDCommonData::getConnVec() {
-    std::vector<uint64_t> tmpvec; 
-	conn_mutex_.lock();
-    tmpvec = connVec_;
-	conn_mutex_.unlock();
-    return tmpvec;
+void XMDCommonData::NotifyBlockQueue() {
+    for (unsigned int i = 0; i < workerThreadSize_; i++) {
+        workerQueueVec_[i].Notify();
+    }
+    socketSendQueue_.Notify();
 }
 
-bool XMDCommonData::deleteFromConnVec(uint64_t connId) {
-	conn_mutex_.lock();
-    std::vector<uint64_t>::iterator it = connVec_.begin();
-    for (; it != connVec_.end(); it++) {
-        if (*it == connId) {
-            connVec_.erase(it);
-            break;
-        }
-    }
-	conn_mutex_.unlock();
-
+bool XMDCommonData::SendQueueHasNewData() {
     return true;
 }
-
-
-bool XMDCommonData::isStreamExist(uint64_t connId, uint16_t streamId) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
-    if (itConn == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-		conn_mutex_.unlock();
-        return false;
-    }
-    
-    std::unordered_map<uint16_t, StreamInfo>::iterator it = itConn->second.streamMap.find(streamId);
-    if (it == itConn->second.streamMap.end()) {
-        XMDLoggerWrapper::instance()->debug("isStreamExist stream(%d) not exist.", streamId);
-		conn_mutex_.unlock();
-        return false;
-    }
-	conn_mutex_.unlock();
-    return true;
-}
-
-
-int XMDCommonData::insertStream(uint64_t connId, uint16_t streamId, StreamInfo streamInfo) {
-	conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
-    if (it == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        conn_mutex_.unlock();
-        return -1;
-    }
-    
-    ConnInfo& connInfo = it->second;
-    if (!connInfo.connState == CONNECTED) {
-        XMDLoggerWrapper::instance()->warn("insertStream connection(%ld) has not been established.", connId);
-        conn_mutex_.unlock();
-        return -1;
-    }
-    if (connInfo.max_stream_id < streamId) {
-        connInfo.max_stream_id = streamId;
-    }
-    connInfo.streamMap[streamId] = streamInfo;
-    conn_mutex_.unlock();
-    return 0;
-}
-
-int XMDCommonData::deleteStream(uint64_t connId, uint16_t streamId) {
-    conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
-    if (itConn == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        conn_mutex_.unlock();
-        return -1;
-    }
-    ConnInfo& connInfo = itConn->second;
-
-    std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
-    if (it == connInfo.streamMap.end()) {
-        XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
-        conn_mutex_.unlock();
-        return -1;
-    }
-    connInfo.streamMap.erase(it);
-    conn_mutex_.unlock();
-
-    std::stringstream ss;
-    ss << connId << streamId;
-    std::string tmpKey = ss.str();
-    deletefromCallbackDataMap(tmpKey);
-    return 0;
-}
-
-bool XMDCommonData::getStreamInfo(uint64_t connId, uint16_t streamId, StreamInfo& sInfo) {
-    conn_mutex_.lock();
-    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
-    if (itConn == connectionMap_.end()) {
-        XMDLoggerWrapper::instance()->debug("connection(%ld) not exist", connId);
-        conn_mutex_.unlock();
-        return false;
-    }
-    ConnInfo& connInfo = itConn->second;
-    
-
-    std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
-    if (it == connInfo.streamMap.end()) {
-        XMDLoggerWrapper::instance()->warn("stream(%d) not exist.", streamId);
-        conn_mutex_.unlock();
-        return false;
-    }
-    sInfo = it->second;
-    conn_mutex_.unlock();
-
-    return true;
-}
-
-
-int XMDCommonData::insertPing(PingPacket packet) {
-    pingMap_.updateMapVaule(packet.connId, packet);
-    return 0;
-}
-
-bool XMDCommonData::getPingPacket(uint64_t connId, PingPacket& packet) {
-    return pingMap_.getMapValue(connId, packet);
-}
-
-
-uint64_t XMDCommonData::getPakcetId(uint64_t connId) {
-    uint64_t packetid = 1;
-    packetId_mutex_.lock();
-    std::unordered_map<uint64_t, uint64_t>::iterator it = packetIdMap_.find(connId);
-    if (it == packetIdMap_.end()) {
-        packetIdMap_[connId] = packetid + 1;
-    } else {
-        packetid = packetIdMap_[connId];
-        packetIdMap_[connId] = packetid + 1;
-    }
-    packetId_mutex_.unlock();
-
-    return packetid;
-}
-
-
-
-bool XMDCommonData::resendQueuePush(ResendData* data) {
-    resend_queue_mutex_.lock();
-	if (resendQueue_.size() >= resendQueueMaxLen_) {
-        XMDLoggerWrapper::instance()->warn("resendQueue size(%d) bigger than queue max len(%d)", 
-										resendQueue_.size(), resendQueueMaxLen_);
-        resend_queue_mutex_.unlock();
-        delete data;
-        return false;
-    }
-    resendQueue_.push(data);
-    resend_queue_mutex_.unlock();
-    return true;
-}
-
-
-ResendData* XMDCommonData::resendQueuePriorityPop() {
-    ResendData* data = NULL;
-    resend_queue_mutex_.lock();
-	if (resendQueue_.empty()) {
-        resend_queue_mutex_.unlock();
-        return NULL;
-    }
-    uint64_t currentMs = current_ms();
-    data = resendQueue_.top();
-    if (data->reSendTime <= currentMs) {
-        resendQueue_.pop();
-    } else {
-        data = NULL;
-    }
-    
-    if (data != NULL) {
-        std::stringstream ss_ack;
-        ss_ack << data->connId << data->packetId;
-        std::string ackpacketKey = ss_ack.str();
-        if (getIsPacketRecvAckMapValue(ackpacketKey)) {
-            delete data;
-            data = NULL;
-        }
-    }
-    resend_queue_mutex_.unlock();
-    return data;
-}
-
-ResendData* XMDCommonData::resendQueuePop() {
-    ResendData* data = NULL;
-    resend_queue_mutex_.lock();
-    if (resendQueue_.empty()) {
-        resend_queue_mutex_.unlock();
-        return NULL;
-    }
-    data = resendQueue_.top();
-    resendQueue_.pop();
-    resend_queue_mutex_.unlock();
-    return data;
-}
-
-
-void XMDCommonData::setResendQueueSize(int size) {
-    resendQueueMaxLen_ = size;
-}
-
-int XMDCommonData::getResendQueueSize() {
-    return resendQueueMaxLen_;
-}
-
-
-float XMDCommonData::getResendQueueUsageRate() {
-    return float(resendQueue_.size()) / float(resendQueueMaxLen_);
-}
-
-void XMDCommonData::clearResendQueue() {
-    resend_queue_mutex_.lock();
-    while (!resendQueue_.empty()) {
-        resendQueue_.pop();
-    }
-    resend_queue_mutex_.unlock();
-}
-
-
-void XMDCommonData::updateIsPacketRecvAckMap(std::string key, bool value) {
-    bool result = false;
-    if (isPacketRecvAckMap_.getMapValue(key, result)) {
-        isPacketRecvAckMap_.updateMapVaule(key, value);
-    }
-}
-bool XMDCommonData::getIsPacketRecvAckMapValue(std::string key) {
-    bool result = false;
-    bool isfound = isPacketRecvAckMap_.getMapValue(key, result);
-    if (!isfound) {
-        return true;
-    }
-
-    if (result) {
-        isPacketRecvAckMap_.deleteMapVaule(key);
-    }
-    
-    return result;
-}
-bool XMDCommonData::deleteIsPacketRecvAckMap(std::string key) {
-    return isPacketRecvAckMap_.deleteMapVaule(key);
-}
-void XMDCommonData::insertIsPacketRecvAckMap(std::string key, bool value) {
-    isPacketRecvAckMap_.updateMapVaule(key, value);
-}
-
-
-uint64_t XMDCommonData::getLastPacketTime(std::string id) {
-    uint64_t result = 0;
-    lastPacketTimeMap_.getMapValue(id, result);
-    return result;    
-}
-
-void XMDCommonData::updateLastPacketTime(std::string id, uint64_t value) {
-    lastPacketTimeMap_.updateMapVaule(id, value);
-}
-
-void XMDCommonData::deleteLastPacketTime(std::string id) {
-    lastPacketTimeMap_.deleteMapVaule(id);
-}
-
 
 netStatus XMDCommonData::getNetStatus(uint64_t connId) {
     netStatus status;
@@ -635,60 +378,426 @@ void XMDCommonData::deleteNetStatus(uint64_t connId) {
 }
 
 
-uint32_t XMDCommonData::getGroupId(uint64_t connId, uint16_t streamId) {
-    uint32_t groupId = 0;
+void XMDCommonData::SetPingIntervalMs(uint64_t connId, uint16_t value) {
+    value = value < PING_INTERVAL ? PING_INTERVAL : value;
+    MutexLock lock(&ping_interval_mutex_);
+    pingIntervalMap_[connId] = value;
+}
+
+uint16_t XMDCommonData::GetPingIntervalMs(uint64_t connId) {
+    MutexLock lock(&ping_interval_mutex_);
+    std::unordered_map<uint64_t, uint16_t>::iterator it = pingIntervalMap_.find(connId);
+    if (it != pingIntervalMap_.end()) {
+        return it->second;
+    }
+    return PING_INTERVAL;
+}
+
+void XMDCommonData::DeletePingIntervalMap(uint64_t connId) {
+    MutexLock lock(&ping_interval_mutex_);
+    std::unordered_map<uint64_t, uint16_t>::iterator it = pingIntervalMap_.find(connId);
+    if (it != pingIntervalMap_.end()) {
+        pingIntervalMap_.erase(it);
+    }
+}
+
+
+
+void XMDCommonData::deleteWorkerData(WorkerThreadData* workerThreadData) {
+    switch (workerThreadData->dataType)
+    {
+        case WORKER_CREATE_NEW_CONN: {
+            NewConnWorkerData* connData = (NewConnWorkerData*)workerThreadData->data;
+            delete connData;
+            break;
+        }
+        case WORKER_CLOSE_CONN: {
+            WorkerData* workerData = (WorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_CREATE_STREAM: {
+            NewStreamWorkerData* workerData = (NewStreamWorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_CLOSE_STREAM: {
+            WorkerData* workerData = (WorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_SEND_RTDATA: {
+            RTWorkerData* workerData = (RTWorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_RECV_DATA: {
+            SocketData* socketData = (SocketData*)workerThreadData->data;
+            delete socketData;
+            break;
+        }
+        case WORKER_RESEND_TIMEOUT: {
+            SendQueueData* resendData = (SendQueueData*)workerThreadData->data;
+            delete resendData;
+            break;
+        }
+        case WORKER_DATAGREAM_TIMEOUT: {
+            SendQueueData* queueData = (SendQueueData*)workerThreadData->data;
+            delete queueData;
+            break;
+        }
+        case WORKER_DELETE_ACKGROUP_TIMEOUT: {
+            DeleteGroupTimeout* delteData = (DeleteGroupTimeout*)workerThreadData->data;
+            delete delteData;
+            break;
+        }
+        case WORKER_DELETE_FECGROUP_TIMEOUT: {
+            DeleteGroupTimeout* delteData = (DeleteGroupTimeout*)workerThreadData->data;
+            delete delteData;
+            break;
+        }
+        case WORKER_CHECK_CALLBACK_BUFFER: {
+            CheckCallbackBufferData* key = (CheckCallbackBufferData*)workerThreadData->data;
+            delete key;
+            break;
+        }
+        case WORKER_PING_TIMEOUT: {
+            WorkerData* workerData = (WorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_PONG_TIMEOUT: {
+            PongThreadData* pongthreadData = (PongThreadData*)workerThreadData->data;
+            delete pongthreadData;
+            break;
+        }
+        case WORKER_CHECK_CONN_AVAILABLE: {
+            WorkerData* workerData = (WorkerData*)workerThreadData->data;
+            delete workerData;
+            break;
+        }
+        case WORKER_TEST_RTT: {
+            TestRttPacket* testRtt = (TestRttPacket*)workerThreadData->data;
+            delete testRtt;
+            break;
+        }
+        case WORKER_BATCH_ACK: {
+            WorkerData* bacthAckData = (WorkerData*)workerThreadData->data;
+            delete bacthAckData;
+            break;
+        }
+    }
+
+    delete workerThreadData;
+}
+
+
+WorkerCommonData::~WorkerCommonData() {
+    closeAllConn();
+    std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.begin();
+    for (; it != callbackDataMap_.end();) {
+        std::map<uint32_t, CallbackQueueData*>::iterator it2 = it->second.groupMap.begin();
+        for (; it2 != it->second.groupMap.end(); it2++) {
+            delete it2->second;
+        }
+        callbackDataMap_.erase(it++);
+    }
+}
+
+
+netStatus WorkerCommonData::getNetStatus(uint64_t connId) {
+    netStatus status;
+    netStatusMap_.getMapValue(connId, status);
+    return status;
+}
+
+void WorkerCommonData::updateNetStatus(uint64_t connId, netStatus status) {
+    netStatusMap_.updateMapVaule(connId, status);
+    commonData_->updateNetStatus(connId, status);
+}
+
+void WorkerCommonData::deleteNetStatus(uint64_t connId) {
+    netStatusMap_.deleteMapVaule(connId);
+}
+
+
+bool WorkerCommonData::isConnExist(uint64_t connId) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("isConnExist connection(%llu) not exist", connId);
+        return false;
+    }
+    return true;
+}
+
+
+int WorkerCommonData::insertConn(uint64_t connId, ConnInfo connInfo) {
+    connectionMap_[connId] = connInfo;
+    return 0;
+}
+int WorkerCommonData::updateConn(uint64_t connId, ConnInfo connInfo) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("connection(%llu) not exist", connId);
+        return -1;
+    }
+    
+    connectionMap_[connId] = connInfo;
+    return 0;
+}
+
+int WorkerCommonData::deleteConn(uint64_t connId) {
+    uint32_t maxStreamId = 0;
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it != connectionMap_.end()) {
+        maxStreamId = it->second.max_stream_id;
+        connectionMap_.erase(it);
+    }
+
+    deleteConnResource(connId, maxStreamId);
+
+    return 0;
+}
+
+int WorkerCommonData::deleteConnResource(uint64_t connId, uint32_t maxStreamId) {
+    pingMap_.deleteMapVaule(connId);
+
+    deletePacketLossInfoMap(connId);
+
+    deleteNetStatus(connId);
+    commonData_->deleteNetStatus(connId);
+
+    deleteFromResendInterval(connId);
+
+    commonData_->deleteConnStreamId(connId);
+    commonData_->DeletePingIntervalMap(connId);
+
+    deletePacketIdMap(connId);
+
+    std::stringstream ss_conn;
+    ss_conn << connId;
+    std::string connKey = ss_conn.str();
+    deleteLastPacketTime(connKey);
+    for (unsigned int i = 0; i <= maxStreamId; i++) {
+        std::stringstream ss;
+        ss << connId << i;
+        std::string key = ss.str();
+        deleteLastPacketTime(key);
+        commonData_->deleteGroupId(key);
+        deleteLastCallbackGroupId(key);
+        deletefromCallbackDataMap(key);
+    }
+
+    deleteBatchAckMap(connId);
+    
+    return 0;
+}
+
+
+bool WorkerCommonData::getConnInfo(uint64_t connId, ConnInfo& cInfo) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("getConnInfo connection(%llu) not exist", connId);
+        return false;
+    }
+    cInfo = it->second;
+    return true;
+}
+
+int WorkerCommonData::updateConnIpInfo(uint64_t connId, uint32_t ip, int port) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it != connectionMap_.end()) {
+        ConnInfo& info = it->second;
+        info.ip = ip;
+        info.port = port;
+    } else {
+        return -1;
+    }
+    
+    return 0;
+}
+
+void WorkerCommonData::closeAllConn() {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.begin();
+    for (; it != connectionMap_.end(); ) {
+        uint64_t connId = it->first;
+        uint32_t maxStreamId = it->second.max_stream_id;
+        deleteConnResource(connId, maxStreamId);
+        connectionMap_.erase(it++);
+    }
+}
+
+
+
+
+bool WorkerCommonData::isStreamExist(uint64_t connId, uint16_t streamId) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
+    if (itConn == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("connection(%llu) not exist", connId);
+        return false;
+    }
+    
+    std::unordered_map<uint16_t, StreamInfo>::iterator it = itConn->second.streamMap.find(streamId);
+    if (it == itConn->second.streamMap.end()) {
+        XMDLoggerWrapper::instance()->debug("isStreamExist stream(%d) not exist.", streamId);
+        return false;
+    }
+
+    return true;
+}
+
+
+int WorkerCommonData::insertStream(uint64_t connId, uint16_t streamId, StreamInfo streamInfo) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator it = connectionMap_.find(connId);
+    if (it == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("connection(%llu) not exist", connId);
+        return -1;
+    }
+    
+    ConnInfo& connInfo = it->second;
+    if (connInfo.connState != CONNECTED) {
+        XMDLoggerWrapper::instance()->warn("insertStream connection(%ld) has not been established.", connId);
+        return -1;
+    }
+    if (connInfo.max_stream_id < streamId) {
+        connInfo.max_stream_id = streamId;
+    }
+    connInfo.streamMap[streamId] = streamInfo;
+    return 0;
+}
+
+int WorkerCommonData::deleteStream(uint64_t connId, uint16_t streamId) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
+    if (itConn == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("connection(%llu) not exist", connId);
+        return -1;
+    }
+    ConnInfo& connInfo = itConn->second;
+
+    std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
+    if (it == connInfo.streamMap.end()) {
+        XMDLoggerWrapper::instance()->warn("delete stream(%d) not exist.", streamId);
+        return -1;
+    }
+    connInfo.streamMap.erase(it);
+
     std::stringstream ss;
     ss << connId << streamId;
-    std::string key = ss.str();
-	group_id_mutex_.lock();
-    std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(key);
-    if (it != groupIdMap_.end()) {
-        groupId = it->second;
-        it->second = groupId + 1;
+    std::string tmpKey = ss.str();
+    deletefromCallbackDataMap(tmpKey);
+    return 0;
+}
+
+bool WorkerCommonData::getStreamInfo(uint64_t connId, uint16_t streamId, StreamInfo& sInfo) {
+    std::unordered_map<uint64_t, ConnInfo>::iterator itConn = connectionMap_.find(connId);
+    if (itConn == connectionMap_.end()) {
+        XMDLoggerWrapper::instance()->debug("connection(%llu) not exist", connId);
+        return false;
+    }
+    ConnInfo& connInfo = itConn->second;
+    
+
+    std::unordered_map<uint16_t, StreamInfo>::iterator it = connInfo.streamMap.find(streamId);
+    if (it == connInfo.streamMap.end()) {
+        XMDLoggerWrapper::instance()->warn("get stream(%d) not exist.", streamId);
+        return false;
+    }
+    sInfo = it->second;
+
+    return true;
+}
+
+
+int WorkerCommonData::insertPing(PingPacket packet) {
+    pingMap_.updateMapVaule(packet.connId, packet);
+    return 0;
+}
+
+bool WorkerCommonData::getPingPacket(uint64_t connId, PingPacket& packet) {
+    return pingMap_.getMapValue(connId, packet);
+}
+
+
+uint64_t WorkerCommonData::getPakcetId(uint64_t connId) {
+    uint64_t packetid = 1;
+    std::unordered_map<uint64_t, uint64_t>::iterator it = packetIdMap_.find(connId);
+    if (it == packetIdMap_.end()) {
+        packetIdMap_[connId] = packetid + 1;
     } else {
-        groupIdMap_[key] = 1;
+        packetid = packetIdMap_[connId];
+        packetIdMap_[connId] = packetid + 1;
     }
-    group_id_mutex_.unlock();
-    return groupId;
+
+    return packetid;
 }
 
-void XMDCommonData::deleteGroupId(std::string id) {
-    group_id_mutex_.lock();
-    std::unordered_map<std::string, uint32_t>::iterator it = groupIdMap_.find(id);
-    if (it != groupIdMap_.end()) {
-        groupIdMap_.erase(it);
-    }
-    group_id_mutex_.unlock();
+void WorkerCommonData::deletePacketIdMap(uint64_t connId) {
+    std::unordered_map<uint64_t, uint64_t>::iterator packetIdIt = packetIdMap_.find(connId);
+    if (packetIdIt != packetIdMap_.end()) {
+        packetIdMap_.erase(packetIdIt);
+    } 
 }
 
-/*
-bool XMDCommonData::getLastRecvGroupId(std::string id, uint32_t& groupId) {
-    bool result = lastRecvedGroupIdMap_.getMapValue(id, groupId);
+
+void WorkerCommonData::updateIsPacketRecvAckMap(std::string key, bool value) {
+    bool result = false;
+    if (isPacketRecvAckMap_.getMapValue(key, result)) {
+        isPacketRecvAckMap_.updateMapVaule(key, value);
+    }
+}
+bool WorkerCommonData::getIsPacketRecvAckMapValue(std::string key) {
+    bool result = false;
+    bool isfound = isPacketRecvAckMap_.getMapValue(key, result);
+    if (!isfound) {
+        return true;
+    }
+
+    if (result) {
+        isPacketRecvAckMap_.deleteMapVaule(key);
+    }
+    
     return result;
 }
-
-void XMDCommonData::updateLastRecvGroupId(std::string id, uint32_t groupId) {
-    lastRecvedGroupIdMap_.updateMapVaule(id, groupId);
+bool WorkerCommonData::deleteIsPacketRecvAckMap(std::string key) {
+    return isPacketRecvAckMap_.deleteMapVaule(key);
+}
+void WorkerCommonData::insertIsPacketRecvAckMap(std::string key, bool value) {
+    isPacketRecvAckMap_.updateMapVaule(key, value);
 }
 
-void XMDCommonData::deleteLastRecvGroupId(std::string id) {
-    lastRecvedGroupIdMap_.deleteMapVaule(id);
-}*/
 
-bool XMDCommonData::getLastCallbackGroupId(std::string id, uint32_t& groupId) {
+uint64_t WorkerCommonData::getLastPacketTime(std::string id) {
+    uint64_t result = 0;
+    lastPacketTimeMap_.getMapValue(id, result);
+    return result;    
+}
+
+void WorkerCommonData::updateLastPacketTime(std::string id, uint64_t value) {
+    lastPacketTimeMap_.updateMapVaule(id, value);
+}
+
+void WorkerCommonData::deleteLastPacketTime(std::string id) {
+    lastPacketTimeMap_.deleteMapVaule(id);
+}
+
+
+
+
+
+
+bool WorkerCommonData::getLastCallbackGroupId(std::string id, uint32_t& groupId) {
     return lastCallbackGroupIdMap_.getMapValue(id, groupId);
 }
 
-void XMDCommonData::updateLastCallbackGroupId(std::string id, uint32_t groupId) {
+void WorkerCommonData::updateLastCallbackGroupId(std::string id, uint32_t groupId) {
     lastCallbackGroupIdMap_.updateMapVaule(id, groupId);
 }
 
-void XMDCommonData::deleteLastCallbackGroupId(std::string id) {
+void WorkerCommonData::deleteLastCallbackGroupId(std::string id) {
     lastCallbackGroupIdMap_.deleteMapVaule(id);
 }
 
-void XMDCommonData::insertCallbackDataMap(std::string key, uint32_t groupId, int waitTime, CallbackQueueData* data) {
-    callback_data_map_mutex_.lock();
+int WorkerCommonData::insertCallbackDataMap(std::string key, uint32_t groupId, int waitTime, CallbackQueueData* data) {
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it == callbackDataMap_.end()) {
         std::map<uint32_t, CallbackQueueData*> tmpMap;
@@ -699,14 +808,31 @@ void XMDCommonData::insertCallbackDataMap(std::string key, uint32_t groupId, int
         callbackDataMap_[key] = buffer;
     } else {
         CallBackSortBuffer& buffer = it->second;
-        buffer.groupMap[groupId] = data;
+        std::map<uint32_t, CallbackQueueData*>::iterator iter = buffer.groupMap.find(groupId);
+        if (iter == buffer.groupMap.end()) {
+            buffer.groupMap[groupId] = data;
+        } else {
+            delete data;
+            return 1;
+        }
     }
-    callback_data_map_mutex_.unlock();
+    return 0;
 }
 
-int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQueueData* &data) {
+bool WorkerCommonData::isCallbackBufferMapEmpty(std::string key) {
+    std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
+    if (it != callbackDataMap_.end()) {
+        if (it->second.groupMap.size() != 0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+int WorkerCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQueueData* &data) {
     int result = 0;
-    callback_data_map_mutex_.lock();
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it != callbackDataMap_.end()) {
         if (it->second.groupMap.size() == 0) {
@@ -723,6 +849,11 @@ int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQu
                 } else {
                     result = -1;
                 }
+            } else if ((int)it->second.groupMap.size() >= MAX_CALLBACK_DATA_MAP_SIZE) {
+                XMDLoggerWrapper::instance()->debug("callback map reach max size, connid=%ld,streamid=%d,groupid=%d, groupMap.size=%d",
+                                                                     data->connId, data->streamId, groupId + 1, it->second.groupMap.size());
+                it->second.groupMap.erase(it2);
+                result = 1;
             } else {
                 it->second.groupMap.erase(it2);
                 result = 0;
@@ -732,12 +863,10 @@ int XMDCommonData::getCallbackData(std::string key, uint32_t groupId, CallbackQu
         result = -1;
     }
 
-    callback_data_map_mutex_.unlock();
     return result;
 }
 
-void XMDCommonData::deletefromCallbackDataMap(std::string key) {
-    callback_data_map_mutex_.lock();
+void WorkerCommonData::deletefromCallbackDataMap(std::string key) {
     std::unordered_map<std::string, CallBackSortBuffer>::iterator it = callbackDataMap_.find(key);
     if (it != callbackDataMap_.end()) {
         std::map<uint32_t, CallbackQueueData*>::iterator it2 = it->second.groupMap.begin();
@@ -746,20 +875,16 @@ void XMDCommonData::deletefromCallbackDataMap(std::string key) {
         }
         callbackDataMap_.erase(it);
     }
-    callback_data_map_mutex_.unlock();
 }
 
-void XMDCommonData::insertSendCallbackMap(std::string key, uint32_t groupSize) {
-    stream_data_send_callback_map_mutex_.lock();
+void WorkerCommonData::insertSendCallbackMap(std::string key, uint32_t groupSize) {
     streamDataSendCallback data;
     data.groupSize = groupSize;
     streamDataSendCbMap_[key] = data;
-    stream_data_send_callback_map_mutex_.unlock();
 }
 
-int XMDCommonData::updateSendCallbackMap(std::string key, uint32_t sliceId) {
+int WorkerCommonData::updateSendCallbackMap(std::string key, uint32_t sliceId) {
     int result = -1;
-    stream_data_send_callback_map_mutex_.lock();
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         it->second.sliceMap[sliceId] = true;
@@ -770,27 +895,33 @@ int XMDCommonData::updateSendCallbackMap(std::string key, uint32_t sliceId) {
             result = 0;
         }
     }
-    stream_data_send_callback_map_mutex_.unlock();
     return result;
 }
 
-void XMDCommonData::deleteSendCallbackMap(std::string key) {
-    stream_data_send_callback_map_mutex_.lock();
+void WorkerCommonData::deleteSendCallbackMap(std::string key) {
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         streamDataSendCbMap_.erase(it);
     }
-    stream_data_send_callback_map_mutex_.unlock();
 }
 
-bool XMDCommonData::SendCallbackMapRecordExist(std::string key) {
+bool WorkerCommonData::SendCallbackMapRecordExist(std::string key) {
     bool result = false;
-    stream_data_send_callback_map_mutex_.lock();
     std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
     if (it != streamDataSendCbMap_.end()) {
         result = true;
     }
-    stream_data_send_callback_map_mutex_.unlock();
+
+    return result;
+}
+
+bool WorkerCommonData::getDeleteCallbackMapRecord(std::string key) {
+    bool result = false;
+    std::unordered_map<std::string, streamDataSendCallback>::iterator it = streamDataSendCbMap_.find(key);
+    if (it != streamDataSendCbMap_.end()) {
+        result = true;
+        streamDataSendCbMap_.erase(it);
+    }
 
     return result;
 }
@@ -798,11 +929,11 @@ bool XMDCommonData::SendCallbackMapRecordExist(std::string key) {
 
 
 
-void XMDCommonData::insertPacketCallbackInfoMap(std::string key, PacketCallbackInfo info) {
+void WorkerCommonData::insertPacketCallbackInfoMap(std::string key, PacketCallbackInfo info) {
     packetCallbackInfoMap_.updateMapVaule(key, info);
 }
 
-bool XMDCommonData::getDeletePacketCallbackInfo(std::string key, PacketCallbackInfo& info) {
+bool WorkerCommonData::getDeletePacketCallbackInfo(std::string key, PacketCallbackInfo& info) {
     bool result = packetCallbackInfoMap_.getMapValue(key, info);
     if (result) {
         packetCallbackInfoMap_.deleteMapVaule(key);
@@ -810,57 +941,58 @@ bool XMDCommonData::getDeletePacketCallbackInfo(std::string key, PacketCallbackI
     return result;
 }
 
-void XMDCommonData::insertPacketLossInfoMap(uint64_t connId) {
-    packet_loss_map_mutex_.lock();
-    PacketLossInfo packet;
-    PacketLossInfoMap_[connId] = packet;
-    packet_loss_map_mutex_.unlock();
+bool WorkerCommonData::getPacketCallbackInfo(std::string key, PacketCallbackInfo& info) {
+    bool result = packetCallbackInfoMap_.getMapValue(key, info);
+    return result;
 }
 
-void XMDCommonData::updatePacketLossInfoMap(uint64_t connId, uint64_t packetId) {
-    //XMDLoggerWrapper::instance()->debug("updatePacketLossInfoMap connid(%ld), packetid(%ld)", connId, packetId);
-    packet_loss_map_mutex_.lock();
+bool WorkerCommonData::deletePacketCallbackInfo(std::string key) {
+    return packetCallbackInfoMap_.deleteMapVaule(key);
+}
+
+
+void WorkerCommonData::insertPacketLossInfoMap(uint64_t connId) {
+    PacketLossInfo packet;
+    PacketLossInfoMap_[connId] = packet;
+}
+
+void WorkerCommonData::updatePacketLossInfoMap(uint64_t connId, uint64_t packetId) {
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfo& packet = it->second;
         if (packetId > packet.caculatePacketId) {
             packet.newPacketCount++;
+            packet.newPakcetSet.insert(packetId);
             if (packetId > packet.maxPacketId) {
-                packet.maxPacketId = packetId;
+                packet.maxPacketId = packetId;
             }
         } else {
             if (packetId > packet.minPacketId) {
                 packet.oldPakcetCount++;
+                packet.oldPakcetSet.insert(packetId);
             }
         }
     }
     
-    packet_loss_map_mutex_.unlock();
 }
 
-void XMDCommonData::deletePacketLossInfoMap(uint64_t connId) {
-    packet_loss_map_mutex_.lock();
+void WorkerCommonData::deletePacketLossInfoMap(uint64_t connId) {
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfoMap_.erase(it);
     }
-    packet_loss_map_mutex_.unlock();
 }
 
-bool XMDCommonData::getPacketLossInfo(uint64_t connId, PacketLossInfo& data) {
-    packet_loss_map_mutex_.lock();
+bool WorkerCommonData::getPacketLossInfo(uint64_t connId, PacketLossInfo& data) {
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it == PacketLossInfoMap_.end()) {
-        packet_loss_map_mutex_.unlock();
         return false;
     }
     data = it->second;
-    packet_loss_map_mutex_.unlock();
     return true;
 }
 
-void XMDCommonData::startPacketLossCalucate(uint64_t connId) {
-    packet_loss_map_mutex_.lock();
+void WorkerCommonData::startPacketLossCalucate(uint64_t connId) {
     std::unordered_map<uint64_t, PacketLossInfo>::iterator it = PacketLossInfoMap_.find(connId);
     if (it != PacketLossInfoMap_.end()) {
         PacketLossInfo& packet = it->second;
@@ -868,40 +1000,82 @@ void XMDCommonData::startPacketLossCalucate(uint64_t connId) {
         packet.caculatePacketId = packet.maxPacketId;
         packet.oldPakcetCount = packet.newPacketCount;
         packet.newPacketCount = 0;
+        
+        packet.oldPakcetSet = packet.newPakcetSet;
+        packet.newPakcetSet.clear();
     }
-    packet_loss_map_mutex_.unlock();
 }
 
+void WorkerCommonData::startTimer(uint64_t connId, WorkerThreadDataType type, uint64_t time, void* data, int len) {
+    //XMDLoggerWrapper::instance()->warn("start timer len ==== %d", len);
+    WorkerThreadData* workerThreadData = new WorkerThreadData(type, data, len);
 
-
-void XMDCommonData::pongThreadQueuePush(PongThreadData data) {
-    pongThreadQueue_.Push(data);
+    TimerThreadData* timerThreadData = new TimerThreadData();
+    timerThreadData->connId = connId;
+    timerThreadData->time = current_ms() + time;
+    timerThreadData->data = (void*)workerThreadData;
+    timerThreadData->len = sizeof(WorkerThreadData) + len;
+    
+    commonData_->timerQueuePush(timerThreadData, connId);
 }
 
-bool XMDCommonData::pongThreadQueuePop(PongThreadData& data) {
-    if (pongThreadQueue_.Front(data)) {
-        uint64_t currentTime = current_ms();
-        if (currentTime > data.ts + CALUTE_PACKET_LOSS_DELAY) {
-            pongThreadQueue_.Pop(data);
-            return true;
-        }
+void WorkerCommonData::updateResendInterval(uint64_t connId, unsigned int rtt) {
+    int value = DEFAULT_RESEND_INTERVAL;
+    if (rtt * 3 < 100) {
+        value = 100;
+    } else if ((int)rtt * 3 > DEFAULT_RESEND_INTERVAL) {
+        value = rtt * 3;
     }
-    return false;
+    PacketResendIntervalMap_[connId] = value;
 }
 
-void XMDCommonData::NotifyBlockQueue() {
-}
-/*
-bool XMDCommonData::SendQueueHasNewData() {
-    XMDLoggerWrapper::instance()->debug("has new data");
-    if (datagramQueue_.empty() && socketSendQueue_.empty() && resendQueue_.empty()) {
-        std::unique_lock <std::mutex> lck(send_thread_mutex_);
-        XMDLoggerWrapper::instance()->debug("has new data lock");
-        con_var_send_thread_.wait(lck);
+unsigned int WorkerCommonData::getResendInterval(uint64_t connId) {
+    std::unordered_map<uint64_t, unsigned int>::iterator it = PacketResendIntervalMap_.find(connId);
+    if (it != PacketResendIntervalMap_.end()) {
+        return it->second;
     }
-    return true;
+
+    return DEFAULT_RESEND_INTERVAL;
 }
-*/
+
+void WorkerCommonData::deleteFromResendInterval(uint64_t connId) {
+    std::unordered_map<uint64_t, unsigned int>::iterator it = PacketResendIntervalMap_.find(connId);
+    if (it != PacketResendIntervalMap_.end()) {
+        PacketResendIntervalMap_.erase(it);
+    }
+}
+
+int WorkerCommonData::insertBatchAckMap(uint64_t connId, uint64_t packetId) {
+    std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator it = batchAckMap_.find(connId);
+    if (it != batchAckMap_.end()) {
+        it->second.push_back(packetId);
+        return 0;
+    } else {
+        std::vector<uint64_t> tmpVec;
+        tmpVec.push_back(packetId);
+        batchAckMap_[connId] = tmpVec;
+        return 1;
+    }
+}
+
+bool WorkerCommonData::getBatchAckVec(uint64_t connId, std::vector<uint64_t>& ackVec) {
+    std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator it = batchAckMap_.find(connId);
+    if (it != batchAckMap_.end()) {
+        ackVec = it->second;
+        batchAckMap_.erase(it);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void WorkerCommonData::deleteBatchAckMap(uint64_t connId) {
+    std::unordered_map<uint64_t, std::vector<uint64_t>>::iterator it = batchAckMap_.find(connId);
+    if (it != batchAckMap_.end()) {
+        batchAckMap_.erase(it);
+    }
+}
+
 
 
 

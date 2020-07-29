@@ -12,6 +12,13 @@
 #include <crypto/base64.h>
 #include <pthread.h>
 
+struct waitToSendContent
+{
+	std::string cmd;
+	MessageDirection type;
+	google::protobuf::MessageLite * message;
+};
+
 class User;
 
 class PacketManager {
@@ -26,25 +33,36 @@ public:
 	int32_t char2int(const unsigned char* result, int index);
 	std::string createPacketId();
 	void checkMessageSendTimeout(const User * user);
+	void checkReceiveMessageSequence();
 private:
-	ims::ClientHeader * createClientHeader(const User * user, std::string cmd, int cipher);
-	int encodePacket(unsigned char * &packet, const ims::ClientHeader * header, const google::protobuf::MessageLite * message, const std::string &body_key="", const std::string &payload_key="");
+	//ims::ClientHeader * createClientHeader(const User * user, std::string cmd, int cipher);
+	void createClientHeader(ims::ClientHeader& header ,const User * user, std::string cmd, int cipher);
+	int encodePacket(unsigned char * &packet, const ims::ClientHeader& header, const google::protobuf::MessageLite * message, const std::string &body_key="", const std::string &payload_key="");
+	void short2charString(int16_t data, std::string& result, int index);
+	void int2charString(int32_t data, std::string& result, int index);
 	void short2char(int16_t data, unsigned char* result, int index);
 	void int2char(int32_t data, unsigned char* result, int index);
 
 	uint32_t compute_crc32(const unsigned char *data, size_t len); 
-	std::string generateSig(const ims::ClientHeader * header, const ims::XMMsgBind * bindmsg, const Connection * connection);
+	std::string generateSig(const ims::ClientHeader& header, const ims::XMMsgBind * bindmsg, const Connection * connection);
 	std::string generatePayloadKey(const std::string &securityKey, const std::string &headerId);
+
+	void sendCompoundSequenceAck(mimc::MIMCPacketList &mimcPacketList, User *user);
+	void addCompoundSequenceAndCleanOld(std::map<int64_t, time_t> &sequencesReceived);
+
 private:
 	std::string packetIdPrefix = Utils::generateRandomString(15);
 	int packetIdSeq = 0;
 	pthread_mutex_t packetIdMutex = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutex_t packetsTimeoutMutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t sequencesMutex = PTHREAD_MUTEX_INITIALIZER;
+	bool isSerialPullNotification = false;
 public:
 	ThreadSafeQueue<struct waitToSendContent> packetsWaitToSend;
 	std::map<std::string, MIMCMessage> packetsWaitToTimeout;
 	std::map<std::string, MIMCGroupMessage> groupPacketWaitToTimeout;
-	std::set<int64_t> sequencesReceived;
+	//std::set<int64_t> sequencesReceived;
+	std::map<int64_t,time_t> sequencesReceived;
 };
 
 #endif

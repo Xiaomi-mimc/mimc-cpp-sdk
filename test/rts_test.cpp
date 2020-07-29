@@ -15,9 +15,9 @@
 using namespace std;
 
 #ifndef STAGING
-string appId = "2882303761517669588";
-string appKey = "5111766983588";
-string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
+string appId = "2882303761517613988";
+string appKey = "5361761377988";
+string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
 #else
 string appId = "2882303761517479657";
 string appKey = "5221747911657";
@@ -25,14 +25,12 @@ string appSecret = "PtfBeZyC+H8SIM/UXhZx1w==";
 #endif
 
 
-string appAccount1 = "MI153";
-string appAccount2 = "MI108";
-string appAccount3 = "MI110";
-string appAccount4 = "MI111";
-string appAccount5 = "MI112";
+string appAccount1 = "MI100";
+string appAccount2 = "MI101";
+string appAccount3 = "MI102";
 
 
-const int WAIT_TIME_FOR_MESSAGE = 1;
+const int WAIT_TIME_FOR_MESSAGE = 2;
 const int UDP_CONN_TIMEOUT = 5;
 
 class RtsTest: public testing::Test
@@ -105,66 +103,119 @@ protected:
         rtsUser2_r2->logout();
         rtsUser3->logout();
         //sleep(2);
-		std::this_thread::sleep_for(std::chrono::seconds(2));
+		std::this_thread::sleep_for(std::chrono::seconds(5));
 
-        delete rtsUser1_r1;
-        rtsUser1_r1 = NULL;
-        delete rtsUser1_r2;
-        rtsUser1_r2 = NULL;
-        delete rtsUser2_r1;
-        rtsUser2_r1 = NULL;
-        delete rtsUser2_r2;
-        rtsUser2_r2 = NULL;
-        delete rtsUser3;
-        rtsUser3 = NULL;
+        if(rtsUser1_r1){
+            delete rtsUser1_r1;
+            rtsUser1_r1 = NULL;
+        }
+        if(rtsUser1_r2)
+        {
+            delete rtsUser1_r2;
+            rtsUser1_r2 = NULL;
+        }
+        if(rtsUser2_r1){
+            delete rtsUser2_r1;
+            rtsUser2_r1 = NULL;
+        }
+        if(rtsUser2_r2){
+            delete rtsUser2_r2;
+            rtsUser2_r2 = NULL;
+        }
+        if(rtsUser3){
+            delete rtsUser3;
+            rtsUser3 = NULL;
+        }
+        if(tokenFetcher1_r1){
+            delete tokenFetcher1_r1;
+            tokenFetcher1_r1 = NULL;
+        }
+        if(tokenFetcher1_r2){
+            delete tokenFetcher1_r2;
+            tokenFetcher1_r2 = NULL;
+        }
+        if(tokenFetcher2_r1){
+            delete tokenFetcher2_r1;
+            tokenFetcher2_r1 = NULL;
+        }
+        if(tokenFetcher2_r2){
+            delete tokenFetcher2_r2;
+            tokenFetcher2_r2 = NULL;
+        }
+        if(tokenFetcher3){
+            delete tokenFetcher3;
+            tokenFetcher3 = NULL;
+        }
+        if(onlineStatusHandler1_r1) {
+            delete onlineStatusHandler1_r1;
+            onlineStatusHandler1_r1 = NULL;
+        }
+        if(onlineStatusHandler1_r2){
+            delete onlineStatusHandler1_r2;
+            onlineStatusHandler1_r2 = NULL;
+        }
+        if(onlineStatusHandler2_r1){
+            delete onlineStatusHandler2_r1;
+            onlineStatusHandler2_r1 = NULL;
+        }
+        if(onlineStatusHandler2_r2){
+            delete onlineStatusHandler2_r2;
+            onlineStatusHandler2_r2 = NULL;
+        }
+        if(onlineStatusHandler3){
+            delete onlineStatusHandler3;
+            onlineStatusHandler3 = NULL;
+        }
+        if(msgHandler1_r1){
+            delete msgHandler1_r1;
+            msgHandler1_r1 = NULL;
+        }
 
-        delete tokenFetcher1_r1;
-        tokenFetcher1_r1 = NULL;
-        delete tokenFetcher1_r2;
-        tokenFetcher1_r2 = NULL;
-        delete tokenFetcher2_r1;
-        tokenFetcher2_r1 = NULL;
-        delete tokenFetcher2_r2;
-        tokenFetcher2_r2 = NULL;
-        delete tokenFetcher3;
-        tokenFetcher3 = NULL;
+        if(msgHandler1_r2){
+            delete msgHandler1_r2;
+            msgHandler1_r2 = NULL;
+        }
+        if(msgHandler2_r1){
+            delete msgHandler2_r1;
+            msgHandler2_r1 = NULL;
+        }
+        if(msgHandler2_r2){
+            delete msgHandler2_r2;
+            msgHandler2_r2 = NULL;
+        }
+        if(msgHandler3){
+            delete msgHandler3;
+            msgHandler3 = NULL;
+        }
+        if(callEventHandler1_r1){
+            delete callEventHandler1_r1;
+            callEventHandler1_r1 = NULL;
+        }
+        if(callEventHandler1_r2){
+            delete callEventHandler1_r2;
+            callEventHandler1_r2 = NULL;
+        }
+        if(callEventHandler2_r1){
+            delete callEventHandler2_r1;
+            callEventHandler2_r1 = NULL;
+        }              
+        if(callEventHandler2_r2){
+            delete callEventHandler2_r2;
+            callEventHandler2_r2 = NULL;
+        }
+        if(callEventHandler3){
+            delete callEventHandler3;
+            callEventHandler3 = NULL;
+        }
+        if(callEventHandlerDelayResponse){
+            delete callEventHandlerDelayResponse;
+            callEventHandlerDelayResponse = NULL;
+        }
+        if(callEventHandlerTimeoutResponse){
+            delete callEventHandlerTimeoutResponse;
+            callEventHandlerTimeoutResponse = NULL;
+        }
 
-        delete onlineStatusHandler1_r1;
-        onlineStatusHandler1_r1 = NULL;
-        delete onlineStatusHandler1_r2;
-        onlineStatusHandler1_r2 = NULL;
-        delete onlineStatusHandler2_r1;
-        onlineStatusHandler2_r1 = NULL;
-        delete onlineStatusHandler2_r2;
-        onlineStatusHandler2_r2 = NULL;
-        delete onlineStatusHandler3;
-        onlineStatusHandler3 = NULL;
-
-        delete msgHandler1_r1;
-        msgHandler1_r1 = NULL;
-        delete msgHandler1_r2;
-        msgHandler1_r2 = NULL;
-        delete msgHandler2_r1;
-        msgHandler2_r1 = NULL;
-        delete msgHandler2_r2;
-        msgHandler2_r2 = NULL;
-        delete msgHandler3;
-        msgHandler3 = NULL;
-
-        delete callEventHandler1_r1;
-        callEventHandler1_r1 = NULL;
-        delete callEventHandler1_r2;
-        callEventHandler1_r2 = NULL;
-        delete callEventHandler2_r1;
-        callEventHandler2_r1 = NULL;
-        delete callEventHandler2_r2;
-        callEventHandler2_r2 = NULL;
-        delete callEventHandler3;
-        callEventHandler3 = NULL;
-        delete callEventHandlerDelayResponse;
-        callEventHandlerDelayResponse = NULL;
-        delete callEventHandlerTimeoutResponse;
-        callEventHandlerTimeoutResponse = NULL;
         curl_global_cleanup();
     }
 
@@ -419,7 +470,7 @@ protected:
         }
 
         string sendData0 = Utils::generateRandomString(RTS_MAX_PAYLOAD_SIZE + 1);
-        ASSERT_EQ(-1, from->sendRtsData(callId, sendData0, AUDIO, channel_type));
+        ASSERT_EQ(-2001, from->sendRtsData(callId, sendData0, AUDIO, channel_type));
     }
 
     void sendDataToEachOther(uint64_t callId, User* from, TestRTSCallEventHandler* callEventHandlerFrom, User* to, TestRTSCallEventHandler* callEventHandlerTo, RtsChannelType channel_type) {
@@ -454,7 +505,7 @@ protected:
         uint64_t callId = 0;
         createCall(callId, from, callEventHandlerFrom, to, callEventHandlerTo, appContent);
         from->closeCall(callId);
-        ASSERT_EQ(-1, from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_EQ(-2002, from->sendRtsData(callId, sendData, AUDIO));
         RtsMessageData recvData;
         ASSERT_FALSE(callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE, recvData));
 
@@ -481,7 +532,7 @@ protected:
         ASSERT_EQ(callId, byeResponse.getCallId());
         ASSERT_EQ("CLOSED_INITIATIVELY", byeResponse.getDesc());
 
-        ASSERT_EQ(-1, from->sendRtsData(callId, sendData, AUDIO));
+        ASSERT_EQ(-2002, from->sendRtsData(callId, sendData, AUDIO));
         ASSERT_FALSE(callEventHandlerTo->pollData(WAIT_TIME_FOR_MESSAGE, recvData));
     }
 

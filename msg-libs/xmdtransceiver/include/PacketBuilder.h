@@ -57,15 +57,16 @@ struct groupData {
 class PacketBuilder {
 public:
     ~PacketBuilder();
-    PacketBuilder(XMDCommonData* data, PacketDispatcher* dispatcher);
-    void build(StreamQueueData* queueData);
-    void buildFecStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo);
-    void buildAckStreamPacket(StreamQueueData* queueData, ConnInfo connInfo, StreamInfo sInfo);
+    PacketBuilder(XMDCommonData* data, PacketDispatcher* dispatcher, WorkerCommonData* wData, int workerId);
+    void build(RTWorkerData* workerData, ConnInfo connInfo, StreamInfo sInfo);
+    void buildFecStreamPacket(RTWorkerData* workerData, ConnInfo connInfo, StreamInfo sInfo);
+    void buildAckStreamPacket(RTWorkerData* workerData, ConnInfo connInfo, StreamInfo sInfo);
     void buildRedundancyPacket();
     int getRedundancyPacketNum(int fecopn, double packetLossRate);
 
 private:
     XMDCommonData* commonData_;
+    WorkerCommonData* workerCommonData_;
     PacketDispatcher* dispatcher_;
     //unsigned char fecRedundancyData_[MAX_ORIGIN_PACKET_NUM_IN_PARTITION * (MAX_PACKET_SIZE + STREAM_LEN_SIZE)];
     int partition_size_;
@@ -73,6 +74,7 @@ private:
     bool isBigPacket_;
     int sendPacketPreMS_;
     uint64_t sendTime_;
+    int worker_id_;
     
 };
 

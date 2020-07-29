@@ -92,8 +92,8 @@ bool Fec::reverse_matrix(int* input) {
 }
 
 void Fec::swap(int* input, int* output, int dimension, int row1, int row2) {
-	int* tmpInput = new int[dimension];
-	int* tmpOutput = new int[dimension];
+    int tmpInput[dimension];
+    int tmpOutput[dimension];
 
     for (int i = 0; i < dimension; i++) {
         tmpInput[i] = input[row1 * dimension + i];
@@ -108,8 +108,6 @@ void Fec::swap(int* input, int* output, int dimension, int row1, int row2) {
         input[row2 * dimension + i] = tmpInput[i];
         output[row2 * dimension + i] = tmpOutput[i];
     }
-	delete[] tmpInput;
-	delete[] tmpOutput;
 }
 
 

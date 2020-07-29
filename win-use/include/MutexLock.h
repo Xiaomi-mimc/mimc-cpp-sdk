@@ -1,20 +1,20 @@
 #ifndef MUTEXLOCK_H_
 #define MUTEXLOCK_H_
 
-#include <mutex>
+#include <pthread.h>
 
 class MutexLock {
 public:
-    MutexLock(std::mutex * mutex = NULL);
+    MutexLock(pthread_mutex_t * mutex = NULL);
     virtual ~MutexLock();
 
 public:
-    void setMutex(std::mutex * mutex);
+    void setMutex(pthread_mutex_t * mutex);
     void lock();
     void unlock();
 
 protected:
-    std::mutex * mutex;
+    pthread_mutex_t * mutex;
 };
 
 #endif

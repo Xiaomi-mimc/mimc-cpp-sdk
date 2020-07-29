@@ -2,7 +2,7 @@
 // source: rts_signal.proto
 
 #define INTERNAL_SUPPRESS_PROTOBUF_FIELD_DEPRECATION
-#include <mimc/rts_signal.pb.h>
+#include "mimc/rts_signal.pb.h"
 
 #include <algorithm>
 
@@ -29,6 +29,14 @@ void protobuf_ShutdownFile_rts_5fsignal_2eproto() {
   delete PingResponse::default_instance_;
   delete ByeRequest::default_instance_;
   delete ByeResponse::default_instance_;
+  delete CreateChannelRequest::default_instance_;
+  delete CreateChannelResponse::default_instance_;
+  delete JoinChannelRequest::default_instance_;
+  delete JoinChannelResponse::default_instance_;
+  delete LeaveChannelRequest::default_instance_;
+  delete LeaveChannelResponse::default_instance_;
+  delete UserJoinNotification::default_instance_;
+  delete UserLeaveNotification::default_instance_;
   delete UpdateCallInfo::default_instance_;
 }
 
@@ -44,6 +52,7 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
 #endif
+  ::mimc::protobuf_AddDesc_rts_5fdata_2eproto();
   UserInfo::default_instance_ = new UserInfo();
   CallInfo::default_instance_ = new CallInfo();
   XmqRTSExchange::default_instance_ = new XmqRTSExchange();
@@ -58,6 +67,14 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
   PingResponse::default_instance_ = new PingResponse();
   ByeRequest::default_instance_ = new ByeRequest();
   ByeResponse::default_instance_ = new ByeResponse();
+  CreateChannelRequest::default_instance_ = new CreateChannelRequest();
+  CreateChannelResponse::default_instance_ = new CreateChannelResponse();
+  JoinChannelRequest::default_instance_ = new JoinChannelRequest();
+  JoinChannelResponse::default_instance_ = new JoinChannelResponse();
+  LeaveChannelRequest::default_instance_ = new LeaveChannelRequest();
+  LeaveChannelResponse::default_instance_ = new LeaveChannelResponse();
+  UserJoinNotification::default_instance_ = new UserJoinNotification();
+  UserLeaveNotification::default_instance_ = new UserLeaveNotification();
   UpdateCallInfo::default_instance_ = new UpdateCallInfo();
   UserInfo::default_instance_->InitAsDefaultInstance();
   CallInfo::default_instance_->InitAsDefaultInstance();
@@ -73,6 +90,14 @@ void protobuf_AddDesc_rts_5fsignal_2eproto() {
   PingResponse::default_instance_->InitAsDefaultInstance();
   ByeRequest::default_instance_->InitAsDefaultInstance();
   ByeResponse::default_instance_->InitAsDefaultInstance();
+  CreateChannelRequest::default_instance_->InitAsDefaultInstance();
+  CreateChannelResponse::default_instance_->InitAsDefaultInstance();
+  JoinChannelRequest::default_instance_->InitAsDefaultInstance();
+  JoinChannelResponse::default_instance_->InitAsDefaultInstance();
+  LeaveChannelRequest::default_instance_->InitAsDefaultInstance();
+  LeaveChannelResponse::default_instance_->InitAsDefaultInstance();
+  UserJoinNotification::default_instance_->InitAsDefaultInstance();
+  UserLeaveNotification::default_instance_->InitAsDefaultInstance();
   UpdateCallInfo::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_rts_5fsignal_2eproto);
 }
@@ -103,17 +128,14 @@ bool RTSMessageType_IsValid(int value) {
     case 8:
     case 9:
     case 10:
-    case 99:
-      return true;
-    default:
-      return false;
-  }
-}
-
-bool CallType_IsValid(int value) {
-  switch(value) {
-    case 1:
-    case 2:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
       return true;
     default:
       return false;
@@ -142,6 +164,10 @@ bool RTSResult_IsValid(int value) {
     case 6:
     case 7:
     case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
     case 99:
       return true;
     default:
@@ -766,6 +792,8 @@ const int CallInfo::kCallStatusFieldNumber;
 const int CallInfo::kCreatorIdFieldNumber;
 const int CallInfo::kCreatorResourceFieldNumber;
 const int CallInfo::kMembersFieldNumber;
+const int CallInfo::kCallKeyFieldNumber;
+const int CallInfo::kExtraFieldNumber;
 #endif  // !_MSC_VER
 
 CallInfo::CallInfo()
@@ -789,6 +817,8 @@ void CallInfo::SharedCtor() {
   callstatus_ = 1;
   creatorid_ = GOOGLE_LONGLONG(0);
   creatorresource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
 
@@ -799,6 +829,12 @@ CallInfo::~CallInfo() {
 void CallInfo::SharedDtor() {
   if (creatorresource_ != &::google::protobuf::internal::kEmptyString) {
     delete creatorresource_;
+  }
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
   }
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   if (this != &default_instance()) {
@@ -837,6 +873,16 @@ void CallInfo::Clear() {
     if (has_creatorresource()) {
       if (creatorresource_ != &::google::protobuf::internal::kEmptyString) {
         creatorresource_->clear();
+      }
+    }
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    if (has_extra()) {
+      if (extra_ != &::google::protobuf::internal::kEmptyString) {
+        extra_->clear();
       }
     }
   }
@@ -944,6 +990,34 @@ bool CallInfo::MergePartialFromCodedStream(
           goto handle_uninterpreted;
         }
         if (input->ExpectTag(50)) goto parse_members;
+        if (input->ExpectTag(58)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 7;
+      case 7: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(66)) goto parse_extra;
+        break;
+      }
+
+      // optional bytes extra = 8;
+      case 8: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_extra:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_extra()));
+        } else {
+          goto handle_uninterpreted;
+        }
         if (input->ExpectAtEnd()) return true;
         break;
       }
@@ -999,6 +1073,18 @@ void CallInfo::SerializeWithCachedSizes(
       6, this->members(i), output);
   }
 
+  // optional string callKey = 7;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      7, this->callkey(), output);
+  }
+
+  // optional bytes extra = 8;
+  if (has_extra()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      8, this->extra(), output);
+  }
+
 }
 
 int CallInfo::ByteSize() const {
@@ -1036,6 +1122,20 @@ int CallInfo::ByteSize() const {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::StringSize(
           this->creatorresource());
+    }
+
+    // optional string callKey = 7;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional bytes extra = 8;
+    if (has_extra()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->extra());
     }
 
   }
@@ -1077,6 +1177,12 @@ void CallInfo::MergeFrom(const CallInfo& from) {
     if (from.has_creatorresource()) {
       set_creatorresource(from.creatorresource());
     }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_extra()) {
+      set_extra(from.extra());
+    }
   }
 }
 
@@ -1099,6 +1205,8 @@ void CallInfo::Swap(CallInfo* other) {
     std::swap(creatorid_, other->creatorid_);
     std::swap(creatorresource_, other->creatorresource_);
     members_.Swap(&other->members_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(extra_, other->extra_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     std::swap(_cached_size_, other->_cached_size_);
   }
@@ -3988,6 +4096,2233 @@ void ByeResponse::Swap(ByeResponse* other) {
 
 ::std::string ByeResponse::GetTypeName() const {
   return "mimc.ByeResponse";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int CreateChannelRequest::kUserFieldNumber;
+const int CreateChannelRequest::kIdentityFieldNumber;
+const int CreateChannelRequest::kExtraFieldNumber;
+#endif  // !_MSC_VER
+
+CreateChannelRequest::CreateChannelRequest()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void CreateChannelRequest::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+CreateChannelRequest::CreateChannelRequest(const CreateChannelRequest& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void CreateChannelRequest::SharedCtor() {
+  _cached_size_ = 0;
+  user_ = NULL;
+  identity_ = GOOGLE_ULONGLONG(0);
+  extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+CreateChannelRequest::~CreateChannelRequest() {
+  SharedDtor();
+}
+
+void CreateChannelRequest::SharedDtor() {
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void CreateChannelRequest::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const CreateChannelRequest& CreateChannelRequest::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+CreateChannelRequest* CreateChannelRequest::default_instance_ = NULL;
+
+CreateChannelRequest* CreateChannelRequest::New() const {
+  return new CreateChannelRequest;
+}
+
+void CreateChannelRequest::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+    identity_ = GOOGLE_ULONGLONG(0);
+    if (has_extra()) {
+      if (extra_ != &::google::protobuf::internal::kEmptyString) {
+        extra_->clear();
+      }
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool CreateChannelRequest::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mimc.UserInfo user = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_identity;
+        break;
+      }
+
+      // optional uint64 identity = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_identity:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &identity_)));
+          set_has_identity();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_extra;
+        break;
+      }
+
+      // optional bytes extra = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_extra:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_extra()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void CreateChannelRequest::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional .mimc.UserInfo user = 1;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      1, this->user(), output);
+  }
+
+  // optional uint64 identity = 2;
+  if (has_identity()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(2, this->identity(), output);
+  }
+
+  // optional bytes extra = 3;
+  if (has_extra()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      3, this->extra(), output);
+  }
+
+}
+
+int CreateChannelRequest::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional .mimc.UserInfo user = 1;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+    // optional uint64 identity = 2;
+    if (has_identity()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->identity());
+    }
+
+    // optional bytes extra = 3;
+    if (has_extra()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->extra());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void CreateChannelRequest::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const CreateChannelRequest*>(&from));
+}
+
+void CreateChannelRequest::MergeFrom(const CreateChannelRequest& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+    if (from.has_identity()) {
+      set_identity(from.identity());
+    }
+    if (from.has_extra()) {
+      set_extra(from.extra());
+    }
+  }
+}
+
+void CreateChannelRequest::CopyFrom(const CreateChannelRequest& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool CreateChannelRequest::IsInitialized() const {
+
+  return true;
+}
+
+void CreateChannelRequest::Swap(CreateChannelRequest* other) {
+  if (other != this) {
+    std::swap(user_, other->user_);
+    std::swap(identity_, other->identity_);
+    std::swap(extra_, other->extra_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string CreateChannelRequest::GetTypeName() const {
+  return "mimc.CreateChannelRequest";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int CreateChannelResponse::kResultFieldNumber;
+const int CreateChannelResponse::kDescFieldNumber;
+const int CreateChannelResponse::kCallIdFieldNumber;
+const int CreateChannelResponse::kCallKeyFieldNumber;
+const int CreateChannelResponse::kIdentityFieldNumber;
+const int CreateChannelResponse::kExtraFieldNumber;
+const int CreateChannelResponse::kUserFieldNumber;
+#endif  // !_MSC_VER
+
+CreateChannelResponse::CreateChannelResponse()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void CreateChannelResponse::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+CreateChannelResponse::CreateChannelResponse(const CreateChannelResponse& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void CreateChannelResponse::SharedCtor() {
+  _cached_size_ = 0;
+  result_ = 0;
+  desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  callid_ = GOOGLE_ULONGLONG(0);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  identity_ = GOOGLE_ULONGLONG(0);
+  extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  user_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+CreateChannelResponse::~CreateChannelResponse() {
+  SharedDtor();
+}
+
+void CreateChannelResponse::SharedDtor() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void CreateChannelResponse::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const CreateChannelResponse& CreateChannelResponse::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+CreateChannelResponse* CreateChannelResponse::default_instance_ = NULL;
+
+CreateChannelResponse* CreateChannelResponse::New() const {
+  return new CreateChannelResponse;
+}
+
+void CreateChannelResponse::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    result_ = 0;
+    if (has_desc()) {
+      if (desc_ != &::google::protobuf::internal::kEmptyString) {
+        desc_->clear();
+      }
+    }
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    identity_ = GOOGLE_ULONGLONG(0);
+    if (has_extra()) {
+      if (extra_ != &::google::protobuf::internal::kEmptyString) {
+        extra_->clear();
+      }
+    }
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool CreateChannelResponse::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mimc.RTSResult result = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::mimc::RTSResult_IsValid(value)) {
+            set_result(static_cast< ::mimc::RTSResult >(value));
+          }
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_desc;
+        break;
+      }
+
+      // optional string desc = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_desc:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_desc()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(24)) goto parse_callId;
+        break;
+      }
+
+      // optional uint64 callId = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_callId:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(34)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(40)) goto parse_identity;
+        break;
+      }
+
+      // optional uint64 identity = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_identity:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &identity_)));
+          set_has_identity();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(50)) goto parse_extra;
+        break;
+      }
+
+      // optional bytes extra = 6;
+      case 6: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_extra:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_extra()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(58)) goto parse_user;
+        break;
+      }
+
+      // optional .mimc.UserInfo user = 7;
+      case 7: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_user:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void CreateChannelResponse::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional .mimc.RTSResult result = 1;
+  if (has_result()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->result(), output);
+  }
+
+  // optional string desc = 2;
+  if (has_desc()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->desc(), output);
+  }
+
+  // optional uint64 callId = 3;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->callid(), output);
+  }
+
+  // optional string callKey = 4;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      4, this->callkey(), output);
+  }
+
+  // optional uint64 identity = 5;
+  if (has_identity()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(5, this->identity(), output);
+  }
+
+  // optional bytes extra = 6;
+  if (has_extra()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      6, this->extra(), output);
+  }
+
+  // optional .mimc.UserInfo user = 7;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      7, this->user(), output);
+  }
+
+}
+
+int CreateChannelResponse::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional .mimc.RTSResult result = 1;
+    if (has_result()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->result());
+    }
+
+    // optional string desc = 2;
+    if (has_desc()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->desc());
+    }
+
+    // optional uint64 callId = 3;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional string callKey = 4;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional uint64 identity = 5;
+    if (has_identity()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->identity());
+    }
+
+    // optional bytes extra = 6;
+    if (has_extra()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->extra());
+    }
+
+    // optional .mimc.UserInfo user = 7;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void CreateChannelResponse::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const CreateChannelResponse*>(&from));
+}
+
+void CreateChannelResponse::MergeFrom(const CreateChannelResponse& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_result()) {
+      set_result(from.result());
+    }
+    if (from.has_desc()) {
+      set_desc(from.desc());
+    }
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_identity()) {
+      set_identity(from.identity());
+    }
+    if (from.has_extra()) {
+      set_extra(from.extra());
+    }
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+  }
+}
+
+void CreateChannelResponse::CopyFrom(const CreateChannelResponse& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool CreateChannelResponse::IsInitialized() const {
+
+  return true;
+}
+
+void CreateChannelResponse::Swap(CreateChannelResponse* other) {
+  if (other != this) {
+    std::swap(result_, other->result_);
+    std::swap(desc_, other->desc_);
+    std::swap(callid_, other->callid_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(identity_, other->identity_);
+    std::swap(extra_, other->extra_);
+    std::swap(user_, other->user_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string CreateChannelResponse::GetTypeName() const {
+  return "mimc.CreateChannelResponse";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int JoinChannelRequest::kCallIdFieldNumber;
+const int JoinChannelRequest::kCallKeyFieldNumber;
+const int JoinChannelRequest::kUserFieldNumber;
+#endif  // !_MSC_VER
+
+JoinChannelRequest::JoinChannelRequest()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void JoinChannelRequest::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+JoinChannelRequest::JoinChannelRequest(const JoinChannelRequest& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void JoinChannelRequest::SharedCtor() {
+  _cached_size_ = 0;
+  callid_ = GOOGLE_ULONGLONG(0);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  user_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+JoinChannelRequest::~JoinChannelRequest() {
+  SharedDtor();
+}
+
+void JoinChannelRequest::SharedDtor() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void JoinChannelRequest::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const JoinChannelRequest& JoinChannelRequest::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+JoinChannelRequest* JoinChannelRequest::default_instance_ = NULL;
+
+JoinChannelRequest* JoinChannelRequest::New() const {
+  return new JoinChannelRequest;
+}
+
+void JoinChannelRequest::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool JoinChannelRequest::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 callId = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_user;
+        break;
+      }
+
+      // optional .mimc.UserInfo user = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_user:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void JoinChannelRequest::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
+  }
+
+  // optional string callKey = 2;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->callkey(), output);
+  }
+
+  // optional .mimc.UserInfo user = 3;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      3, this->user(), output);
+  }
+
+}
+
+int JoinChannelRequest::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional string callKey = 2;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional .mimc.UserInfo user = 3;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void JoinChannelRequest::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const JoinChannelRequest*>(&from));
+}
+
+void JoinChannelRequest::MergeFrom(const JoinChannelRequest& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+  }
+}
+
+void JoinChannelRequest::CopyFrom(const JoinChannelRequest& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool JoinChannelRequest::IsInitialized() const {
+
+  return true;
+}
+
+void JoinChannelRequest::Swap(JoinChannelRequest* other) {
+  if (other != this) {
+    std::swap(callid_, other->callid_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(user_, other->user_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string JoinChannelRequest::GetTypeName() const {
+  return "mimc.JoinChannelRequest";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int JoinChannelResponse::kResultFieldNumber;
+const int JoinChannelResponse::kDescFieldNumber;
+const int JoinChannelResponse::kCallIdFieldNumber;
+const int JoinChannelResponse::kExtraFieldNumber;
+const int JoinChannelResponse::kUsersFieldNumber;
+#endif  // !_MSC_VER
+
+JoinChannelResponse::JoinChannelResponse()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void JoinChannelResponse::InitAsDefaultInstance() {
+}
+
+JoinChannelResponse::JoinChannelResponse(const JoinChannelResponse& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void JoinChannelResponse::SharedCtor() {
+  _cached_size_ = 0;
+  result_ = 0;
+  desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  callid_ = GOOGLE_ULONGLONG(0);
+  extra_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+JoinChannelResponse::~JoinChannelResponse() {
+  SharedDtor();
+}
+
+void JoinChannelResponse::SharedDtor() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  if (extra_ != &::google::protobuf::internal::kEmptyString) {
+    delete extra_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+  }
+}
+
+void JoinChannelResponse::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const JoinChannelResponse& JoinChannelResponse::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+JoinChannelResponse* JoinChannelResponse::default_instance_ = NULL;
+
+JoinChannelResponse* JoinChannelResponse::New() const {
+  return new JoinChannelResponse;
+}
+
+void JoinChannelResponse::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    result_ = 0;
+    if (has_desc()) {
+      if (desc_ != &::google::protobuf::internal::kEmptyString) {
+        desc_->clear();
+      }
+    }
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_extra()) {
+      if (extra_ != &::google::protobuf::internal::kEmptyString) {
+        extra_->clear();
+      }
+    }
+  }
+  users_.Clear();
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool JoinChannelResponse::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mimc.RTSResult result = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::mimc::RTSResult_IsValid(value)) {
+            set_result(static_cast< ::mimc::RTSResult >(value));
+          }
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_desc;
+        break;
+      }
+
+      // optional string desc = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_desc:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_desc()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(24)) goto parse_callId;
+        break;
+      }
+
+      // optional uint64 callId = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_callId:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(34)) goto parse_extra;
+        break;
+      }
+
+      // optional bytes extra = 4;
+      case 4: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_extra:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_extra()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(42)) goto parse_users;
+        break;
+      }
+
+      // repeated .mimc.UserInfo users = 5;
+      case 5: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_users:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+                input, add_users()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(42)) goto parse_users;
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void JoinChannelResponse::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional .mimc.RTSResult result = 1;
+  if (has_result()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->result(), output);
+  }
+
+  // optional string desc = 2;
+  if (has_desc()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->desc(), output);
+  }
+
+  // optional uint64 callId = 3;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->callid(), output);
+  }
+
+  // optional bytes extra = 4;
+  if (has_extra()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      4, this->extra(), output);
+  }
+
+  // repeated .mimc.UserInfo users = 5;
+  for (int i = 0; i < this->users_size(); i++) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      5, this->users(i), output);
+  }
+
+}
+
+int JoinChannelResponse::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional .mimc.RTSResult result = 1;
+    if (has_result()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->result());
+    }
+
+    // optional string desc = 2;
+    if (has_desc()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->desc());
+    }
+
+    // optional uint64 callId = 3;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional bytes extra = 4;
+    if (has_extra()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->extra());
+    }
+
+  }
+  // repeated .mimc.UserInfo users = 5;
+  total_size += 1 * this->users_size();
+  for (int i = 0; i < this->users_size(); i++) {
+    total_size +=
+      ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+        this->users(i));
+  }
+
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void JoinChannelResponse::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const JoinChannelResponse*>(&from));
+}
+
+void JoinChannelResponse::MergeFrom(const JoinChannelResponse& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  users_.MergeFrom(from.users_);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_result()) {
+      set_result(from.result());
+    }
+    if (from.has_desc()) {
+      set_desc(from.desc());
+    }
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_extra()) {
+      set_extra(from.extra());
+    }
+  }
+}
+
+void JoinChannelResponse::CopyFrom(const JoinChannelResponse& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool JoinChannelResponse::IsInitialized() const {
+
+  return true;
+}
+
+void JoinChannelResponse::Swap(JoinChannelResponse* other) {
+  if (other != this) {
+    std::swap(result_, other->result_);
+    std::swap(desc_, other->desc_);
+    std::swap(callid_, other->callid_);
+    std::swap(extra_, other->extra_);
+    users_.Swap(&other->users_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string JoinChannelResponse::GetTypeName() const {
+  return "mimc.JoinChannelResponse";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int LeaveChannelRequest::kCallIdFieldNumber;
+const int LeaveChannelRequest::kCallKeyFieldNumber;
+const int LeaveChannelRequest::kUserFieldNumber;
+#endif  // !_MSC_VER
+
+LeaveChannelRequest::LeaveChannelRequest()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void LeaveChannelRequest::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+LeaveChannelRequest::LeaveChannelRequest(const LeaveChannelRequest& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void LeaveChannelRequest::SharedCtor() {
+  _cached_size_ = 0;
+  callid_ = GOOGLE_ULONGLONG(0);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  user_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+LeaveChannelRequest::~LeaveChannelRequest() {
+  SharedDtor();
+}
+
+void LeaveChannelRequest::SharedDtor() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void LeaveChannelRequest::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const LeaveChannelRequest& LeaveChannelRequest::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+LeaveChannelRequest* LeaveChannelRequest::default_instance_ = NULL;
+
+LeaveChannelRequest* LeaveChannelRequest::New() const {
+  return new LeaveChannelRequest;
+}
+
+void LeaveChannelRequest::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool LeaveChannelRequest::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 callId = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_user;
+        break;
+      }
+
+      // optional .mimc.UserInfo user = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_user:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void LeaveChannelRequest::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
+  }
+
+  // optional string callKey = 2;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->callkey(), output);
+  }
+
+  // optional .mimc.UserInfo user = 3;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      3, this->user(), output);
+  }
+
+}
+
+int LeaveChannelRequest::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional string callKey = 2;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional .mimc.UserInfo user = 3;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void LeaveChannelRequest::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const LeaveChannelRequest*>(&from));
+}
+
+void LeaveChannelRequest::MergeFrom(const LeaveChannelRequest& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+  }
+}
+
+void LeaveChannelRequest::CopyFrom(const LeaveChannelRequest& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool LeaveChannelRequest::IsInitialized() const {
+
+  return true;
+}
+
+void LeaveChannelRequest::Swap(LeaveChannelRequest* other) {
+  if (other != this) {
+    std::swap(callid_, other->callid_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(user_, other->user_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string LeaveChannelRequest::GetTypeName() const {
+  return "mimc.LeaveChannelRequest";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int LeaveChannelResponse::kResultFieldNumber;
+const int LeaveChannelResponse::kDescFieldNumber;
+const int LeaveChannelResponse::kCallIdFieldNumber;
+#endif  // !_MSC_VER
+
+LeaveChannelResponse::LeaveChannelResponse()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void LeaveChannelResponse::InitAsDefaultInstance() {
+}
+
+LeaveChannelResponse::LeaveChannelResponse(const LeaveChannelResponse& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void LeaveChannelResponse::SharedCtor() {
+  _cached_size_ = 0;
+  result_ = 0;
+  desc_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  callid_ = GOOGLE_ULONGLONG(0);
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+LeaveChannelResponse::~LeaveChannelResponse() {
+  SharedDtor();
+}
+
+void LeaveChannelResponse::SharedDtor() {
+  if (desc_ != &::google::protobuf::internal::kEmptyString) {
+    delete desc_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+  }
+}
+
+void LeaveChannelResponse::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const LeaveChannelResponse& LeaveChannelResponse::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+LeaveChannelResponse* LeaveChannelResponse::default_instance_ = NULL;
+
+LeaveChannelResponse* LeaveChannelResponse::New() const {
+  return new LeaveChannelResponse;
+}
+
+void LeaveChannelResponse::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    result_ = 0;
+    if (has_desc()) {
+      if (desc_ != &::google::protobuf::internal::kEmptyString) {
+        desc_->clear();
+      }
+    }
+    callid_ = GOOGLE_ULONGLONG(0);
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool LeaveChannelResponse::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional .mimc.RTSResult result = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          int value;
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   int, ::google::protobuf::internal::WireFormatLite::TYPE_ENUM>(
+                 input, &value)));
+          if (::mimc::RTSResult_IsValid(value)) {
+            set_result(static_cast< ::mimc::RTSResult >(value));
+          }
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_desc;
+        break;
+      }
+
+      // optional string desc = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_desc:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_desc()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(24)) goto parse_callId;
+        break;
+      }
+
+      // optional uint64 callId = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_callId:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void LeaveChannelResponse::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional .mimc.RTSResult result = 1;
+  if (has_result()) {
+    ::google::protobuf::internal::WireFormatLite::WriteEnum(
+      1, this->result(), output);
+  }
+
+  // optional string desc = 2;
+  if (has_desc()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->desc(), output);
+  }
+
+  // optional uint64 callId = 3;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(3, this->callid(), output);
+  }
+
+}
+
+int LeaveChannelResponse::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional .mimc.RTSResult result = 1;
+    if (has_result()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::EnumSize(this->result());
+    }
+
+    // optional string desc = 2;
+    if (has_desc()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->desc());
+    }
+
+    // optional uint64 callId = 3;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void LeaveChannelResponse::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const LeaveChannelResponse*>(&from));
+}
+
+void LeaveChannelResponse::MergeFrom(const LeaveChannelResponse& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_result()) {
+      set_result(from.result());
+    }
+    if (from.has_desc()) {
+      set_desc(from.desc());
+    }
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+  }
+}
+
+void LeaveChannelResponse::CopyFrom(const LeaveChannelResponse& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool LeaveChannelResponse::IsInitialized() const {
+
+  return true;
+}
+
+void LeaveChannelResponse::Swap(LeaveChannelResponse* other) {
+  if (other != this) {
+    std::swap(result_, other->result_);
+    std::swap(desc_, other->desc_);
+    std::swap(callid_, other->callid_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string LeaveChannelResponse::GetTypeName() const {
+  return "mimc.LeaveChannelResponse";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int UserJoinNotification::kCallIdFieldNumber;
+const int UserJoinNotification::kCallKeyFieldNumber;
+const int UserJoinNotification::kUserFieldNumber;
+#endif  // !_MSC_VER
+
+UserJoinNotification::UserJoinNotification()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void UserJoinNotification::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+UserJoinNotification::UserJoinNotification(const UserJoinNotification& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void UserJoinNotification::SharedCtor() {
+  _cached_size_ = 0;
+  callid_ = GOOGLE_ULONGLONG(0);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  user_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+UserJoinNotification::~UserJoinNotification() {
+  SharedDtor();
+}
+
+void UserJoinNotification::SharedDtor() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void UserJoinNotification::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const UserJoinNotification& UserJoinNotification::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+UserJoinNotification* UserJoinNotification::default_instance_ = NULL;
+
+UserJoinNotification* UserJoinNotification::New() const {
+  return new UserJoinNotification;
+}
+
+void UserJoinNotification::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool UserJoinNotification::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 callId = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_user;
+        break;
+      }
+
+      // optional .mimc.UserInfo user = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_user:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void UserJoinNotification::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
+  }
+
+  // optional string callKey = 2;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->callkey(), output);
+  }
+
+  // optional .mimc.UserInfo user = 3;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      3, this->user(), output);
+  }
+
+}
+
+int UserJoinNotification::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional string callKey = 2;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional .mimc.UserInfo user = 3;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void UserJoinNotification::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const UserJoinNotification*>(&from));
+}
+
+void UserJoinNotification::MergeFrom(const UserJoinNotification& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+  }
+}
+
+void UserJoinNotification::CopyFrom(const UserJoinNotification& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool UserJoinNotification::IsInitialized() const {
+
+  return true;
+}
+
+void UserJoinNotification::Swap(UserJoinNotification* other) {
+  if (other != this) {
+    std::swap(callid_, other->callid_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(user_, other->user_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string UserJoinNotification::GetTypeName() const {
+  return "mimc.UserJoinNotification";
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int UserLeaveNotification::kCallIdFieldNumber;
+const int UserLeaveNotification::kCallKeyFieldNumber;
+const int UserLeaveNotification::kUserFieldNumber;
+#endif  // !_MSC_VER
+
+UserLeaveNotification::UserLeaveNotification()
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+}
+
+void UserLeaveNotification::InitAsDefaultInstance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  user_ = const_cast< ::mimc::UserInfo*>(
+      ::mimc::UserInfo::internal_default_instance());
+#else
+  user_ = const_cast< ::mimc::UserInfo*>(&::mimc::UserInfo::default_instance());
+#endif
+}
+
+UserLeaveNotification::UserLeaveNotification(const UserLeaveNotification& from)
+  : ::google::protobuf::MessageLite() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void UserLeaveNotification::SharedCtor() {
+  _cached_size_ = 0;
+  callid_ = GOOGLE_ULONGLONG(0);
+  callkey_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  user_ = NULL;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+UserLeaveNotification::~UserLeaveNotification() {
+  SharedDtor();
+}
+
+void UserLeaveNotification::SharedDtor() {
+  if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+    delete callkey_;
+  }
+  #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  if (this != &default_instance()) {
+  #else
+  if (this != default_instance_) {
+  #endif
+    delete user_;
+  }
+}
+
+void UserLeaveNotification::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const UserLeaveNotification& UserLeaveNotification::default_instance() {
+#ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+  protobuf_AddDesc_rts_5fsignal_2eproto();
+#else
+  if (default_instance_ == NULL) protobuf_AddDesc_rts_5fsignal_2eproto();
+#endif
+  return *default_instance_;
+}
+
+UserLeaveNotification* UserLeaveNotification::default_instance_ = NULL;
+
+UserLeaveNotification* UserLeaveNotification::New() const {
+  return new UserLeaveNotification;
+}
+
+void UserLeaveNotification::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    callid_ = GOOGLE_ULONGLONG(0);
+    if (has_callkey()) {
+      if (callkey_ != &::google::protobuf::internal::kEmptyString) {
+        callkey_->clear();
+      }
+    }
+    if (has_user()) {
+      if (user_ != NULL) user_->::mimc::UserInfo::Clear();
+    }
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+bool UserLeaveNotification::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // optional uint64 callId = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::uint64, ::google::protobuf::internal::WireFormatLite::TYPE_UINT64>(
+                 input, &callid_)));
+          set_has_callid();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_callKey;
+        break;
+      }
+
+      // optional string callKey = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_callKey:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadString(
+                input, this->mutable_callkey()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(26)) goto parse_user;
+        break;
+      }
+
+      // optional .mimc.UserInfo user = 3;
+      case 3: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_user:
+          DO_(::google::protobuf::internal::WireFormatLite::ReadMessageNoVirtual(
+               input, mutable_user()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormatLite::SkipField(input, tag));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void UserLeaveNotification::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // optional uint64 callId = 1;
+  if (has_callid()) {
+    ::google::protobuf::internal::WireFormatLite::WriteUInt64(1, this->callid(), output);
+  }
+
+  // optional string callKey = 2;
+  if (has_callkey()) {
+    ::google::protobuf::internal::WireFormatLite::WriteString(
+      2, this->callkey(), output);
+  }
+
+  // optional .mimc.UserInfo user = 3;
+  if (has_user()) {
+    ::google::protobuf::internal::WireFormatLite::WriteMessage(
+      3, this->user(), output);
+  }
+
+}
+
+int UserLeaveNotification::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // optional uint64 callId = 1;
+    if (has_callid()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::UInt64Size(
+          this->callid());
+    }
+
+    // optional string callKey = 2;
+    if (has_callkey()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::StringSize(
+          this->callkey());
+    }
+
+    // optional .mimc.UserInfo user = 3;
+    if (has_user()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::MessageSizeNoVirtual(
+          this->user());
+    }
+
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void UserLeaveNotification::CheckTypeAndMergeFrom(
+    const ::google::protobuf::MessageLite& from) {
+  MergeFrom(*::google::protobuf::down_cast<const UserLeaveNotification*>(&from));
+}
+
+void UserLeaveNotification::MergeFrom(const UserLeaveNotification& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_callid()) {
+      set_callid(from.callid());
+    }
+    if (from.has_callkey()) {
+      set_callkey(from.callkey());
+    }
+    if (from.has_user()) {
+      mutable_user()->::mimc::UserInfo::MergeFrom(from.user());
+    }
+  }
+}
+
+void UserLeaveNotification::CopyFrom(const UserLeaveNotification& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool UserLeaveNotification::IsInitialized() const {
+
+  return true;
+}
+
+void UserLeaveNotification::Swap(UserLeaveNotification* other) {
+  if (other != this) {
+    std::swap(callid_, other->callid_);
+    std::swap(callkey_, other->callkey_);
+    std::swap(user_, other->user_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::std::string UserLeaveNotification::GetTypeName() const {
+  return "mimc.UserLeaveNotification";
 }
 
 

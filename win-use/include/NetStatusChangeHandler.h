@@ -7,4 +7,10 @@ public:
     virtual ~NetStatusChangeHandler() { }
 };
 
+class XMDSocketErrHandler {
+public:
+    virtual void handle(int err_no, std::string err_reson) { }
+    virtual ~XMDSocketErrHandler() { }
+};
+
 #endif

@@ -1,10 +1,10 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
-PROJECT(mimc_sdk)
+PROJECT(mimc-cpp-sdk)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
-set(NDK_STANDALONE_TOOLCHAIN /home/work/codes/toolchain/android-19)
+set(NDK_STANDALONE_TOOLCHAIN /home/houminjiang/codes/sdk/android-standalone-toolchain/ndk13b-arm)
 set(CMAKE_SYSTEM_NAME Android)
 set(CMAKE_SYSTEM_VERSION 19)
 set(CMAKE_C_COMPILER ${NDK_STANDALONE_TOOLCHAIN}/bin/arm-linux-androideabi-gcc)
@@ -20,8 +20,8 @@ add_definitions("--sysroot=${NDK_STANDALONE_TOOLCHAIN}/sysroot -Os -D_GLIBCXX_US
 file(GLOB MIMC_FILES ${PROJECT_SOURCE_DIR}/src/*.c ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.cc)
 file(GLOB JSONC_FILES ${PROJECT_SOURCE_DIR}/third-party/json-c/json-c/*.c)
 file(GLOB XMDTRANSCEIVER_FILES ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/src/*.cpp)
-set(PROTOBUF_FILES ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_gcc.cc 
-				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc  
+set(PROTOBUF_FILES ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_gcc.cc
+				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/atomicops_internals_x86_msvc.cc
 				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/common.cc
 				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/once.cc
 				   ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src/google/protobuf/stubs/stringprintf.cc
@@ -43,11 +43,15 @@ set(
         ${PROTOBUF_FILES}
 )
 
-include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c 
-${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0 ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src 
-${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include /home/work/codes/openssl/android-19/include)
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/msg-libs/xmdtransceiver/include ${PROJECT_SOURCE_DIR}/third-party/json-c
+${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0 ${PROJECT_SOURCE_DIR}/third-party/protobuf-2_5_0/src
+${PROJECT_SOURCE_DIR}/third-party/curl-7-59-0/include ${PROJECT_SOURCE_DIR}/third-party/openssl/include)
 
+<<<<<<< HEAD
+link_directories(${PROJECT_SOURCE_DIR}/third-party/libs)
+
+=======
 link_directories(/home/work/codes/streaming-sdk/third-party/MIMC/lib/android)
-
+>>>>>>> mimc-java-sdk-for-xmd
 add_library(mimc_sdk SHARED ${SOURCE_FILES})
 target_link_libraries(mimc_sdk crypto ssl curl-7-59-0)

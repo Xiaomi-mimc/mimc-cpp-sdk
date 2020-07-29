@@ -1,3 +1,4 @@
+sh compile_version_info.sh
 mv CMakeLists_Android.txt CMakeLists.txt
 rm -rf build
 mkdir build
@@ -13,3 +14,5 @@ cmake ..
 make
 cd ..
 mv CMakeLists.txt CMakeLists_Android.txt
+
+cat version.h

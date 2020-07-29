@@ -1,6 +1,6 @@
 #include "MutexLock.h"
 
-MutexLock::MutexLock(std::mutex * mutex /* = NULL */)
+MutexLock::MutexLock(pthread_mutex_t * mutex /* = NULL */)
     : mutex(mutex) {
     lock();
 }
@@ -9,7 +9,7 @@ MutexLock::~MutexLock() {
     unlock();
 }
 
-void MutexLock::setMutex(std::mutex * mutex) {
+void MutexLock::setMutex(pthread_mutex_t * mutex) {
     this->mutex = mutex;
 }
 
@@ -18,7 +18,7 @@ void MutexLock::lock() {
         return;
     }
 
-    mutex->lock();
+    pthread_mutex_lock(mutex);
 }
 
 void MutexLock::unlock() {
@@ -26,6 +26,6 @@ void MutexLock::unlock() {
         return;
     }
 
-    mutex->unlock();
+    pthread_mutex_unlock(mutex);
 }
 

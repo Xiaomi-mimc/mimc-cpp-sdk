@@ -73,6 +73,15 @@ const STREAM_STRATEGY STREAM_STRATEGY_MIN = FEC_STRATEGY;
 const STREAM_STRATEGY STREAM_STRATEGY_MAX = ACK_STRATEGY;
 const int STREAM_STRATEGY_ARRAYSIZE = STREAM_STRATEGY_MAX + 1;
 
+enum CallType {
+  SINGLE_CALL = 1,
+  CHANNEL_CALL = 2
+};
+bool CallType_IsValid(int value);
+const CallType CallType_MIN = SINGLE_CALL;
+const CallType CallType_MAX = CHANNEL_CALL;
+const int CallType_ARRAYSIZE = CallType_MAX + 1;
+
 enum KICK_REASON {
   REALY_CHEANGED = 1
 };
@@ -784,18 +793,28 @@ class PingRelayRequest : public ::google::protobuf::MessageLite {
   inline ::std::string* release_resource();
   inline void set_allocated_resource(::std::string* resource);
 
+  // optional .mimc.CallType callType = 3;
+  inline bool has_calltype() const;
+  inline void clear_calltype();
+  static const int kCallTypeFieldNumber = 3;
+  inline ::mimc::CallType calltype() const;
+  inline void set_calltype(::mimc::CallType value);
+
   // @@protoc_insertion_point(class_scope:mimc.PingRelayRequest)
  private:
   inline void set_has_uuid();
   inline void clear_has_uuid();
   inline void set_has_resource();
   inline void clear_has_resource();
+  inline void set_has_calltype();
+  inline void clear_has_calltype();
 
   ::google::protobuf::uint64 uuid_;
   ::std::string* resource_;
+  int calltype_;
 
   mutable int _cached_size_;
-  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+  ::google::protobuf::uint32 _has_bits_[(3 + 31) / 32];
 
   #ifdef GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
   friend void  protobuf_AddDesc_rts_5fdata_2eproto_impl();
@@ -2740,6 +2759,29 @@ inline void PingRelayRequest::set_allocated_resource(::std::string* resource) {
     clear_has_resource();
     resource_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   }
+}
+
+// optional .mimc.CallType callType = 3;
+inline bool PingRelayRequest::has_calltype() const {
+  return (_has_bits_[0] & 0x00000004u) != 0;
+}
+inline void PingRelayRequest::set_has_calltype() {
+  _has_bits_[0] |= 0x00000004u;
+}
+inline void PingRelayRequest::clear_has_calltype() {
+  _has_bits_[0] &= ~0x00000004u;
+}
+inline void PingRelayRequest::clear_calltype() {
+  calltype_ = 1;
+  clear_has_calltype();
+}
+inline ::mimc::CallType PingRelayRequest::calltype() const {
+  return static_cast< ::mimc::CallType >(calltype_);
+}
+inline void PingRelayRequest::set_calltype(::mimc::CallType value) {
+  assert(::mimc::CallType_IsValid(value));
+  set_has_calltype();
+  calltype_ = value;
 }
 
 // -------------------------------------------------------------------

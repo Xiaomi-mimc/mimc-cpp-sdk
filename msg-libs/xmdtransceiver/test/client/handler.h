@@ -1,9 +1,10 @@
 #include "XMDTransceiver.h"
 #include <iostream>
 
+
 class DataGramHandler : public DatagramRecvHandler {
 public:
-    virtual void handle(char* ip, int port, char* data, uint32_t len) {
+    virtual void handle(char* ip, int port, char* data, uint32_t len, unsigned char packetType) {
         std::string tmpStr(data, len);
         std::cout<<current_ms()<<":receive datagram.data=" << tmpStr << ",len=" << len << std::endl;
     }
@@ -19,6 +20,11 @@ public:
 
     virtual void ConnCreateSucc(uint64_t connId, void* ctx) {
         std::cout<<"create conn succ, conn id=" << connId<<std::endl;
+        if (ctx) {
+            char* tmp_ctx = (char*)ctx;
+            std::cout <<"conn ctx=" <<tmp_ctx <<std::endl;
+            delete[] tmp_ctx;
+        }
     }
     virtual void ConnCreateFail(uint64_t connId, void* ctx) {
         std::cout<<"create conn fail, conn id=" << connId<<std::endl;
@@ -58,10 +64,29 @@ public:
     }
     virtual void sendStreamDataSucc(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
         std::cout<<current_ms()<<":send stream data succ, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
+        char* tmp = (char*)ctx;
+        delete[] ctx;
     }
     
     virtual void sendStreamDataFail(uint64_t conn_id, uint16_t stream_id, uint32_t groupId, void* ctx) {
         std::cout<<"send stream data fail, connid="<<conn_id<<",stream id="<<stream_id<<",groupid="<<groupId<<std::endl;
+        char* tmp = (char*)ctx;
+        delete[] ctx;
     }
 };
+
+class SocketErrHander : public XMDSocketErrHandler {
+private:
+    XMDTransceiver* transceiver;
+
+public:
+    SocketErrHander(XMDTransceiver* t) {
+        transceiver = t;
+    }
+    virtual void handle(int err_no, std::string err_reson) {
+         std::cout<<"socket err " << err_no<< ",err reson=" << err_reson << std::endl;
+         transceiver->stop();
+    }
+};
+
 

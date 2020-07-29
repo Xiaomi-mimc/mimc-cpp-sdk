@@ -5,7 +5,7 @@
 
 class DatagramRecvHandler {
 public:
-    virtual void handle(char* ip, int port, char* data, uint32_t len) {}
+    virtual void handle(char* ip, int port, char* data, uint32_t len, unsigned char packetType) {}
     virtual ~DatagramRecvHandler() {}
 };
 

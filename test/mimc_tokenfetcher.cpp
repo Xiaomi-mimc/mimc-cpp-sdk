@@ -15,6 +15,7 @@ std::string TestTokenFetcher::fetchToken() {
             curl_easy_setopt(curl, CURLOPT_POST, 1);
             curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
             curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 
             struct curl_slist *headers = NULL;

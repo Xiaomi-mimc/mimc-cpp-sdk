@@ -11,9 +11,9 @@
 using namespace std;
 
 #ifndef STAGING
-string appId = "2882303761517669588";
-string appKey = "5111766983588";
-string appSecret = "b0L3IOz/9Ob809v8H2FbVg==";
+string appId = "2882303761517613988";
+string appKey = "5361761377988";
+string appSecret = "2SZbrJOAL1xHRKb7L9AiRQ==";
 #else
 string appId = "2882303761517479657";
 string appKey = "5221747911657";
@@ -105,7 +105,7 @@ protected:
 	}
 
 	void testP2PSendOneMessage() {
-
+		XMDLoggerWrapper::instance()->setXMDLogLevel(XMD_DEBUG);
 		user1->login();
 		//sleep(2);
 		std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -119,7 +119,7 @@ protected:
 		string payload1 = "你猜我是谁哈哈哈";
 		string packetId = user1->sendMessage(user2->getAppAccount(), payload1);
 		//usleep(200000);
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds(400));
 
 		string recvPacketId;
 		ASSERT_TRUE(user1MessageHandler->pollServerAck(recvPacketId));
